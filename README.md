@@ -92,7 +92,7 @@ python -m dw.build --day 2026-09-20 --days 3     # write the replay files (about
 
 ## Statement of work
 
-The handbook allows prior work if it is disclosed. Everything in this repository committed on 12 November 2026 was built, before the build window (14 to 15 November), and is prior work:
+The handbook allows prior work if it is disclosed. Everything in this repository committed on 12 November 2026 was built before the build window (14 to 15 November) and is prior work:
 
 - the full pipeline and web app (plan Tasks 1 to 12 and 14), the live deploy, and the tests;
 - background research, the 2023 replay accuracy test, the 2019 to 2025 model experiments (the visibility correction that was dropped and the persistence model that was adopted), the data-source check, the design spec, the build plan and the pitch deck, all kept in the wider project folder outside this repository.

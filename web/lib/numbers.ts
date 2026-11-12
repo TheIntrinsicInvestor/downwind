@@ -22,7 +22,8 @@ const roundTo = (x: number, dp: number) => Math.round(x * 10 ** dp) / 10 ** dp;
 const NUMBER_WORDS = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen " +
   "fifteen sixteen seventeen eighteen nineteen twenty").split(" ");
 const NEVER_WORDS = new Set(["hundred", "hundreds", "thousand", "thousands", "million", "millions", "billion", "half",
-  "dozen", "dozens", "twice", "double", "triple"]);
+  "dozen", "dozens", "twice", "double", "triple", "third", "thirds", "quarter", "quarters", "thirty", "forty", "fifty",
+  "sixty", "seventy", "eighty", "ninety"]);
 
 export function offending(text: string, facts: unknown): string[] {
   const known: number[] = [];

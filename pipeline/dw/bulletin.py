@@ -38,7 +38,8 @@ WORD = re.compile(r"[A-Za-z]+")
 NUMBER_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve "
                                            "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 NEVER_WORDS = {"hundred", "hundreds", "thousand", "thousands", "million", "millions", "billion", "half", "dozen",
-               "dozens", "twice", "double", "triple"}
+               "dozens", "twice", "double", "triple", "third", "thirds", "quarter", "quarters", "thirty", "forty",
+               "fifty", "sixty", "seventy", "eighty", "ninety"}
 DASHES = ("—", "–")                 # em and en dash
 TOKENS = {"total": 0}               # running total of tokens used, for the build report
 

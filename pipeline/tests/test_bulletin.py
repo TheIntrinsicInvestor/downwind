@@ -47,6 +47,7 @@ def fake_key(monkeypatch):
     ("Seven hours until smoke arrives; the top ten matter most.", []),     # 7 and 10 are facts
     ("Three fires left the list.", ["Three"]),
     ("About two million people, half of them in towns.", ["two", "million", "half"]),
+    ("Thirty fires carry a third, sixty percent or a quarter.", ["Thirty", "third", "sixty", "quarter"]),
     ("Smoke arrives in 7 hours, on 22 October 2026.", []),
     ("There are 1,412 Priority 1 fires and 12 crews.", []),      # 12 is share_pct: passes by value; documented limit
     ("There are 1,413 Priority 1 fires.", ["1,413"]),
