@@ -13,9 +13,19 @@ from dw import config
 BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 BULLETIN_MODELS = ["deepseek-ai/DeepSeek-V4-Pro-0813", "MiniMaxAI/MiniMax-M3"]
 SYSTEM_PROMPT = ("You write a morning briefing for a provincial fire task force in West Kalimantan. Use only the facts "
-                 "given. Every number you write must appear in the facts exactly; write numbers as digits with no "
-                 "rounding and no words like million. Do not name companies. 120 to 160 words, plain English, no "
-                 "headings, no em dashes. End with the limits sentence unchanged.")
+                 "given. Every number you write must appear in the facts exactly: write numbers as digits with no "
+                 "rounding and no words like million, and put commas in numbers of 1,000 or more (2,518,627). "
+                 "Call the people counted residents. A first_arrival_h of 0 means the smoke is already over "
+                 "residents when the window opens; say that rather than giving 0 hours. "
+                 "fires_that_left_top10_count counts fires, not places. What the facts mean: share_pct and "
+                 "top10_share_pct are shares of all the modelled smoke over residents from Priority 1 fires (not "
+                 "of an index or of activity); people_40km is the residents within radius_km of that fire's "
+                 "smoke path; first_arrival_h is the hours until its smoke first reaches the first of its top_places; "
+                 "heading is the direction the smoke is travelling towards (heading NW means it drifts to the "
+                 "northwest, not from it); top_places share_pct is how that fire's own smoke over residents splits "
+                 "between places; fires_date is when the fires were detected. Write in full sentences as a short "
+                 "paragraph, not a list. Do not name companies. 120 to 160 words, plain English, no headings, "
+                 "no em dashes. End with the limits sentence unchanged.")
 LIMITS_SENTENCE = ("This is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not "
                    "counted. The task force decides.")
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
@@ -64,7 +74,7 @@ def build_facts(res, prev) -> dict:
         "top10_share_pct": int(round(res.top10_share * 100)),
         "top": top,
         "new_in_top10": new,
-        "left_top10_count": left,
+        "fires_that_left_top10_count": left,
         "limits": LIMITS_SENTENCE,
     }
 
@@ -152,9 +162,9 @@ def template_bulletin(facts: dict) -> str:
         if t.get("heading"):
             s += f", and its smoke is heading {t['heading']}"
         if t.get("first_arrival_h") == 0:
-            s += ", already over people as the window opens"
+            s += ", already over residents as the window opens"
         elif t.get("first_arrival_h") is not None:
-            s += f", reaching people after {t['first_arrival_h']} hours"
+            s += f", reaching residents after {t['first_arrival_h']} hours"
         parts.append(s + ".")
     if facts.get("new_in_top10"):
         names = list(dict.fromkeys(n or "an unnamed location" for n in facts["new_in_top10"]))
@@ -169,7 +179,7 @@ def make_bulletin(facts: dict, *, opener=None) -> dict:
     try:
         for _ in range(2):
             text, model = call_llm(messages, BULLETIN_MODELS, opener=opener)
-            if not offending(text, facts) and "—" not in text:
+            if not offending(text, facts) and "—" not in text and text.endswith(LIMITS_SENTENCE):
                 return {"text": text, "source": "llm", "model": model}
     except LLMError:
         pass

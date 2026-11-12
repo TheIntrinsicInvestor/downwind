@@ -23,10 +23,10 @@ export default function CityView({ day, place, onPlace, onFire }: Props) {
       {place && (
         <>
           <p className="mt-3 text-xs text-stone-500">
-            Shares are of the modelled smoke over people in this place, from fires detected on {longDate(day.fires_date)}.
+            Shares are of the modelled smoke over residents in this place, from fires detected on {longDate(day.fires_date)}.
           </p>
           {rows.length === 0 ? (
-            <p className="mt-3 text-stone-600">No modelled smoke over people here on this day.</p>
+            <p className="mt-3 text-stone-600">No modelled smoke over residents here on this day.</p>
           ) : (
             <table className="mt-2 w-full">
               <thead>

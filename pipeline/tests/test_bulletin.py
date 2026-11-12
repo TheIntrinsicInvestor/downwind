@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from dw import config
-from dw.bulletin import BULLETIN_MODELS, LLMError, build_facts, call_llm, make_bulletin, offending, template_bulletin
+from dw.bulletin import BULLETIN_MODELS, LIMITS_SENTENCE, LLMError, build_facts, call_llm, make_bulletin, offending, template_bulletin
 from dw.rank import run_day
 from tests.conftest import T0, flat_met, one_fire, toy_grids
 
@@ -64,10 +64,15 @@ def test_invented_figure_falls_back_to_template():
 
 
 def test_clean_llm_text_is_used():
-    fake = fake_opener(["Fire 1 near Ketapang carries 12% of the smoke over 680,000 people."])
-    out = make_bulletin(FACTS, opener=fake)
-    assert out == {"text": "Fire 1 near Ketapang carries 12% of the smoke over 680,000 people.", "source": "llm",
-                   "model": BULLETIN_MODELS[0]}
+    text = "Fire 1 near Ketapang carries 12% of the smoke over 680,000 people. " + LIMITS_SENTENCE
+    out = make_bulletin(FACTS, opener=fake_opener([text]))
+    assert out == {"text": text, "source": "llm", "model": BULLETIN_MODELS[0]}
+
+
+def test_cut_off_limits_sentence_falls_back_to_template():
+    cut = "Fire 1 near Ketapang carries 12% of the smoke. " + LIMITS_SENTENCE[:-30]
+    out = make_bulletin(FACTS, opener=fake_opener([cut, cut]))
+    assert out["source"] == "template" and out["text"].endswith(LIMITS_SENTENCE)
 
 
 def test_models_alternate_and_empty_reply_is_failure():
@@ -112,7 +117,7 @@ def test_build_facts_shape():
     assert f["date"] == "22 October 2026" and f["fires_date"] == "21 October 2026"
     assert f["window_hours"] == 48 and f["radius_km"] == 40 and f["p1_count"] == 3
     assert len(f["top"]) == 3 and f["top"][0]["rank"] == 1 and f["top"][0]["near"] == "Kota Toy"
-    assert f["new_in_top10"] == [] and f["left_top10_count"] == 0
+    assert f["new_in_top10"] == [] and f["fires_that_left_top10_count"] == 0
     assert f["limits"].startswith("This is a ranking index")
 
 

@@ -15,7 +15,9 @@ from dw import config
 
 RES = 0.01                                  # degrees per raster cell
 KM_PER_CELL = 1.11
-OVERPASS = "https://overpass-api.de/api/interpreter"
+OVERPASS = ["https://overpass-api.de/api/interpreter",          # each retry moves to the next mirror
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://overpass.private.coffee/api/interpreter"]
 LINES_PATH = config.DATA / "osm_lines.json"
 UA = {"User-Agent": "downwind-pipeline/0.1"}
 
@@ -39,7 +41,7 @@ def fetch_osm_lines() -> None:
                  f'way["waterway"="river"]({box}););out geom;')
             for attempt in range(3):
                 try:
-                    req = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({"data": q}).encode("utf-8"), headers=UA)
+                    req = urllib.request.Request(OVERPASS[attempt % len(OVERPASS)], data=urllib.parse.urlencode({"data": q}).encode("utf-8"), headers=UA)
                     els = json.loads(urllib.request.urlopen(req, timeout=240).read().decode("utf-8"))["elements"]
                     break
                 except Exception as ex:

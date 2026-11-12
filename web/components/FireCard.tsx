@@ -32,7 +32,7 @@ export default function FireCard({ fire, nRanked, onClose }: Props) {
       )}
 
       <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-        {fire.share !== null && (<><dt className="text-stone-500">Share of smoke over people</dt><dd className="tabular-nums">{pct(fire.share, 1)}</dd></>)}
+        {fire.share !== null && (<><dt className="text-stone-500">Share of smoke over residents</dt><dd className="tabular-nums">{pct(fire.share, 1)}</dd></>)}
         {top && fire.first_arrival_h !== null && (
           <><dt className="text-stone-500">First smoke over {top.name}</dt><dd className="tabular-nums">after {fire.first_arrival_h} h</dd></>
         )}
