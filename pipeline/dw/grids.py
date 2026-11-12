@@ -6,6 +6,7 @@ from functools import lru_cache
 
 import numpy as np
 from PIL import Image, ImageDraw
+from scipy.ndimage import distance_transform_edt
 from scipy.signal import fftconvolve
 
 from dw import config
@@ -100,6 +101,31 @@ def _rasterise(features, values, background):
     return np.asarray(img)
 
 
+def _reconcile(adm2, province, n_names, max_cells=3):
+    """ADM1 and ADM2 are simplified separately, so border cells can disagree. A regency belongs to the province
+    holding most of its cells; a province cell labelled with an outside regency takes the nearest province
+    regency, and an outside cell labelled with a province regency takes the nearest outside regency within
+    max_cells (else none)."""
+    inside = np.bincount(adm2[province & (adm2 >= 0)], minlength=n_names)
+    total = np.bincount(adm2[adm2 >= 0], minlength=n_names)
+    prov_reg = inside * 2 > total
+    out = adm2.copy()
+    lab = adm2 >= 0
+    good_in = province & lab & prov_reg[np.where(lab, adm2, 0)]
+    good_out = ~province & lab & ~prov_reg[np.where(lab, adm2, 0)]
+    bad_in = province & lab & ~good_in
+    bad_out = ~province & lab & ~good_out
+    for bad, good, limit in ((bad_in, good_in, None), (bad_out, good_out, max_cells)):
+        if not bad.any() or not good.any():
+            continue
+        dist, (ri, ci) = distance_transform_edt(~good, return_indices=True)
+        take = bad if limit is None else bad & (dist <= limit)
+        out[take] = adm2[ri[take], ci[take]]
+        if limit is not None:
+            out[bad & (dist > limit)] = -1
+    return out
+
+
 def build_grids() -> None:
     pop, whole = _population()
     pop40 = np.maximum(fftconvolve(pop, _disc(), mode="same"), 0.0)
@@ -109,7 +135,7 @@ def build_grids() -> None:
     province = _rasterise(prov_feats, [1], 0).astype(bool)
     adm2 = json.loads((config.DATA / "adm2.geojson").read_text(encoding="utf-8"))["features"]
     names = [f["properties"]["shapeName"] for f in adm2]
-    adm2_idx = _rasterise(adm2, list(range(len(adm2))), -1).astype(np.int16)
+    adm2_idx = _reconcile(_rasterise(adm2, list(range(len(adm2))), -1).astype(np.int16), province, len(names))
     np.savez_compressed(config.DATA / "grids.npz", pop=pop, pop40=pop40, adm2=adm2_idx, province=province)
     (config.DATA / "adm2_names.json").write_text(json.dumps(names, ensure_ascii=False), encoding="utf-8")
     load_grids.cache_clear()

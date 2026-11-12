@@ -13,6 +13,7 @@ from dw.tiers import assign_tiers, build_squares
 FRAME_CAP = 8_000           # records per animation frame; the format allows 12,000, but particle records barely
                             # compress, and 8,000 keeps a full 5,000-fire day under 5 MB (12,000 gave 6.1 MB)
 TOP_PEOPLE = 20             # squares that get a people_40km figure
+TOP_SMOKE = 20              # best-ranked squares whose particles are always kept in the animation sample
 COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 
@@ -79,9 +80,9 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
                 r, c = grids.pop.index(la[m1], lo[m1])
                 ok = (r >= 0) & (r < NR) & (c >= 0) & (c < NC)
                 visited_keys.append(np.unique(s[m1][ok].astype(np.int64) * (NR * NC) + r[ok] * NC + c[ok]))
-        if frames is not None:
-            keep = pick[pid] if len(pid) else np.zeros(0, bool)
-            frames.append((la[keep].copy(), lo[keep].copy(), w[keep].copy(), src_rows[s[keep]] if ns else s[keep]))
+        if frames is not None:                  # candidates: background sample plus every province Priority 1 particle
+            keep = (pick[pid] | in_p1[s]) if len(pid) else np.zeros(0, bool)
+            frames.append((la[keep].copy(), lo[keep].copy(), w[keep].copy(), s[keep].copy(), pid[keep].copy()))
 
     run_particles(sq.lat.to_numpy(float)[src_rows] if n else [], sq.lon.to_numpy(float)[src_rows] if n else [],
                   w_src, {h: np.arange(ns) for h in range(RELEASE_H)} if ns else {}, met, day, WINDOW_H,
@@ -143,10 +144,34 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
         for i in sq.index[sq["rank"] <= TOP_PEOPLE]:
             sq.loc[i, "people_40km"] = 0.0
 
+    if frames is not None:
+        frames = _final_frames(frames, sq, src_rows, pick)
+
     p = sq[prov] if n else sq
     counts = {f"p{t}": int((p.tier == t).sum()) if n else 0 for t in (1, 2, 3)}
     return DayResult(date=day, squares=sq, place_fire=place_fire, counts=counts, top10_share=top10_share,
                      frames=frames)
+
+
+def _final_frames(cands, sq, src_rows, pick):
+    """Per hour: all particles of the TOP_SMOKE best-ranked squares (best rank first), then the background
+    sample, truncated to FRAME_CAP. Ordered by priority then particle id, so a particle keeps its place."""
+    prio = np.full(len(src_rows), np.inf)
+    if len(src_rows):
+        r = sq["rank"].to_numpy(float)[src_rows]
+        top = r <= TOP_SMOKE
+        prio[top] = r[top]
+    out = []
+    for la, lo, w, s, pid in cands:
+        if not len(la):
+            out.append((la, lo, w, s))
+            continue
+        pr = prio[s]
+        use = np.isfinite(pr) | pick[pid]
+        order = np.lexsort((pid[use], pr[use]))[:FRAME_CAP]
+        idx = np.where(use)[0][order]
+        out.append((la[idx], lo[idx], w[idx], src_rows[s[idx]]))
+    return out
 
 
 def _top10(res: DayResult) -> set:

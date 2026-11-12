@@ -43,3 +43,17 @@ def test_people_near_single_cell_equals_pop40(g):
     visited[r[0], c[0]] = True
     assert people_near(g, visited) == pytest.approx(g.pop40.values[r[0], c[0]], rel=0.02)
     assert people_near(g, np.zeros_like(visited)) == 0
+
+
+WEST_KALIMANTAN_REGENCIES = {
+    "Bengkayang", "Kapuas Hulu", "Kayong Utara", "Ketapang", "Kota Pontianak", "Kota Singkawang", "Kubu Raya",
+    "Landak", "Melawi", "Mempawah", "Sambas", "Sanggau", "Sekadau", "Sintang"}
+
+
+def test_province_cells_carry_only_province_regencies(g):
+    # ADM1 and ADM2 are simplified separately; a province cell must not be labelled with a neighbour's regency
+    v = g.adm2.values
+    inside = {g.adm2_names[i] for i in np.unique(v[g.province.values & (v >= 0)])}
+    assert inside == WEST_KALIMANTAN_REGENCIES
+    outside = {g.adm2_names[i] for i in np.unique(v[~g.province.values & (v >= 0)])}
+    assert not (outside & WEST_KALIMANTAN_REGENCIES)

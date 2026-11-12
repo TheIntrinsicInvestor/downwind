@@ -103,3 +103,15 @@ def test_persist_halves_exposure_same_squares():
     assert weighted.squares.id.tolist() == plain.squares.id.tolist()
     a = plain.squares.set_index("id").exposure[A_ID]
     assert weighted.squares.set_index("id").exposure[A_ID] == pytest.approx(0.5 * a)
+
+
+def test_frames_keep_all_smoke_of_top_fires(monkeypatch):
+    # with a tight cap, the best-ranked fires must keep all their particles so a selected fire's plume is visible
+    import dw.rank as rank_mod
+    monkeypatch.setattr(rank_mod, "FRAME_CAP", 150)
+    fires = pd.concat([one_fire(Y, -0.6 + 0.05 * i, 109.0) for i in range(25)], ignore_index=True)
+    res = run_day(T, fires, flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 1000), record_frames=True)
+    top = int(res.squares.index[res.squares["rank"] == 1][0])
+    la, lo, w, src = res.frames[10]
+    assert (src == top).sum() == 4 * 11            # k=4 particles an hour for 11 hours, none dropped
+    assert all(len(f[0]) <= 150 for f in res.frames)
