@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { type Day, type Index, type Mode, ReplayError, loadDay, loadIndex, localLabel, longDate, rankedFires } from "@/lib/replay";
+import { type Day, type Index, type Limits, type Mode, ReplayError, loadDay, loadIndex, loadLimits, localLabel, longDate, rankedFires } from "@/lib/replay";
 import TimeSlider from "./TimeSlider";
 import FireList from "./FireList";
 import FireCard from "./FireCard";
 import ModeToggle from "./ModeToggle";
+import LimitsPanel from "./LimitsPanel";
 
 // MapLibre touches window at import time, so the map loads in the browser only.
 // In Next 16, ssr:false is only allowed inside a Client Component, hence this wrapper.
@@ -33,6 +34,9 @@ export default function MapClient() {
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("downwind");
+  const [tab, setTab] = useState<"ranking" | "bulletin" | "limits">("ranking");
+  const [limits, setLimits] = useState<Limits | null>(null);
+  const [limitsError, setLimitsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (index) return;
@@ -60,6 +64,11 @@ export default function MapClient() {
     const t = setInterval(() => setFrame((f) => (f + 1) % data.day.hours), 1000 / FPS);
     return () => clearInterval(t);
   }, [playing, data]);
+
+  useEffect(() => {
+    if (limits) return;
+    loadLimits().then(setLimits).catch((e) => setLimitsError(e instanceof ReplayError ? e.message : "The accuracy and limits data could not be loaded."));
+  }, [limits, attempt]);
 
   const onSelect = useCallback((i: number | null) => setSelected(i), []);
 
@@ -130,11 +139,36 @@ export default function MapClient() {
           </div>
         )}
 
-        {day && <ModeToggle mode={mode} onMode={setMode} day={day} />}
-
-        {day && fire && <FireCard fire={fire} nRanked={nRanked} onClose={() => setSelected(null)} />}
-
         {day && (
+          <div role="tablist" aria-label="Panels" className="flex border-b border-stone-200 px-2">
+            {(["ranking", "bulletin", "limits"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={`px-3 py-2 text-sm font-medium ${tab === t ? "border-b-2 border-stone-900 text-stone-900" : "text-stone-500 hover:text-stone-800"}`}
+              >
+                {t === "ranking" ? "Ranking" : t === "bulletin" ? "Bulletin" : "Limits"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {day && tab === "limits" && (
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto"><LimitsPanel day={day} limits={limits} error={limitsError} /></div>
+        )}
+
+        {day && tab === "bulletin" && (
+          <p className="px-4 py-6 text-sm text-stone-600">{day.bulletin.text || "No bulletin for this day yet."}</p>
+        )}
+
+        {day && tab === "ranking" && <ModeToggle mode={mode} onMode={setMode} day={day} />}
+
+        {day && tab === "ranking" && fire && <FireCard fire={fire} nRanked={nRanked} onClose={() => setSelected(null)} />}
+
+        {day && tab === "ranking" && (
           <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <div className="flex items-baseline justify-between px-4 pb-1 pt-3">
               <h2 className="text-sm font-semibold text-stone-900">

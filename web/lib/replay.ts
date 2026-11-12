@@ -156,3 +156,7 @@ export function orderForMode(fires: Fire[], mode: Mode): number[] {
   const rest = idx.filter((i) => fires[i].rank === null && fires[i].tier !== 1).sort(byTierId);
   return [...ranked, ...rest];
 }
+
+export function stabilityLine(s: Day["stability"]): string {
+  return `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
+}

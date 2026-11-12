@@ -73,3 +73,31 @@ test("downwind order: Priority 1 by rank, then tiers 2 and 3", () => {
   const reranked = [fire("a", 1, 3), fire("b", 1, 1), fire("c", 2, null), fire("d", 1, 2)];
   expect(orderForMode(reranked, "downwind").map((i) => reranked[i].id)).toEqual(["b", "d", "a", "c"]);
 });
+
+import { loadLimits, stabilityLine } from "./replay";
+
+const LIMITS = {
+  replay2023: { pooled: 0.45, pontianak: 0.8, worst_quartile_hit: 0.5, chance: 0.25, airports: 7, days: 421 },
+  learn: null, ignores: ["People outside Indonesia (not counted)"], not_claimed: ["Any smoke concentration"],
+};
+
+test("loadLimits parses limits with learn null and with a learn object", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(LIMITS), { status: 200 })));
+  const a = await loadLimits();
+  expect(a.learn).toBeNull(); expect(a.replay2023.pooled).toBe(0.45); expect(a.ignores).toHaveLength(1);
+  const learn = { shipped: true, test_auc_2026: 0.78, heuristic_auc_2026: 0.6, cv_auc: [0.835, 0.832, 0.72],
+    base_rate_2026: 0.2, visibility_correction: "tested, not used" };
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ ...LIMITS, learn }), { status: 200 })));
+  const b = await loadLimits();
+  expect(b.learn?.shipped).toBe(true); expect(b.learn?.cv_auc).toEqual([0.835, 0.832, 0.72]);
+});
+
+test("loadLimits throws ReplayError on failure", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 500 })));
+  await expect(loadLimits()).rejects.toBeInstanceOf(ReplayError);
+});
+
+test("stabilityLine states the day's overlaps", () => {
+  expect(stabilityLine({ seed_overlap: 9, wind_level_overlap: 3, cell: 0.015, k: 4 })).toBe(
+    "9 of 10 of the top ten are the same on a rerun; 3 of 10 if surface winds are used instead.");
+});
