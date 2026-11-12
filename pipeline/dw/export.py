@@ -21,6 +21,8 @@ IGNORES = [
     "Whether a fire is still burning tomorrow (assumed yes)",
     "The official rule's visible-smoke input (not computable)",
 ]
+BURNING_LINE = "Whether a fire is still burning tomorrow (assumed yes)"
+WEIGHTED_LINE = "Whether a fire is still burning tomorrow (smoke is weighted by its likelihood of being seen again)"
 NOT_CLAIMED = [
     "An accurate forecast of haze",
     "Any smoke concentration",
@@ -155,6 +157,6 @@ def write_limits(learn: dict | None, out: Path) -> None:
         "replay2023": {"pooled": 0.45, "pontianak": 0.80, "worst_quartile_hit": 0.50, "chance": 0.25,
                        "airports": 7, "days": 421},
         "learn": learn,
-        "ignores": IGNORES,
+        "ignores": [WEIGHTED_LINE if (x == BURNING_LINE and learn and learn.get("shipped")) else x for x in IGNORES],
         "not_claimed": NOT_CLAIMED,
     }, out / "limits.json")

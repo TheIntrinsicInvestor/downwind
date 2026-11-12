@@ -25,6 +25,8 @@ UA = {"User-Agent": "downwind-pipeline/0.1"}
 
 
 def _fire_files(year: int) -> list[Path]:
+    if year == 2019:                    # copied from validation-2019-comparison/data (persistence model training only)
+        return [config.DATA / "viirs-snpp_2019_Indonesia.csv", config.DATA / "viirs-snpp_2019_Malaysia.csv"]
     if year == 2023:
         return [config.REPLAY_DATA / "viirs-snpp_2023_Indonesia.csv", config.REPLAY_DATA / "viirs-snpp_2023_Malaysia.csv"]
     if year == 2025:
@@ -133,10 +135,11 @@ def null_fractions(year: int) -> dict:
     return {v: float(np.isnan(raw[v]).mean()) for v in MET_VARS if v in raw.files}
 
 
-def load_met(year: int) -> Met:
-    """Hourly winds, rain and RH. Fails loudly if any wind or rain field is more than 1% null."""
+def load_met(year: int, require_winds: bool = True) -> Met:
+    """Hourly winds, rain and RH. Fails loudly if any wind or rain field is more than 1% null.
+    require_winds=False checks rain only (2019 has no 925 hPa winds; the persistence model uses rain and RH)."""
     raw = np.load(_met_file(year))
-    bad = {v: float(np.isnan(raw[v]).mean()) for v in REQUIRED}
+    bad = {v: float(np.isnan(raw[v]).mean()) for v in (REQUIRED if require_winds else ["precipitation"])}
     bad = {v: f for v, f in bad.items() if f > 0.01}
     if bad:
         raise ValueError("winds missing: " + ", ".join(f"{v} {f:.1%} null" for v, f in bad.items()))

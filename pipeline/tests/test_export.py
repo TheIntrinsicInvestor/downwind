@@ -139,3 +139,13 @@ def test_index(tmp_path):
     write_index(["2026-09-18", "2026-09-19", "2026-09-20"], "2026-09-20", tmp_path)
     assert json.loads((tmp_path / "index.json").read_text(encoding="utf-8")) == {
         "days": ["2026-09-18", "2026-09-19", "2026-09-20"], "default": "2026-09-20"}
+
+
+def test_limits_burning_line_follows_the_model(tmp_path):
+    learn = {"shipped": True, "test_auc_2026": 0.79, "heuristic_auc_2026": 0.621, "cv_auc": [0.835, 0.832, 0.72],
+             "base_rate_2026": 0.324, "visibility_correction": "tested, not used"}
+    write_limits(learn, tmp_path)
+    ign = json.loads((tmp_path / "limits.json").read_text(encoding="utf-8"))["ignores"]
+    assert not any("assumed yes" in x for x in ign) and any("seen again" in x for x in ign)
+    write_limits({**learn, "shipped": False}, tmp_path)
+    assert any("assumed yes" in x for x in json.loads((tmp_path / "limits.json").read_text(encoding="utf-8"))["ignores"])

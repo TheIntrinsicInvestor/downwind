@@ -160,3 +160,12 @@ export function orderForMode(fires: Fire[], mode: Mode): number[] {
 export function stabilityLine(s: Day["stability"]): string {
   return `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
 }
+
+const VIS_LINE = "We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.";
+
+export function learnLine(learn: NonNullable<Limits["learn"]>): string {
+  if (!learn.shipped) {
+    return `A learned persistence model did not beat counting days burned on 2026, so the ranking assumes every fire keeps burning. ${VIS_LINE}`;
+  }
+  return `A learned model predicts which fires will be seen again tomorrow: AUC ${learn.test_auc_2026.toFixed(2)} on Sep to Oct 2026, a season it never saw (counting days burned: ${learn.heuristic_auc_2026.toFixed(2)}). Downwind weights each fire's smoke by it. ${VIS_LINE}`;
+}

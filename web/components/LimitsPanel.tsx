@@ -1,6 +1,6 @@
 "use client";
 
-import { type Day, type Limits, stabilityLine } from "@/lib/replay";
+import { type Day, type Limits, learnLine, stabilityLine } from "@/lib/replay";
 
 type Props = { day: Day; limits: Limits | null; error: string | null };
 
@@ -28,6 +28,11 @@ export default function LimitsPanel({ day, limits, error }: Props) {
         <p>It flags half of the worst-quartile haze days, against {Math.round(r.chance * 100)}% by chance.</p>
         <p>The top-ten list is stable across reruns (9 to 10 of 10 kept).</p>
       </Block>
+      {limits.learn && (
+        <Block title="The learned model">
+          <p>{learnLine(limits.learn)}</p>
+        </Block>
+      )}
       <Block title="This day's ranking">
         <p>{stabilityLine(day.stability)}</p>
       </Block>

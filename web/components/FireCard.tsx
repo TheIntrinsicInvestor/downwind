@@ -37,6 +37,15 @@ export default function FireCard({ fire, nRanked, onClose }: Props) {
           <><dt className="text-stone-500">First smoke over {top.name}</dt><dd className="tabular-nums">after {fire.first_arrival_h} h</dd></>
         )}
         {fire.heading && (<><dt className="text-stone-500">Smoke heading at +24 h</dt><dd>{fire.heading}</dd></>)}
+        {fire.persist_p !== null && (
+          <>
+            <dt className="text-stone-500">
+              <span title="Learned from three past fire seasons. Cloud and smoke can hide a fire, so this is about detection, not certainty."
+                className="cursor-help underline decoration-dotted underline-offset-2">Likelihood of being seen again tomorrow</span>
+            </dt>
+            <dd className="tabular-nums">{pct(fire.persist_p)}</dd>
+          </>
+        )}
         <dt className="text-stone-500">Detections</dt><dd className="tabular-nums">{fire.n_detect}</dd>
       </dl>
 

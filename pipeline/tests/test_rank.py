@@ -115,3 +115,10 @@ def test_frames_keep_all_smoke_of_top_fires(monkeypatch):
     la, lo, w, src = res.frames[10]
     assert (src == top).sum() == 4 * 11            # k=4 particles an hour for 11 hours, none dropped
     assert all(len(f[0]) <= 150 for f in res.frames)
+
+
+def test_persist_p_column():
+    persist = pd.Series({A_ID: 0.5})
+    sq = run_day(T, FIRES, MET, GRIDS, persist=persist).squares.set_index("id")
+    assert sq.loc[A_ID, "persist_p"] == 0.5 and np.isnan(sq.loc[sq_id(0.3, 108.9), "persist_p"])
+    assert "persist_p" not in run_day(T, FIRES, MET, GRIDS).squares

@@ -101,3 +101,12 @@ test("stabilityLine states the day's overlaps", () => {
   expect(stabilityLine({ seed_overlap: 9, wind_level_overlap: 3, cell: 0.015, k: 4 })).toBe(
     "9 of 10 of the top ten are the same on a rerun; 3 of 10 if surface winds are used instead.");
 });
+
+import { learnLine } from "./replay";
+
+test("learnLine states the 2026 result, shipped or not", () => {
+  const learn = { shipped: true, test_auc_2026: 0.79, heuristic_auc_2026: 0.621, cv_auc: [0.835, 0.832, 0.72] as [number, number, number],
+    base_rate_2026: 0.324, visibility_correction: "tested, not used" as const };
+  expect(learnLine(learn)).toBe("A learned model predicts which fires will be seen again tomorrow: AUC 0.79 on Sep to Oct 2026, a season it never saw (counting days burned: 0.62). Downwind weights each fire's smoke by it. We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.");
+  expect(learnLine({ ...learn, shipped: false })).toBe("A learned persistence model did not beat counting days burned on 2026, so the ranking assumes every fire keeps burning. We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.");
+});

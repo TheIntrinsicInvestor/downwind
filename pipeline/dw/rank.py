@@ -147,6 +147,9 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     if frames is not None:
         frames = _final_frames(frames, sq, src_rows, pick)
 
+    if persist is not None:
+        sq["persist_p"] = persist.reindex(sq.id.to_numpy()).to_numpy(float) if n else []
+
     p = sq[prov] if n else sq
     counts = {f"p{t}": int((p.tier == t).sum()) if n else 0 for t in (1, 2, 3)}
     return DayResult(date=day, squares=sq, place_fire=place_fire, counts=counts, top10_share=top10_share,
@@ -183,10 +186,10 @@ def top10_overlap(a: DayResult, b: DayResult) -> int:
     return len(_top10(a) & _top10(b))
 
 
-def stability(day, fires, met, grids, *, k=K, cell=FIRE_CELL) -> dict:
-    base = run_day(day, fires, met, grids, k=k, cell=cell, seed=0)
-    other_seed = run_day(day, fires, met, grids, k=k, cell=cell, seed=1)
-    surface = run_day(day, fires, met, grids, k=k, cell=cell, seed=0, level="10m")
+def stability(day, fires, met, grids, *, k=K, cell=FIRE_CELL, persist=None) -> dict:
+    base = run_day(day, fires, met, grids, k=k, cell=cell, seed=0, persist=persist)
+    other_seed = run_day(day, fires, met, grids, k=k, cell=cell, seed=1, persist=persist)
+    surface = run_day(day, fires, met, grids, k=k, cell=cell, seed=0, level="10m", persist=persist)
     return {"seed_overlap": top10_overlap(base, other_seed), "wind_level_overlap": top10_overlap(base, surface),
             "cell": cell, "k": k}
 
