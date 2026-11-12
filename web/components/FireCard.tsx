@@ -2,7 +2,7 @@
 
 import { type Fire, pct } from "@/lib/replay";
 
-const PEOPLE_LABEL = "people living within 40 km of this fire's modelled smoke path";
+const PEOPLE_LABEL = "residents within 40 km of this fire's modelled smoke path";
 const TIER_NAME = { 1: "Priority 1", 2: "Priority 2", 3: "Priority 3" } as const;
 
 type Props = { fire: Fire; nRanked: number; onClose: () => void };
