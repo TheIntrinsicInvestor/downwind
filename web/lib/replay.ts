@@ -169,3 +169,14 @@ export function learnLine(learn: NonNullable<Limits["learn"]>): string {
   }
   return `A learned model predicts which fires will be seen again tomorrow: AUC ${learn.test_auc_2026.toFixed(2)} on Sep to Oct 2026, a season it never saw (counting days burned: ${learn.heuristic_auc_2026.toFixed(2)}). Downwind weights each fire's smoke by it. ${VIS_LINE}`;
 }
+
+// ---- city view
+
+export function placeOptions(day: Day): string[] {
+  return day.places.map((p) => p.name).sort((a, b) => a.localeCompare(b));
+}
+
+export function contributionsFor(day: Day, name: string): Place["contributions"] {
+  const p = day.places.find((x) => x.name === name);
+  return p ? [...p.contributions].sort((a, b) => b.share - a.share) : [];
+}

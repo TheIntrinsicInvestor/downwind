@@ -110,3 +110,23 @@ test("learnLine states the 2026 result, shipped or not", () => {
   expect(learnLine(learn)).toBe("A learned model predicts which fires will be seen again tomorrow: AUC 0.79 on Sep to Oct 2026, a season it never saw (counting days burned: 0.62). Downwind weights each fire's smoke by it. We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.");
   expect(learnLine({ ...learn, shipped: false })).toBe("A learned persistence model did not beat counting days burned on 2026, so the ranking assumes every fire keeps burning. We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.");
 });
+
+import { contributionsFor, placeOptions } from "./replay";
+import type { Day } from "./replay";
+
+const CITY_DAY = { places: [
+  { name: "Kubu Raya", contributions: [{ fire: 2, share: 0.1, first_arrival_h: 5 }] },
+  { name: "Kota Pontianak", contributions: [{ fire: 1, share: 0.2, first_arrival_h: 9 }, { fire: 0, share: 0.5, first_arrival_h: 3 }] },
+  { name: "Bengkayang", contributions: [] },
+] } as unknown as Day;
+
+test("placeOptions lists place names alphabetically", () => {
+  expect(placeOptions(CITY_DAY)).toEqual(["Bengkayang", "Kota Pontianak", "Kubu Raya"]);
+});
+
+test("contributionsFor sorts by share, shares sum to at most 1", () => {
+  const c = contributionsFor(CITY_DAY, "Kota Pontianak");
+  expect(c.map((x) => x.fire)).toEqual([0, 1]);
+  expect(c.reduce((s, x) => s + x.share, 0)).toBeLessThanOrEqual(1);
+  expect(contributionsFor(CITY_DAY, "Nowhere")).toEqual([]);
+});

@@ -14,14 +14,15 @@ type Props = {
   day: Day;
   bin: ArrayBuffer;
   frame: number;
-  selected: number | null;
   onSelect: (i: number | null) => void;
   mode: Mode;
+  focus: number[] | null;          // fires whose smoke stays visible (selected fire or a place's sources)
 };
 
 type RGBA = [number, number, number, number];
 
-export default function MapView({ day, bin, frame, selected, onSelect, mode }: Props) {
+export default function MapView({ day, bin, frame, onSelect, mode, focus }: Props) {
+  const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
   const [ready, setReady] = useState(false);
@@ -70,11 +71,11 @@ export default function MapView({ day, bin, frame, selected, onSelect, mode }: P
           radiusMinPixels: 2,
           radiusMaxPixels: 6,
           getFillColor: (_: unknown, { index }: { index: number }): RGBA => {
-            if (selected === null) return [92, 78, 66, Math.round(smoke.alpha[index] * 0.45)];
-            if (smoke.fire[index] !== selected) return [92, 78, 66, 3];
+            if (focusSet === null) return [92, 78, 66, Math.round(smoke.alpha[index] * 0.45)];
+            if (!focusSet.has(smoke.fire[index])) return [92, 78, 66, 3];
             return [70, 45, 30, Math.min(230, 90 + smoke.alpha[index])];          // the selected fire's plume
           },
-          updateTriggers: { getFillColor: [selected, frame, day.date] },
+          updateTriggers: { getFillColor: [focusSet, frame, day.date] },
         }),
         new ScatterplotLayer<number>({
           id: "fires",
@@ -90,8 +91,8 @@ export default function MapView({ day, bin, frame, selected, onSelect, mode }: P
           radiusMinPixels: 2,
           radiusMaxPixels: 12,
           stroked: true,
-          getLineColor: (i): RGBA => (i === selected ? [20, 20, 20, 255] : [255, 255, 255, 160]),
-          getLineWidth: (i) => (i === selected ? 3 : 1),
+          getLineColor: (i): RGBA => (focusSet?.has(i) ? [20, 20, 20, 255] : [255, 255, 255, 160]),
+          getLineWidth: (i) => (focusSet?.has(i) ? 3 : 1),
           lineWidthUnits: "pixels",
           getFillColor: (i): RGBA => {
             if (mode === "official") {
@@ -102,12 +103,12 @@ export default function MapView({ day, bin, frame, selected, onSelect, mode }: P
             return r <= 10 ? [178, 34, 34, 235] : [226, 120, 40, 210];
           },
           onClick: (info) => onSelect(typeof info.object === "number" ? info.object : null),
-          updateTriggers: { getLineColor: [selected], getLineWidth: [selected], getRadius: [day.date, mode],
+          updateTriggers: { getLineColor: [focusSet], getLineWidth: [focusSet], getRadius: [day.date, mode],
             getFillColor: [day.date, mode] },
         }),
       ],
     });
-  }, [ready, day, smoke, frame, selected, fireOrder, nRanked, onSelect, mode]);
+  }, [ready, day, smoke, frame, focusSet, fireOrder, nRanked, onSelect, mode]);
 
   return (
     <div className="absolute inset-0">

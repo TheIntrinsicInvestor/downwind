@@ -2,13 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { type Day, type Index, type Limits, type Mode, ReplayError, loadDay, loadIndex, loadLimits, localLabel, longDate, rankedFires } from "@/lib/replay";
+import { type Day, type Index, type Limits, type Mode, ReplayError, contributionsFor, loadDay, loadIndex, loadLimits, localLabel, longDate, rankedFires } from "@/lib/replay";
 import TimeSlider from "./TimeSlider";
 import FireList from "./FireList";
 import FireCard from "./FireCard";
 import ModeToggle from "./ModeToggle";
 import LimitsPanel from "./LimitsPanel";
 import BulletinPanel from "./BulletinPanel";
+import CityView from "./CityView";
 
 // MapLibre touches window at import time, so the map loads in the browser only.
 // In Next 16, ssr:false is only allowed inside a Client Component, hence this wrapper.
@@ -35,7 +36,8 @@ export default function MapClient() {
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("downwind");
-  const [tab, setTab] = useState<"ranking" | "bulletin" | "limits">("ranking");
+  const [tab, setTab] = useState<"ranking" | "city" | "bulletin" | "limits">("ranking");
+  const [place, setPlace] = useState<string | null>(null);
   const [limits, setLimits] = useState<Limits | null>(null);
   const [limitsError, setLimitsError] = useState<string | null>(null);
 
@@ -78,13 +80,15 @@ export default function MapClient() {
   });
 
   const day = data?.day ?? null;
+  const focus = day && tab === "city" && place ? contributionsFor(day, place).map((c) => c.fire)
+    : selected !== null ? [selected] : null;
   const fire = day && selected !== null ? day.fires[selected] : null;
   const nRanked = day ? day.fires.filter((f) => f.rank !== null).length : 0;
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
       <section className="relative h-[62dvh] shrink-0 overflow-hidden bg-stone-200 lg:h-auto lg:flex-1">
-        {data && <MapView day={data.day} bin={data.bin} frame={frame} selected={selected} onSelect={onSelect} mode={mode} />}
+        {data && <MapView day={data.day} bin={data.bin} frame={frame} onSelect={onSelect} mode={mode} focus={focus} />}
         {!data && (
           <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-stone-600">
             {error ?? "Loading replay data"}
@@ -142,7 +146,7 @@ export default function MapClient() {
 
         {day && (
           <div role="tablist" aria-label="Panels" className="flex border-b border-stone-200 px-2">
-            {(["ranking", "bulletin", "limits"] as const).map((t) => (
+            {(["ranking", "city", "bulletin", "limits"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -151,7 +155,7 @@ export default function MapClient() {
                 onClick={() => setTab(t)}
                 className={`px-3 py-2 text-sm font-medium ${tab === t ? "border-b-2 border-stone-900 text-stone-900" : "text-stone-500 hover:text-stone-800"}`}
               >
-                {t === "ranking" ? "Ranking" : t === "bulletin" ? "Bulletin" : "Limits"}
+                {t === "ranking" ? "Ranking" : t === "city" ? "City" : t === "bulletin" ? "Bulletin" : "Limits"}
               </button>
             ))}
           </div>
@@ -159,6 +163,12 @@ export default function MapClient() {
 
         {day && tab === "limits" && (
           <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto"><LimitsPanel day={day} limits={limits} error={limitsError} /></div>
+        )}
+
+        {day && tab === "city" && (
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <CityView day={day} place={place} onPlace={setPlace} onFire={(i) => { setSelected(i); setTab("ranking"); }} />
+          </div>
         )}
 
         {day && tab === "bulletin" && (
