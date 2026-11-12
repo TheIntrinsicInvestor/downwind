@@ -1,0 +1,6 @@
+numpy
+pandas==2.2.3   # the version that produced the 2023 replay figures; pandas 3 reorders tied visibility days (0.369 vs 0.375)
+scipy
+scikit-learn
+pillow
+pytest

@@ -1,0 +1,168 @@
+"""Downloads and loaders: fires, winds and rain, boundaries.
+usage: python -m dw.fetch      (fetches static files and the wind grids for every year in MET_RANGE)"""
+import json
+import time
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from dw import config
+
+MET_VARS = ["wind_speed_10m", "wind_direction_10m", "wind_speed_925hPa", "wind_direction_925hPa",
+            "precipitation", "relative_humidity_2m"]
+REQUIRED = MET_VARS[:5]                 # winds and rain must be complete; RH is only used by the persistence model
+
+GB = "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IDN"
+STATIC = {
+    "adm1.geojson": f"{GB}/ADM1/geoBoundaries-IDN-ADM1_simplified.geojson",
+    "adm2.geojson": f"{GB}/ADM2/geoBoundaries-IDN-ADM2_simplified.geojson",
+    "viirs-snpp_2025_Malaysia.csv": "https://firms.modaps.eosdis.nasa.gov/data/country/viirs-snpp/2025/viirs-snpp_2025_Malaysia.csv",
+}
+UA = {"User-Agent": "downwind-pipeline/0.1"}
+
+
+def _fire_files(year: int) -> list[Path]:
+    if year == 2023:
+        return [config.REPLAY_DATA / "viirs-snpp_2023_Indonesia.csv", config.REPLAY_DATA / "viirs-snpp_2023_Malaysia.csv"]
+    if year == 2025:
+        return [config.REPLAY_DATA / "viirs-snpp_2025_Indonesia.csv", config.DATA / "viirs-snpp_2025_Malaysia.csv"]
+    if year == 2026:
+        return [config.CHECK_DATA / "fires_2026_VIIRS_SNPP_NRT.csv"]
+    raise ValueError(f"no fire files for {year}")
+
+
+def load_fires(year: int) -> pd.DataFrame:
+    """VIIRS S-NPP detections in BOX: lat, lon, date (UTC acquisition date), frp, conf. Low confidence is kept."""
+    frames = []
+    for p in _fire_files(year):
+        if not p.exists():
+            raise FileNotFoundError(f"{p} missing; run python -m dw.fetch first")
+        f = pd.read_csv(p, encoding="utf-8")
+        if "type" in f.columns:                     # archive files: vegetation fires only
+            f = f[f["type"] == 0]
+        frames.append(f)
+    f = pd.concat(frames, ignore_index=True)
+    lon0, lat0, lon1, lat1 = config.BOX
+    f = f[f.latitude.between(lat0, lat1) & f.longitude.between(lon0, lon1)]
+    out = pd.DataFrame({
+        "lat": f.latitude.to_numpy(float),
+        "lon": f.longitude.to_numpy(float),
+        "date": pd.to_datetime(f.acq_date).to_numpy(),
+        "frp": f.frp.to_numpy(float),
+        "conf": f.confidence.astype(str).to_numpy(),
+    })
+    return out.sort_values(["date", "lat", "lon"], kind="stable").reset_index(drop=True)
+
+
+@dataclass
+class Met:
+    lats: np.ndarray                    # 1 degree spacing, south to north
+    lons: np.ndarray
+    times: pd.DatetimeIndex             # hourly UTC
+    u: dict                             # "925", "10m": (lat, lon, time), m/s, eastward
+    v: dict                             # northward
+    precip: np.ndarray                  # mm/h
+    rh: np.ndarray | None               # %, None when the file has no RH
+
+
+def _uv(speed, direction):
+    """Meteorological direction (where the wind comes from) to u, v."""
+    rad = np.radians(direction)
+    return -speed * np.sin(rad), -speed * np.cos(rad)
+
+
+def _get_json(url: str):
+    for k in range(6):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            return json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
+        except Exception as e:                      # network or HTTP error: back off and retry
+            print("retry", k, type(e).__name__, flush=True)
+            time.sleep(20 * (k + 1))
+    raise RuntimeError(f"request failed after 6 attempts: {url[:80]}")
+
+
+def fetch_met(year: int) -> Path:
+    """Open-Meteo historical-forecast hourly fields on a 1 degree grid over BOX, saved as DATA/met_<year>.npz."""
+    out_path = config.DATA / f"met_{year}.npz"
+    if out_path.exists():
+        return out_path
+    start, end = config.MET_RANGE[year]
+    lon0, lat0, lon1, lat1 = config.BOX
+    lats = np.arange(lat0, lat1 + 0.01, 1.0)
+    lons = np.arange(lon0, lon1 + 0.01, 1.0)
+    la, lo = np.meshgrid(lats, lons, indexing="ij")
+    pts = list(zip(la.ravel(), lo.ravel()))
+    cols = {v: [] for v in MET_VARS}
+    times = None
+    for c in range(0, len(pts), 60):
+        chunk = pts[c:c + 60]
+        url = ("https://historical-forecast-api.open-meteo.com/v1/forecast?latitude="
+               + ",".join(f"{a:.1f}" for a, _ in chunk)
+               + "&longitude=" + ",".join(f"{b:.1f}" for _, b in chunk)
+               + "&hourly=" + ",".join(MET_VARS)
+               + f"&wind_speed_unit=ms&start_date={start}&end_date={end}")
+        raw = _get_json(url)
+        raw = raw if isinstance(raw, list) else [raw]
+        times = raw[0]["hourly"]["time"]
+        for r in raw:
+            for v in MET_VARS:
+                cols[v].append([np.nan if x is None else x for x in r["hourly"][v]])
+        print(f"{year} chunk {c // 60 + 1}/{(len(pts) + 59) // 60}", flush=True)
+        time.sleep(3)
+    arr = {v: np.array(cols[v], float).reshape(len(lats), len(lons), -1) for v in MET_VARS}
+    config.DATA.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(out_path, lats=lats, lons=lons, times=np.array(times), **arr)
+    return out_path
+
+
+def _met_file(year: int) -> Path:
+    p = config.DATA / f"met_{year}.npz"
+    if not p.exists() and year == 2023:
+        p = config.REPLAY_DATA / "met_grid.npz"
+    if not p.exists():
+        raise FileNotFoundError(f"{p} missing; run python -m dw.fetch first")
+    return p
+
+
+def null_fractions(year: int) -> dict:
+    raw = np.load(_met_file(year))
+    return {v: float(np.isnan(raw[v]).mean()) for v in MET_VARS if v in raw.files}
+
+
+def load_met(year: int) -> Met:
+    """Hourly winds, rain and RH. Fails loudly if any wind or rain field is more than 1% null."""
+    raw = np.load(_met_file(year))
+    bad = {v: float(np.isnan(raw[v]).mean()) for v in REQUIRED}
+    bad = {v: f for v, f in bad.items() if f > 0.01}
+    if bad:
+        raise ValueError("winds missing: " + ", ".join(f"{v} {f:.1%} null" for v, f in bad.items()))
+    g = {v: np.nan_to_num(raw[v], nan=0.0) for v in REQUIRED}
+    u925, v925 = _uv(g["wind_speed_925hPa"], g["wind_direction_925hPa"])
+    u10, v10 = _uv(g["wind_speed_10m"], g["wind_direction_10m"])
+    rh = np.nan_to_num(raw["relative_humidity_2m"], nan=0.0) if "relative_humidity_2m" in raw.files else None
+    return Met(lats=raw["lats"], lons=raw["lons"], times=pd.to_datetime(raw["times"]),
+               u={"925": u925, "10m": u10}, v={"925": v925, "10m": v10},
+               precip=g["precipitation"], rh=rh)
+
+
+def fetch_static() -> None:
+    config.DATA.mkdir(parents=True, exist_ok=True)
+    for name, url in STATIC.items():
+        p = config.DATA / name
+        if p.exists():
+            continue
+        req = urllib.request.Request(url, headers=UA)
+        p.write_bytes(urllib.request.urlopen(req, timeout=300).read())
+        print(f"downloaded {name}: {p.stat().st_size / 1e6:.1f} MB", flush=True)
+
+
+if __name__ == "__main__":
+    fetch_static()
+    for y in config.MET_RANGE:
+        fetch_met(y)
+    for y in config.MET_RANGE:
+        print(y, {v: round(f, 4) for v, f in null_fractions(y).items()})
