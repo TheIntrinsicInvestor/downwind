@@ -10,6 +10,7 @@ import ModeToggle from "./ModeToggle";
 import LimitsPanel from "./LimitsPanel";
 import BulletinPanel from "./BulletinPanel";
 import CityView from "./CityView";
+import ChatPanel from "./ChatPanel";
 
 // MapLibre touches window at import time, so the map loads in the browser only.
 // In Next 16, ssr:false is only allowed inside a Client Component, hence this wrapper.
@@ -36,7 +37,7 @@ export default function MapClient() {
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("downwind");
-  const [tab, setTab] = useState<"ranking" | "city" | "bulletin" | "limits">("ranking");
+  const [tab, setTab] = useState<"ranking" | "city" | "bulletin" | "limits" | "ask">("ranking");
   const [place, setPlace] = useState<string | null>(null);
   const [limits, setLimits] = useState<Limits | null>(null);
   const [limitsError, setLimitsError] = useState<string | null>(null);
@@ -146,7 +147,7 @@ export default function MapClient() {
 
         {day && (
           <div role="tablist" aria-label="Panels" className="flex border-b border-stone-200 px-2">
-            {(["ranking", "city", "bulletin", "limits"] as const).map((t) => (
+            {(["ranking", "city", "bulletin", "limits", "ask"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -155,7 +156,7 @@ export default function MapClient() {
                 onClick={() => setTab(t)}
                 className={`px-3 py-2 text-sm font-medium ${tab === t ? "border-b-2 border-stone-900 text-stone-900" : "text-stone-500 hover:text-stone-800"}`}
               >
-                {t === "ranking" ? "Ranking" : t === "city" ? "City" : t === "bulletin" ? "Bulletin" : "Limits"}
+                {t === "ranking" ? "Ranking" : t === "city" ? "City" : t === "bulletin" ? "Bulletin" : t === "limits" ? "Limits" : "Ask"}
               </button>
             ))}
           </div>
@@ -169,6 +170,10 @@ export default function MapClient() {
           <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <CityView day={day} place={place} onPlace={setPlace} onFire={(i) => { setSelected(i); setTab("ranking"); }} />
           </div>
+        )}
+
+        {day && tab === "ask" && (
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto"><ChatPanel date={day.date} /></div>
         )}
 
         {day && tab === "bulletin" && (
