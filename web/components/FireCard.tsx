@@ -24,19 +24,22 @@ export default function FireCard({ fire, nRanked, onClose }: Props) {
         </button>
       </div>
 
-      {fire.people_40km !== null && (
+      {fire.people_40km !== null ? (
         <p className="mt-3">
           <span className="text-2xl font-semibold tabular-nums text-stone-900">{fire.people_40km.toLocaleString("en-US")}</span>
           <span className="block text-stone-600">{PEOPLE_LABEL}</span>
         </p>
+      ) : fire.rank !== null && (
+        <p className="mt-3 text-xs text-stone-500">Residents near the smoke path are computed for the top 20 fires only.</p>
       )}
 
       <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         {fire.share !== null && (<><dt className="text-stone-500">Share of smoke over residents</dt><dd className="tabular-nums">{pct(fire.share, 1)}</dd></>)}
         {top && fire.first_arrival_h !== null && (
-          <><dt className="text-stone-500">First smoke over {top.name}</dt><dd className="tabular-nums">after {fire.first_arrival_h} h</dd></>
+          <><dt className="text-stone-500">First smoke over {top.name}</dt>
+            <dd className="tabular-nums">{fire.first_arrival_h === 0 ? "from the start" : `after ${fire.first_arrival_h} h`}</dd></>
         )}
-        {fire.heading && (<><dt className="text-stone-500">Smoke heading at +24 h</dt><dd>{fire.heading}</dd></>)}
+        {fire.heading && (<><dt className="text-stone-500">Smoke drift over first 24 h</dt><dd>{fire.heading}</dd></>)}
         {fire.persist_p !== null && (
           <>
             <dt className="text-stone-500">

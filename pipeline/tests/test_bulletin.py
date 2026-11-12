@@ -10,7 +10,7 @@ from dw.bulletin import BULLETIN_MODELS, LIMITS_SENTENCE, LLMError, build_facts,
 from dw.rank import run_day
 from tests.conftest import T0, flat_met, one_fire, toy_grids
 
-FACTS = {"date": "22 October 2026", "p1_count": 1412, "top10_share_pct": 53,
+FACTS = {"date": "22 October 2026", "p1_count": 1412, "top10_share_pct": 53, "top_list_size": 10,
          "top": [{"rank": 1, "near": "Ketapang", "share_pct": 12, "people_40km": 680000, "first_arrival_h": 7}]}
 MSGS = [{"role": "user", "content": "hello"}]
 HTTPError503 = object()
@@ -43,7 +43,10 @@ def fake_key(monkeypatch):
     ("Fire 1 near Ketapang puts 680,000 people under smoke.", []),
     ("The top ten carry 53% of exposure.", []),
     ("About 700,000 people are affected.", ["700,000"]),
-    ("Roughly 0.7 million people.", ["0.7"]),
+    ("Roughly 0.7 million people.", ["0.7", "million"]),
+    ("Seven hours until smoke arrives; the top ten matter most.", []),     # 7 and 10 are facts
+    ("Three fires left the list.", ["Three"]),
+    ("About two million people, half of them in towns.", ["two", "million", "half"]),
     ("Smoke arrives in 7 hours, on 22 October 2026.", []),
     ("There are 1,412 Priority 1 fires and 12 crews.", []),      # 12 is share_pct: passes by value; documented limit
     ("There are 1,413 Priority 1 fires.", ["1,413"]),
@@ -103,6 +106,16 @@ def test_template_has_no_em_dash_and_passes_own_check():
     for facts in (FACTS, _real_facts()):
         text = template_bulletin(facts)
         assert "—" not in text and offending(text, facts) == [] and len(text) > 50
+
+
+def test_template_arrival_names_the_place_it_is_measured_to():
+    # first_arrival_h is measured to the fire's first top place (rank.py), not to the first residents
+    top = {"rank": 1, "near": "Kayong Utara", "share_pct": 7.1, "people_40km": 2667610, "heading": "NW",
+           "top_places": [{"name": "Kubu Raya", "share_pct": 58}]}
+    later = template_bulletin({"top": [dict(top, first_arrival_h=2)]})
+    now = template_bulletin({"top": [dict(top, first_arrival_h=0)]})
+    assert "reaching Kubu Raya after 2 hours" in later and "already over Kubu Raya as the window opens" in now
+    assert "reaching residents" not in later and "over residents as the window" not in now
 
 
 def _real_facts():

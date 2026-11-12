@@ -14,21 +14,32 @@ BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 BULLETIN_MODELS = ["deepseek-ai/DeepSeek-V4-Pro-0813", "MiniMaxAI/MiniMax-M3"]
 SYSTEM_PROMPT = ("You write a morning briefing for a provincial fire task force in West Kalimantan. Use only the facts "
                  "given. Every number you write must appear in the facts exactly: write numbers as digits with no "
-                 "rounding and no words like million, and put commas in numbers of 1,000 or more (2,518,627). "
-                 "Call the people counted residents. A first_arrival_h of 0 means the smoke is already over "
-                 "residents when the window opens; say that rather than giving 0 hours. "
-                 "fires_that_left_top10_count counts fires, not places. What the facts mean: share_pct and "
-                 "top10_share_pct are shares of all the modelled smoke over residents from Priority 1 fires (not "
-                 "of an index or of activity); people_40km is the residents within radius_km of that fire's "
-                 "smoke path; first_arrival_h is the hours until its smoke first reaches the first of its top_places; "
-                 "heading is the direction the smoke is travelling towards (heading NW means it drifts to the "
-                 "northwest, not from it); top_places share_pct is how that fire's own smoke over residents splits "
-                 "between places; fires_date is when the fires were detected. Write in full sentences as a short "
+                 "rounding and no number words at all (no seven, million, half or twice), and put commas in numbers "
+                 "of 1,000 or more (2,518,627). Call the people counted residents. "
+                 "fires_that_left_top10_count counts fires, not places. What the facts mean: p1_count, p2_count "
+                 "and p3_count are fires across West Kalimantan (no radius applies to them); share_pct and "
+                 "top10_share_pct are shares of all the modelled smoke over residents from West Kalimantan fires "
+                 "(not of an index or of activity); people_40km is the residents living within radius_km of that "
+                 "fire's smoke path, so write 'N residents live within 40 km of its smoke path', never that the "
+                 "fire affects or threatens them; first_arrival_h is the hours until its smoke reaches the FIRST "
+                 "of its top_places only, so name that one place with it (0 means its smoke is already over that "
+                 "place when the window opens); heading is the direction the smoke is travelling towards (heading "
+                 "NW means it drifts to the northwest, not from it); top_places share_pct is how that fire's own "
+                 "smoke over residents splits between places; fires_date is when the fires were detected. "
+                 "Write in full sentences as a short "
                  "paragraph, not a list. Do not name companies. 120 to 160 words, plain English, no headings, "
                  "no em dashes. End with the limits sentence unchanged.")
 LIMITS_SENTENCE = ("This is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not "
                    "counted. The task force decides.")
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+WORD = re.compile(r"[A-Za-z]+")
+# Number words count as numbers (same rule as web/lib/numbers.ts): one to twenty must match a fact;
+# scale and fraction words can never be checked, so they always fail.
+NUMBER_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve "
+                                           "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+NEVER_WORDS = {"hundred", "hundreds", "thousand", "thousands", "million", "millions", "billion", "half", "dozen",
+               "dozens", "twice", "double", "triple"}
+DASHES = ("—", "–")                 # em and en dash
 TOKENS = {"total": 0}               # running total of tokens used, for the build report
 
 
@@ -108,6 +119,10 @@ def offending(text: str, facts: dict) -> list[str]:
         dp = len(tok.split(".")[1]) if "." in tok else 0
         if not any(round(k, dp) == round(val, dp) for k in known):
             bad.append(tok)
+    for w in WORD.findall(text):
+        lw = w.lower()
+        if lw in NEVER_WORDS or (lw in NUMBER_WORDS and NUMBER_WORDS[lw] not in known):
+            bad.append(w)
     return bad
 
 
@@ -161,10 +176,11 @@ def template_bulletin(facts: dict) -> str:
             s += f" within {facts['radius_km']} km of its smoke path" if "radius_km" in facts else " near its smoke path"
         if t.get("heading"):
             s += f", and its smoke is heading {t['heading']}"
-        if t.get("first_arrival_h") == 0:
-            s += ", already over residents as the window opens"
-        elif t.get("first_arrival_h") is not None:
-            s += f", reaching residents after {t['first_arrival_h']} hours"
+        place = (t.get("top_places") or [{}])[0].get("name")        # first_arrival_h is measured to this place
+        if place and t.get("first_arrival_h") == 0:
+            s += f", already over {place} as the window opens"
+        elif place and t.get("first_arrival_h") is not None:
+            s += f", reaching {place} after {t['first_arrival_h']} hours"
         parts.append(s + ".")
     if facts.get("new_in_top10"):
         names = list(dict.fromkeys(n or "an unnamed location" for n in facts["new_in_top10"]))
@@ -179,7 +195,7 @@ def make_bulletin(facts: dict, *, opener=None) -> dict:
     try:
         for _ in range(2):
             text, model = call_llm(messages, BULLETIN_MODELS, opener=opener)
-            if not offending(text, facts) and "—" not in text and text.endswith(LIMITS_SENTENCE):
+            if not offending(text, facts) and not any(d in text for d in DASHES) and text.endswith(LIMITS_SENTENCE):
                 return {"text": text, "source": "llm", "model": model}
     except LLMError:
         pass

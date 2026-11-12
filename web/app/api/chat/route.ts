@@ -11,7 +11,7 @@ const CHAT_MODELS = ["MiniMaxAI/MiniMax-M3", "deepseek-ai/DeepSeek-V4-Pro-0813"]
 const FALLBACK = "I can only answer from this day's computed data, and that answer did not pass the number check.";
 const SYSTEM = "You answer questions from a provincial fire task force in West Kalimantan using only the facts given " +
   "for one morning. Every number you write must appear in the facts exactly; write numbers as digits, no rounding, " +
-  "no words like million. Do not name companies. Fires are locations only. Be brief: at most 120 words, plain English, " +
+  "no number words at all (no seven, million, half or twice). Do not name companies. Fires are locations only. Be brief: at most 120 words, plain English, " +
   "no em dashes. If the facts cannot answer the question, say so.";
 
 function key(): string | undefined {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     { role: "user", content: `Facts:\n${JSON.stringify(f)}\n\nQuestion: ${question}` }];
   for (let attempt = 0; attempt < 2; attempt++) {
     const text = await callLLM(apiKey, messages);
-    if (text && offending(text, f).length === 0 && !text.includes("—")) return Response.json({ answer: text });
+    if (text && offending(text, f).length === 0 && !/[—–]/.test(text)) return Response.json({ answer: text });
   }
   return Response.json({ answer: FALLBACK });
 }

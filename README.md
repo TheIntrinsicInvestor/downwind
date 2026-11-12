@@ -1,6 +1,6 @@
 # Downwind
 
-Downwind ranks active peat fires in West Kalimantan, Indonesia, by how many residents their smoke will reach in the next 48 hours. It is an extra layer on Indonesia's official hotspot tiers (Permen LHK P.8/MENLHK/SETJEN/KUM.1/3/2018, Pasal 9), which put hundreds of fires in Priority 1 with no order among them. Downwind orders the fires inside Priority 1. The task force decides.
+Downwind ranks active peat fires in West Kalimantan, Indonesia, by how many residents their smoke will reach in the next 48 hours. It is an extra layer on Indonesia's official hotspot tiers (Permen LHK P.8/MENLHK/SETJEN/KUM.1/3/2018, Pasal 9), which, as we read them, put hundreds of fires in Priority 1 with no order among them. Downwind orders the fires inside Priority 1. The task force decides.
 
 **Live demo (no login):** https://downwind-sigma.vercel.app
 
@@ -92,7 +92,7 @@ python -m dw.build --day 2026-09-20 --days 3     # write the replay files (about
 
 ## Statement of work
 
-The handbook allows prior work if it is disclosed. Everything in this repository up to commit `64c9465` was built on 12 November 2026, before the build window (14 to 15 November), and is prior work:
+The handbook allows prior work if it is disclosed. Everything in this repository committed on 12 November 2026 was built, before the build window (14 to 15 November), and is prior work:
 
 - the full pipeline and web app (plan Tasks 1 to 12 and 14), the live deploy, and the tests;
 - background research, the 2023 replay accuracy test, the 2019 to 2025 model experiments (the visibility correction that was dropped and the persistence model that was adopted), the data-source check, the design spec, the build plan and the pitch deck, all kept in the wider project folder outside this repository.

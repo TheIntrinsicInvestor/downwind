@@ -7,4 +7,5 @@ $env:NEBIUS_API_KEY = ($line -split '=', 2)[1].Trim()
 if (-not $env:NEBIUS_API_KEY) { Write-Error 'NEBIUS_API_KEY is empty'; exit 1 }
 Write-Host 'Chat enabled for this process only. Starting the dev server...'
 Set-Location (Join-Path $PSScriptRoot '..')
-npm run dev -- -p 3125
+try { npm run dev -- -p 3125 }
+finally { Remove-Item Env:NEBIUS_API_KEY -ErrorAction SilentlyContinue }   # do not leave the key in this terminal
