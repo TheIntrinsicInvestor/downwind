@@ -8,6 +8,7 @@ import FireList from "./FireList";
 import FireCard from "./FireCard";
 import ModeToggle from "./ModeToggle";
 import LimitsPanel from "./LimitsPanel";
+import BulletinPanel from "./BulletinPanel";
 
 // MapLibre touches window at import time, so the map loads in the browser only.
 // In Next 16, ssr:false is only allowed inside a Client Component, hence this wrapper.
@@ -161,7 +162,7 @@ export default function MapClient() {
         )}
 
         {day && tab === "bulletin" && (
-          <p className="px-4 py-6 text-sm text-stone-600">{day.bulletin.text || "No bulletin for this day yet."}</p>
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto"><BulletinPanel day={day} /></div>
         )}
 
         {day && tab === "ranking" && <ModeToggle mode={mode} onMode={setMode} day={day} />}

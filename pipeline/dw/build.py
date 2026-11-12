@@ -7,6 +7,7 @@ import time
 import pandas as pd
 
 from dw import config
+from dw.bulletin import TOKENS, build_facts, make_bulletin
 from dw.evaluate import metar_daily, metar_path
 from dw.export import export_day, write_index, write_limits
 from dw.fetch import load_fires, load_met
@@ -15,7 +16,6 @@ from dw.rank import pick_day, run_day, stability
 from dw.tiers import assign_tiers, build_squares
 
 REPLAY_OUT = config.ROOT / "downwind" / "web" / "public" / "replay"
-EMPTY_BULLETIN = {"text": "", "source": "template", "model": None}
 
 
 def pontianak_ext_2026() -> pd.Series:
@@ -43,13 +43,15 @@ def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT):
     for d in days[1:]:
         res = run_day(d, fires, met, grids, record_frames=True)
         stab = stability(d, fires, met, grids)
-        export_day(res, prev, stab, EMPTY_BULLETIN, out)
+        bulletin = make_bulletin(build_facts(res, prev))
+        export_day(res, prev, stab, bulletin, out)
         name = d.strftime("%Y-%m-%d")
         exported.append(name)
         size_j = (out / f"{name}.json").stat().st_size
         size_b = (out / f"{name}.particles.bin.gz").stat().st_size
         print(f"{name}: counts {res.counts}, top10 share {res.top10_share:.3f}, stability {stab}, "
               f"json {size_j / 1e6:.2f} MB + particles {size_b / 1e6:.2f} MB = {(size_j + size_b) / 1e6:.2f} MB", flush=True)
+        print(f"  bulletin: source {bulletin['source']}, model {bulletin['model']}, tokens so far {TOKENS['total']}", flush=True)
         prev = res
     write_index(exported, exported[-1], out)
     write_limits(None, out)

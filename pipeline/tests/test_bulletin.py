@@ -1,0 +1,122 @@
+import io
+import json
+import urllib.error
+
+import pandas as pd
+import pytest
+
+from dw import config
+from dw.bulletin import BULLETIN_MODELS, LLMError, build_facts, call_llm, make_bulletin, offending, template_bulletin
+from dw.rank import run_day
+from tests.conftest import T0, flat_met, one_fire, toy_grids
+
+FACTS = {"date": "22 October 2026", "p1_count": 1412, "top10_share_pct": 53,
+         "top": [{"rank": 1, "near": "Ketapang", "share_pct": 12, "people_40km": 680000, "first_arrival_h": 7}]}
+MSGS = [{"role": "user", "content": "hello"}]
+HTTPError503 = object()
+
+
+class fake_opener:
+    """Stands in for urllib.request.urlopen: records each request and replays scripted replies."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.models_called, self.bodies = [], []
+
+    def __call__(self, req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        self.bodies.append(body)
+        self.models_called.append(body["model"])
+        r = self.replies.pop(0)
+        if r is HTTPError503:
+            raise urllib.error.HTTPError(req.full_url, 503, "Service Unavailable", {}, None)
+        payload = {"choices": [{"message": {"content": r}}], "usage": {"total_tokens": 100}}
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+
+@pytest.fixture(autouse=True)
+def fake_key(monkeypatch):
+    monkeypatch.setattr(config, "secret", lambda n: "SECRETVALUE")
+
+
+@pytest.mark.parametrize("text,bad", [
+    ("Fire 1 near Ketapang puts 680,000 people under smoke.", []),
+    ("The top ten carry 53% of exposure.", []),
+    ("About 700,000 people are affected.", ["700,000"]),
+    ("Roughly 0.7 million people.", ["0.7"]),
+    ("Smoke arrives in 7 hours, on 22 October 2026.", []),
+    ("There are 1,412 Priority 1 fires and 12 crews.", []),      # 12 is share_pct: passes by value; documented limit
+    ("There are 1,413 Priority 1 fires.", ["1,413"]),
+])
+def test_number_check(text, bad):
+    assert offending(text, FACTS) == bad
+
+
+def test_rounded_value_passes_at_shown_precision():
+    assert offending("about 53% of smoke", {"x": 52.7}) == []
+    assert offending("about 52.6% of smoke", {"x": 52.7}) == ["52.6"]
+
+
+def test_invented_figure_falls_back_to_template():
+    fake = fake_opener(["About 900,000 people.", "Still 900,000 people."])
+    out = make_bulletin(FACTS, opener=fake)
+    assert out["source"] == "template" and offending(out["text"], FACTS) == [] and out["model"] is None
+
+
+def test_clean_llm_text_is_used():
+    fake = fake_opener(["Fire 1 near Ketapang carries 12% of the smoke over 680,000 people."])
+    out = make_bulletin(FACTS, opener=fake)
+    assert out == {"text": "Fire 1 near Ketapang carries 12% of the smoke over 680,000 people.", "source": "llm",
+                   "model": BULLETIN_MODELS[0]}
+
+
+def test_models_alternate_and_empty_reply_is_failure():
+    fake = fake_opener([HTTPError503, "", "Fire 1 near Ketapang."])
+    text, model = call_llm(MSGS, BULLETIN_MODELS, pause=0, opener=fake)
+    assert fake.models_called == BULLETIN_MODELS + BULLETIN_MODELS[:1] and model == BULLETIN_MODELS[0]
+    assert text == "Fire 1 near Ketapang."
+
+
+def test_four_failures_raise_without_leaking_key():
+    with pytest.raises(LLMError) as e:
+        call_llm(MSGS, BULLETIN_MODELS, pause=0, opener=fake_opener([HTTPError503] * 4))
+    assert "SECRETVALUE" not in str(e.value)
+
+
+def test_llm_error_falls_back_to_template():
+    out = make_bulletin(FACTS, opener=fake_opener([HTTPError503] * 8))
+    assert out["source"] == "template"
+
+
+def test_max_tokens_is_4000():
+    fake = fake_opener(["ok"])
+    call_llm(MSGS, BULLETIN_MODELS, pause=0, opener=fake)
+    assert fake.bodies[0]["max_tokens"] == 4000 and fake.bodies[0]["messages"] == MSGS
+
+
+def test_template_has_no_em_dash_and_passes_own_check():
+    for facts in (FACTS, _real_facts()):
+        text = template_bulletin(facts)
+        assert "—" not in text and offending(text, facts) == [] and len(text) > 50
+
+
+def _real_facts():
+    y = T0 - pd.Timedelta(days=1)
+    fires = pd.concat([one_fire(y, la, 109.0) for la in (-0.2, 0.0, 0.2)], ignore_index=True)
+    res = run_day(T0, fires, flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 100_000))
+    return build_facts(res, None)
+
+
+def test_build_facts_shape():
+    f = _real_facts()
+    assert f["date"] == "22 October 2026" and f["fires_date"] == "21 October 2026"
+    assert f["window_hours"] == 48 and f["radius_km"] == 40 and f["p1_count"] == 3
+    assert len(f["top"]) == 3 and f["top"][0]["rank"] == 1 and f["top"][0]["near"] == "Kota Toy"
+    assert f["new_in_top10"] == [] and f["left_top10_count"] == 0
+    assert f["limits"].startswith("This is a ranking index")
+
+
+def test_top_ten_is_a_fact():
+    # the model naturally writes "top 10"; the facts must carry 10 so that phrase passes the check
+    f = _real_facts()
+    assert offending("The top 10 carry the most smoke.", f) == []
