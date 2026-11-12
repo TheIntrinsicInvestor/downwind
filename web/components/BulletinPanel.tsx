@@ -12,7 +12,7 @@ export default function BulletinPanel({ day }: { day: Day }) {
       <p className="mt-4 border-t border-stone-200 pt-3 text-xs text-stone-500">
         {b.source === "llm"
           ? `Written by ${b.model}. Every number was checked against the computed data.`
-          : "Standard template (the AI draft failed its number check)."}
+          : "Standard template (the AI draft failed its checks: every number must match the computed data, and the limits sentence must be intact)."}
       </p>
     </article>
   );
