@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { type Day, type Index, ReplayError, loadDay, loadIndex, localLabel, longDate, rankedFires } from "@/lib/replay";
+import { type Day, type Index, type Mode, ReplayError, loadDay, loadIndex, localLabel, longDate, rankedFires } from "@/lib/replay";
 import TimeSlider from "./TimeSlider";
 import FireList from "./FireList";
 import FireCard from "./FireCard";
+import ModeToggle from "./ModeToggle";
 
 // MapLibre touches window at import time, so the map loads in the browser only.
 // In Next 16, ssr:false is only allowed inside a Client Component, hence this wrapper.
@@ -31,6 +32,7 @@ export default function MapClient() {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
+  const [mode, setMode] = useState<Mode>("downwind");
 
   useEffect(() => {
     if (index) return;
@@ -72,7 +74,7 @@ export default function MapClient() {
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
       <section className="relative h-[62dvh] shrink-0 overflow-hidden bg-stone-200 lg:h-auto lg:flex-1">
-        {data && <MapView day={data.day} bin={data.bin} frame={frame} selected={selected} onSelect={onSelect} />}
+        {data && <MapView day={data.day} bin={data.bin} frame={frame} selected={selected} onSelect={onSelect} mode={mode} />}
         {!data && (
           <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-stone-600">
             {error ?? "Loading replay data"}
@@ -128,14 +130,18 @@ export default function MapClient() {
           </div>
         )}
 
+        {day && <ModeToggle mode={mode} onMode={setMode} day={day} />}
+
         {day && fire && <FireCard fire={fire} nRanked={nRanked} onClose={() => setSelected(null)} />}
 
         {day && (
           <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <div className="flex items-baseline justify-between px-4 pb-1 pt-3">
-              <h2 className="text-sm font-semibold text-stone-900">Priority 1 fires by people under smoke</h2>
+              <h2 className="text-sm font-semibold text-stone-900">
+                {mode === "official" ? "West Kalimantan fires by official tier" : "Priority 1 fires by residents under smoke"}
+              </h2>
             </div>
-            <FireList day={day} selected={selected} onSelect={onSelect} />
+            <FireList day={day} selected={selected} onSelect={onSelect} mode={mode} />
           </div>
         )}
       </aside>

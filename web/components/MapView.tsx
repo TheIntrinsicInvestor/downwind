@@ -5,7 +5,7 @@ import { Map, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { type Day, decodeFrame } from "@/lib/replay";
+import { type Day, type Mode, decodeFrame, tierColor } from "@/lib/replay";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
 setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
@@ -16,11 +16,12 @@ type Props = {
   frame: number;
   selected: number | null;
   onSelect: (i: number | null) => void;
+  mode: Mode;
 };
 
 type RGBA = [number, number, number, number];
 
-export default function MapView({ day, bin, frame, selected, onSelect }: Props) {
+export default function MapView({ day, bin, frame, selected, onSelect, mode }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
   const [ready, setReady] = useState(false);
@@ -82,6 +83,7 @@ export default function MapView({ day, bin, frame, selected, onSelect }: Props) 
           getPosition: (i) => [fires[i].lon, fires[i].lat],
           getRadius: (i) => {
             const r = fires[i].rank;
+            if (mode === "official") return fires[i].in_province ? 2500 : 900;   // the rule gives no order: same size
             if (r === null) return 900;
             return r <= 10 ? 6000 : 1500 + 2500 * (1 - (r - 1) / Math.max(nRanked, 1));
           },
@@ -92,17 +94,20 @@ export default function MapView({ day, bin, frame, selected, onSelect }: Props) 
           getLineWidth: (i) => (i === selected ? 3 : 1),
           lineWidthUnits: "pixels",
           getFillColor: (i): RGBA => {
+            if (mode === "official") {
+              return fires[i].in_province ? [...tierColor(fires[i].tier), 230] : [125, 125, 125, 120];
+            }
             const r = fires[i].rank;
             if (r === null) return [125, 125, 125, 120];
             return r <= 10 ? [178, 34, 34, 235] : [226, 120, 40, 210];
           },
           onClick: (info) => onSelect(typeof info.object === "number" ? info.object : null),
-          updateTriggers: { getLineColor: [selected], getLineWidth: [selected], getRadius: [day.date],
-            getFillColor: [day.date] },
+          updateTriggers: { getLineColor: [selected], getLineWidth: [selected], getRadius: [day.date, mode],
+            getFillColor: [day.date, mode] },
         }),
       ],
     });
-  }, [ready, day, smoke, frame, selected, fireOrder, nRanked, onSelect]);
+  }, [ready, day, smoke, frame, selected, fireOrder, nRanked, onSelect, mode]);
 
   return (
     <div className="absolute inset-0">

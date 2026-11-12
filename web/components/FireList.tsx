@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { type Day, pct, rankedFires } from "@/lib/replay";
+import { type Day, type Mode, orderForMode, pct, rankedFires } from "@/lib/replay";
 
-type Props = { day: Day; selected: number | null; onSelect: (i: number) => void };
+type Props = { day: Day; selected: number | null; onSelect: (i: number) => void; mode: Mode };
 
-export default function FireList({ day, selected, onSelect }: Props) {
+export default function FireList({ day, selected, onSelect, mode }: Props) {
   const [showAll, setShowAll] = useState(false);
-  const ranked = rankedFires(day);
+  const ranked = mode === "official" ? orderForMode(day.fires, "official") : rankedFires(day);
   if (ranked.length === 0) {
     return <p className="px-4 py-6 text-sm text-stone-600">No Priority 1 fires in West Kalimantan on this day.</p>;
   }
@@ -25,11 +25,15 @@ export default function FireList({ day, selected, onSelect }: Props) {
                 onClick={() => onSelect(i)}
                 className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-stone-100 ${active ? "bg-amber-50" : ""}`}
               >
-                <span className={`w-8 shrink-0 font-semibold tabular-nums ${(f.rank as number) <= 10 ? "text-red-800" : "text-stone-500"}`}>
-                  {f.rank}
-                </span>
+                {mode === "official" ? (
+                  <span className="w-8 shrink-0 text-xs font-semibold text-stone-500">P{f.tier}</span>
+                ) : (
+                  <span className={`w-8 shrink-0 font-semibold tabular-nums ${(f.rank as number) <= 10 ? "text-red-800" : "text-stone-500"}`}>
+                    {f.rank}
+                  </span>
+                )}
                 <span className="min-w-0 flex-1 truncate">{f.place ?? `${f.lat.toFixed(2)}, ${f.lon.toFixed(2)}`}</span>
-                <span className="shrink-0 tabular-nums text-stone-600">{pct(f.share, 1)}</span>
+                {mode === "downwind" && <span className="shrink-0 tabular-nums text-stone-600">{pct(f.share, 1)}</span>}
               </button>
             </li>
           );

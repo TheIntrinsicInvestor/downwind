@@ -49,3 +49,27 @@ test("loadDay unpacks the gzip particle file", async () => {
   expect(day.date).toBe("2026-09-20");
   expect(Array.from(new Uint8Array(bin))).toEqual(Array.from(raw));
 });
+
+import { orderForMode, tierColor } from "./replay";
+import type { Fire } from "./replay";
+
+function fire(id: string, tier: 1 | 2 | 3, rank: number | null, in_province = true): Fire {
+  return { id, lat: 0, lon: 110, tier, in_province, frp: 1, n_detect: 1, place: null, rank, share: rank ? 0.1 : null,
+    people_40km: null, top_places: null, first_arrival_h: null, heading: null, reach_km: null, persist_p: null };
+}
+const FIRES = [fire("b", 1, 2), fire("z", 3, null), fire("a", 1, 1), fire("c", 2, null), fire("x", 1, null, false), fire("d", 1, 3)];
+
+test("tierColor gives three distinct colours", () => {
+  const c = [1, 2, 3].map((t) => tierColor(t as 1 | 2 | 3).join(","));
+  expect(new Set(c).size).toBe(3);
+});
+
+test("official order: province fires by tier, then id, no order inside a tier", () => {
+  expect(orderForMode(FIRES, "official").map((i) => FIRES[i].id)).toEqual(["a", "b", "d", "c", "z"]);
+});
+
+test("downwind order: Priority 1 by rank, then tiers 2 and 3", () => {
+  expect(orderForMode(FIRES, "downwind").map((i) => FIRES[i].id)).toEqual(["a", "b", "d", "c", "z"]);
+  const reranked = [fire("a", 1, 3), fire("b", 1, 1), fire("c", 2, null), fire("d", 1, 2)];
+  expect(orderForMode(reranked, "downwind").map((i) => reranked[i].id)).toEqual(["b", "d", "a", "c"]);
+});

@@ -135,3 +135,24 @@ export function rankedFires(day: Day): number[] {
   return day.fires.map((_, i) => i).filter((i) => day.fires[i].rank !== null)
     .sort((a, b) => (day.fires[a].rank as number) - (day.fires[b].rank as number));
 }
+
+// ---- official-rule overlay
+
+export type Mode = "official" | "downwind";
+
+// Priority 1, 2, 3 (P.8/2018, our reading of Pasal 9)
+export function tierColor(tier: 1 | 2 | 3): [number, number, number] {
+  return tier === 1 ? [178, 34, 34] : tier === 2 ? [230, 150, 40] : [140, 140, 140];
+}
+
+// Indices of province fires in list order. Official: by tier, then id (the rule gives no order inside a tier).
+// Downwind: Priority 1 by rank, then tiers 2 and 3 as in official.
+export function orderForMode(fires: Fire[], mode: Mode): number[] {
+  const idx = fires.map((_, i) => i).filter((i) => fires[i].in_province);
+  const byTierId = (a: number, b: number) =>
+    fires[a].tier - fires[b].tier || (fires[a].id < fires[b].id ? -1 : fires[a].id > fires[b].id ? 1 : 0);
+  if (mode === "official") return idx.sort(byTierId);
+  const ranked = idx.filter((i) => fires[i].rank !== null).sort((a, b) => (fires[a].rank as number) - (fires[b].rank as number));
+  const rest = idx.filter((i) => fires[i].rank === null && fires[i].tier !== 1).sort(byTierId);
+  return [...ranked, ...rest];
+}
