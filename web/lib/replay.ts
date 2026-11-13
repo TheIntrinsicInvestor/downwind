@@ -130,8 +130,15 @@ export function localLabel(windowStartUtc: string, h: number): string {
   return `${day} ${t.getUTCDate()} ${MONTHS[t.getUTCMonth()].slice(0, 3)}, ${hh}:00 local (+${h} h)`;
 }
 
+// One rounding convention for every percentage a person sees (card, list, city view, chat facts) and for the
+// bulletin facts (pipeline/dw/bulletin.py pct): the value as stored in the day file, times 100, half up.
+export function roundPct(x: number, digits = 0): number {
+  const scaled = Number((x * 100 * 10 ** digits).toPrecision(12));   // strip float noise: 11.499999999999998 -> 11.5
+  return Math.floor(scaled + 0.5) / 10 ** digits;
+}
+
 export function pct(x: number | null, digits = 0): string {
-  return x === null ? "n/a" : `${(x * 100).toFixed(digits)}%`;
+  return x === null ? "n/a" : `${roundPct(x, digits).toFixed(digits)}%`;
 }
 
 export function rankedFires(day: Day): number[] {

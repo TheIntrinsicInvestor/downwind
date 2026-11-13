@@ -139,3 +139,26 @@ def test_top_ten_is_a_fact():
     # the model naturally writes "top 10"; the facts must carry 10 so that phrase passes the check
     f = _real_facts()
     assert offending("The top 10 carry the most smoke.", f) == []
+
+
+@pytest.mark.parametrize("x,digits,want", [
+    (0.0675, 1, 6.8),       # 18 Sep rank 3: stored 0.0675 (true 6.749%); the card shows 6.8
+    (0.0625, 1, 6.3),       # exact tie rounds up, as the browser does (Python's round gives 6.2)
+    (0.0645, 1, 6.5),
+    (0.0115, 1, 1.2),       # the browser's toFixed alone gives 1.1
+    (0.0095, 1, 1.0),
+    (0.125, 0, 13),         # Python's round gives 12
+    (0.3008, 0, 30),
+])
+def test_pct_uses_the_card_rounding(x, digits, want):
+    from dw.bulletin import pct
+    assert pct(x, digits) == want
+
+
+def test_facts_round_the_stored_share_like_the_card():
+    f = _real_facts()
+    from dw.bulletin import pct
+    res = run_day(T0, pd.concat([one_fire(T0 - pd.Timedelta(days=1), la, 109.0) for la in (-0.2, 0.0, 0.2)],
+                                ignore_index=True), flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 100_000))
+    r = res.squares[res.squares["rank"] == 1].iloc[0]
+    assert f["top"][0]["share_pct"] == pct(round(float(r.share), 5), 1)

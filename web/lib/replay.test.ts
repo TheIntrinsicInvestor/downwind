@@ -153,3 +153,16 @@ test("forecastLine states the 2026 morning-forecast test against hindsight and t
     "that actually followed. A count of nearby fires scores 0.45; the smoke model's gain over it is 0.08 to 0.28 " +
     "(95% range, resampling weeks), so in 2026 the wind adds real skill.");
 });
+
+import { pct } from "./replay";
+
+test("pct rounds the stored value half up, the same as the bulletin facts", () => {
+  expect(pct(0.0675, 1)).toBe("6.8%");
+  expect(pct(0.0625, 1)).toBe("6.3%");
+  expect(pct(0.0645, 1)).toBe("6.5%");
+  expect(pct(0.0115, 1)).toBe("1.2%");      // toFixed alone gives 1.1% (float noise)
+  expect(pct(0.0095, 1)).toBe("1.0%");
+  expect(pct(0.125)).toBe("13%");
+  expect(pct(0.3008)).toBe("30%");
+  expect(pct(null)).toBe("n/a");
+});

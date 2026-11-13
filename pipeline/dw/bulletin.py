@@ -3,6 +3,7 @@ from the facts, and a template fallback. The key is read from the secrets file a
 import json
 import re
 import time
+from decimal import ROUND_HALF_UP, Decimal
 import urllib.error
 import urllib.request
 
@@ -16,14 +17,17 @@ SYSTEM_PROMPT = ("You write a morning briefing for a provincial fire task force 
                  "given. Every number you write must appear in the facts exactly: write numbers as digits with no "
                  "rounding and no number words at all (no seven, million, half or twice), and put commas in numbers "
                  "of 1,000 or more (2,518,627). Call the people counted residents. "
-                 "fires_that_left_top10_count counts fires, not places. What the facts mean: p1_count, p2_count "
+                 "fires_that_left_top10_count counts fires, not places (do not explain this in the text). "
+                 "What the facts mean: p1_count, p2_count "
                  "and p3_count are fires across West Kalimantan (no radius applies to them); share_pct and "
                  "top10_share_pct are shares of all the modelled smoke over residents from West Kalimantan fires "
                  "(not of an index or of activity); people_40km is the residents living within radius_km of that "
                  "fire's smoke path, so write 'N residents live within 40 km of its smoke path', never that the "
-                 "fire affects or threatens them; first_arrival_h is the hours until its smoke reaches the FIRST "
-                 "of its top_places only, so name that one place with it (0 means its smoke is already over that "
-                 "place when the window opens); heading is the direction the smoke is travelling towards (heading "
+                 "fire affects or threatens them; first_arrival_h is the hours until its smoke reaches the place "
+                 "listed first in its top_places, which is the place receiving the most of its smoke, not "
+                 "necessarily the place reached earliest: name that one place with it and never call it the first "
+                 "or earliest place reached (0 means its smoke is already over that place when the window opens); "
+                 "heading is the direction the smoke is travelling towards (heading "
                  "NW means it drifts to the northwest, not from it); top_places share_pct is how that fire's own "
                  "smoke over residents splits between places; fires_date is when the fires were detected. "
                  "Write in full sentences as a short "
@@ -53,6 +57,13 @@ def _long(ts) -> str:
     return f"{ts.day} {ts.strftime('%B %Y')}"
 
 
+def pct(x: float, digits: int = 0):
+    """Percent of x as stored in the day file, rounded half up: the same convention as web/lib/replay.ts roundPct,
+    so the bulletin and the fire card always show the same figure (Python's round() breaks ties to even)."""
+    q = (Decimal(repr(float(x))) * 100).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)
+    return int(q) if digits == 0 else float(q)
+
+
 def build_facts(res, prev) -> dict:
     sq = res.squares
     ranked = sq[sq["rank"].notna()].sort_values("rank") if len(sq) else sq
@@ -61,10 +72,10 @@ def build_facts(res, prev) -> dict:
         top.append({
             "rank": int(r.rank),
             "near": r.place,
-            "share_pct": round(float(r.share) * 100, 1),
+            "share_pct": pct(round(float(r.share), 5), 1),           # rounded as stored in the day file
             "people_40km": None if pd.isna(r.people_40km) else int(r.people_40km),
             "heading": r.heading,
-            "top_places": [{"name": n, "share_pct": int(round(s * 100))} for n, s in (r.top_places or [])],
+            "top_places": [{"name": n, "share_pct": pct(round(float(s), 4))} for n, s in (r.top_places or [])],
             "first_arrival_h": None if pd.isna(r.first_arrival_h) else int(r.first_arrival_h),
         })
     now = list(ranked.id[ranked["rank"] <= 10]) if len(ranked) else []
@@ -83,7 +94,7 @@ def build_facts(res, prev) -> dict:
         "p2_count": int(res.counts.get("p2", 0)),
         "p3_count": int(res.counts.get("p3", 0)),
         "top_list_size": 10,                 # "the top 10" is a fact the model may state
-        "top10_share_pct": int(round(res.top10_share * 100)),
+        "top10_share_pct": pct(round(float(res.top10_share), 4)),
         "top": top,
         "new_in_top10": new,
         "fires_that_left_top10_count": left,

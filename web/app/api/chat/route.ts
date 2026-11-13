@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { connection } from "next/server";
 import { offending } from "@/lib/numbers";
-import type { Day } from "@/lib/replay";
+import { type Day, roundPct } from "@/lib/replay";
 
 const BASE_URL = "https://api.tokenfactory.nebius.com/v1/chat/completions";
 const CHAT_MODELS = ["MiniMaxAI/MiniMax-M3", "deepseek-ai/DeepSeek-V4-Pro-0813"];
@@ -27,13 +27,13 @@ function facts(day: Day) {
   const ranked = day.fires.filter((f) => f.rank !== null).sort((a, b) => (a.rank as number) - (b.rank as number)).slice(0, 20);
   return {
     date: day.date, fires_date: day.fires_date, window_hours: day.hours, radius_km: 40, top_list_size: 10,
-    counts: day.counts, top10_share_pct: Math.round(day.top10_share * 100),
-    fires: ranked.map((f) => ({ rank: f.rank, near: f.place, share_pct: Math.round((f.share ?? 0) * 1000) / 10,
+    counts: day.counts, top10_share_pct: roundPct(day.top10_share),
+    fires: ranked.map((f) => ({ rank: f.rank, near: f.place, share_pct: roundPct(f.share ?? 0, 1),
       people_40km: f.people_40km, heading: f.heading, first_arrival_h: f.first_arrival_h,
-      top_places: f.top_places?.map((p) => ({ name: p.name, share_pct: Math.round(p.share * 100) })) ?? null })),
+      top_places: f.top_places?.map((p) => ({ name: p.name, share_pct: roundPct(p.share) })) ?? null })),
     places: day.places.slice(0, 15).map((p) => ({ name: p.name,
       top_sources: p.contributions.slice(0, 3).map((c) => ({ near: day.fires[c.fire].place, rank: day.fires[c.fire].rank,
-        share_pct: Math.round(c.share * 100), first_arrival_h: c.first_arrival_h })) })),
+        share_pct: roundPct(c.share), first_arrival_h: c.first_arrival_h })) })),
     limits: "This is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not counted.",
   };
 }
