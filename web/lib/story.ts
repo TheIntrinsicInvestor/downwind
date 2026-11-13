@@ -102,7 +102,7 @@ export function beats(day: Day): Beat[] | null {
       `On the morning of ${longDate(day.date)}, satellites had picked up ${num(f.nLocations)} fire locations across the region.`,
       "downwind", null, REGION, phone(...REGION.center, REGION.zoom), STORY_FRAME),
     make("official", 2, "The official view",
-      `Indonesia's rule sorts hotspots into three tiers. In West Kalimantan that morning, ${num(f.p1)} fires shared Priority 1, with no order among them.`,
+      `Indonesia's rule sorts hotspots into three tiers for field checks. In West Kalimantan that morning, ${num(f.p1)} fires shared Priority 1, with no order among them.`,
       "official", null, PROVINCE, phone(...PROVINCE.center, PROVINCE.zoom), STORY_FRAME),
     make("biggest", 3, "The biggest fire",
       `The biggest Priority 1 fire burned at ${f.biggest.frp.toFixed(1)} MW in ${f.biggest.place}. Ranked only ${ordinal(f.biggest.rank)} of ${num(f.p1)}. ${f.biggest.sharePct} of the day's smoke over residents.`,

@@ -63,7 +63,7 @@ test("golden: beat copy is the spec's sentences", () => {
     ["The region", "The official view", "The biggest fire", "The fire that matters most", "The short list"]);
   expect(b.map((x) => x.n)).toEqual(["01", "02", "03", "04", "05"]);
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
-  expect(b[1].body).toBe("Indonesia's rule sorts hotspots into three tiers. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
+  expect(b[1].body).toBe("Indonesia's rule sorts hotspots into three tiers for field checks. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
   expect(b[2].body).toBe("The biggest Priority 1 fire burned at 248.0 MW in Kayong Utara. Ranked only 20th of 349. 1.06% of the day's smoke over residents.");
   expect(b[3].body).toBe("A smaller fire in Kayong Utara, 194.0 MW, ranks first. Its smoke is over Kayong Utara from the start, with 2,028,881 residents within 40 km of its modelled smoke path. It holds 6.1% of the day's smoke over residents.");
   expect(b[4].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");
