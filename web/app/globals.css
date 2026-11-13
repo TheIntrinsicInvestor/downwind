@@ -1,12 +1,58 @@
 @import "tailwindcss";
 
+/* Design tokens (spec section 4). */
+:root {
+  --bg: #05070b;
+  --land: #10161f;
+  --water: #03060b;
+  --coast: #26384d;
+  --ink: #eef0ea;
+  --ink-2: #b9c1cc;
+  --ink-3: #8d97a6;
+  --ember: #ff7a2e;
+  --ember-hot: #ffd08a;
+  --ember-core: #fff3dc;
+  --smoke: #d6dee8;
+  --rule: rgb(238 240 234 / 0.14);
+  --panel: rgb(11 16 23 / 0.88);
+}
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ember: var(--ember);
+  --color-ember-hot: var(--ember-hot);
+  --color-ember-core: var(--ember-core);
+  --color-rule: var(--rule);
+  --color-panel: var(--panel);
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 body {
-  background: #ffffff;
-  color: #1c1917;
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+@layer components {
+  .dateline {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .hairline {
+    border: 1px solid var(--rule);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+  }
 }
