@@ -27,7 +27,7 @@ NOT_CLAIMED = [
     "An accurate forecast of haze",
     "Any smoke concentration",
     "Any skill for Singapore or Kuala Lumpur",
-    "That the simulation clearly beats counting nearby fires (0.45 against 0.38, not statistically solid)",
+    "That the simulation beats counting nearby fires in every season (in 2023, 0.45 against 0.38, it was not statistically solid)",
 ]
 
 
@@ -157,6 +157,10 @@ def write_limits(learn: dict | None, out: Path) -> None:
     _write_json({
         "replay2023": {"pooled": 0.45, "pontianak": 0.81, "worst_quartile_hit": 0.48, "chance": 0.25,
                        "airports": 7, "days": 421},
+        # dw.forecast_check, 13 Nov: Sep to Oct 2026, 5 airports, the morning ECMWF forecast; gain over the fire count
+        # 0.08 to 0.28 (95%, bootstrap over 7-day blocks of days)
+        "forecast2026": {"forecast": 0.59, "hindsight": 0.61, "baseline": 0.45, "pontianak": 0.75, "airports": 5,
+                         "days": 300, "gain_low": 0.08, "gain_high": 0.28},
         "learn": learn,
         "ignores": [WEIGHTED_LINE if (x == BURNING_LINE and learn and learn.get("shipped")) else x for x in IGNORES],
         "not_claimed": NOT_CLAIMED,

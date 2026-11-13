@@ -133,6 +133,7 @@ def test_limits_copy_has_no_em_dash(tmp_path):
     lim = json.loads(text)
     assert "—" not in text and lim["learn"] is None and lim["replay2023"]["pooled"] == 0.45
     assert len(lim["ignores"]) == 6 and len(lim["not_claimed"]) == 4
+    assert lim["forecast2026"]["forecast"] == 0.59 and lim["forecast2026"]["days"] == 300
 
 
 def test_index(tmp_path):

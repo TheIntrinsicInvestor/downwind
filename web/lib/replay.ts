@@ -31,6 +31,8 @@ export type Limits = {
   replay2023: { pooled: 0.45; pontianak: 0.81; worst_quartile_hit: 0.48; chance: 0.25; airports: 7; days: 421 };
   learn: { shipped: boolean; test_auc_2026: number; heuristic_auc_2026: number; cv_auc: [number, number, number];
           base_rate_2026: number; visibility_correction: "tested, not used" } | null;   // set by Task 11
+  forecast2026?: { forecast: number; hindsight: number; baseline: number; pontianak: number; airports: number; days: number;
+    gain_low: number; gain_high: number };                // dw.forecast_check, 13 Nov
   ignores: string[]; not_claimed: string[];
 };
 
@@ -162,6 +164,17 @@ export function stabilityLine(s: Day["stability"]): string {
   const base = `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
   return s.hindsight_overlap === undefined ? base
     : `${base} The ranking uses the forecast available that morning; with the weather that actually followed, ${s.hindsight_overlap} of 10 stay.`;
+}
+
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+export function forecastLine(f: NonNullable<Limits["forecast2026"]>): string {
+  const n = WORDS[f.airports] ?? String(f.airports);
+  return `On Sep to Oct 2026, using only the forecast available each morning at 07:00, the smoke index tracks visibility ` +
+    `at ${n} airports at ${f.forecast.toFixed(2)} correlation over ${f.days} airport-days (${f.pontianak.toFixed(2)} at Pontianak), ` +
+    `against ${f.hindsight.toFixed(2)} with the weather that actually followed. A count of nearby fires scores ` +
+    `${f.baseline.toFixed(2)}; the smoke model's gain over it is ${f.gain_low.toFixed(2)} to ${f.gain_high.toFixed(2)} ` +
+    `(95% range, resampling weeks), so in 2026 the wind adds real skill.`;
 }
 
 export function ageLabel(days: number | null): string | null {

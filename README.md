@@ -32,13 +32,14 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 
 - In a replay of the 2023 haze season at 7 airports, a smoke index built from the previous day's fires tracks observed visibility at 0.45 correlation (0.81 at Pontianak). That test used archived weather close to what actually happened, because no archive of past forecasts reaches back to 2023.
 - It flags 48% of the worst-quartile haze days, against 25% by chance.
+- **With the forecast available each morning (September to October 2026, 5 airports, 300 airport-days):** the smoke index tracks visibility at 0.59 correlation (0.75 at Pontianak), against 0.61 with the weather that actually followed and 0.45 for a count of nearby fires. The gain over the fire count is 0.08 to 0.28 (95% range, bootstrap over 7-day blocks of days). Reproduce with `python -m dw.forecast_check` (download the forecasts first with `--fetch`).
 - The top ten is stable across reruns (9 to 10 of 10 kept).
 - The persistence model scores AUC 0.79 on September to October 2026, a season it never saw, against 0.62 for counting days burned. It was scored on 2026 once and not tuned afterwards. On the three training-season folds it scored 0.72 to 0.84.
 - We tested a learned correction of the smoke index against airport visibility. It did not beat the plain simulation, so it is not used.
 
 ## Limits
 
-Downwind is a ranking index, not a forecast of smoke concentration. It does not account for fuel load or how deep the peat is burning, smoke rising above the surface layer, fires hidden under cloud or thick smoke, or people outside Indonesia (not counted). It does not claim any skill for Singapore or Kuala Lumpur, and the simulation does not clearly beat counting nearby fires (0.45 against 0.38, not statistically solid). Fires are shown as locations only, never as companies or concession holders.
+Downwind is a ranking index, not a forecast of smoke concentration. It does not account for fuel load or how deep the peat is burning, smoke rising above the surface layer, fires hidden under cloud or thick smoke, or people outside Indonesia (not counted). It does not claim any skill for Singapore or Kuala Lumpur, and the simulation did not clearly beat counting nearby fires in 2023 (0.45 against 0.38, not statistically solid), although it did in 2026 (0.59 against 0.45). Fires are shown as locations only, never as companies or concession holders.
 
 **Next validation step:** a pilot morning with one task force.
 

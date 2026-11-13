@@ -142,3 +142,14 @@ test("contributionsFor sorts by share, shares sum to at most 1", () => {
   expect(c.reduce((s, x) => s + x.share, 0)).toBeLessThanOrEqual(1);
   expect(contributionsFor(CITY_DAY, "Nowhere")).toEqual([]);
 });
+
+import { forecastLine } from "./replay";
+
+test("forecastLine states the 2026 morning-forecast test against hindsight and the fire count", () => {
+  const f = { forecast: 0.59, hindsight: 0.61, baseline: 0.45, pontianak: 0.75, airports: 5, days: 300, gain_low: 0.08, gain_high: 0.28 };
+  expect(forecastLine(f)).toBe(
+    "On Sep to Oct 2026, using only the forecast available each morning at 07:00, the smoke index tracks visibility " +
+    "at five airports at 0.59 correlation over 300 airport-days (0.75 at Pontianak), against 0.61 with the weather " +
+    "that actually followed. A count of nearby fires scores 0.45; the smoke model's gain over it is 0.08 to 0.28 " +
+    "(95% range, resampling weeks), so in 2026 the wind adds real skill.");
+});
