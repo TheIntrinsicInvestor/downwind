@@ -125,6 +125,17 @@ body {
   .range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ember-hot); }
 }
 
+/* App panels enter once on mount (and again when the app returns from the landing page, which shows it from
+   display:none): opacity and a small translate. Fill "backwards" only, so after the run the panels' own opacity and
+   translate (collapse) apply untouched. --dw-from sets the direction. */
+@keyframes dw-enter {
+  from { opacity: 0; translate: var(--dw-from, 0 8px); }
+}
+.dw-enter { animation: dw-enter 340ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .dw-enter { animation: none; }
+}
+
 /* Map attribution on the dark map; on phones it rides above the bottom sheet (AppShell sets --dw-sheet-h). */
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {

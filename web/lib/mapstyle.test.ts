@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Fire } from "./replay";
-import { EMBER_CORE, SMOKE_MAX_RADIUS, fireFill, fireRadius, officialColor, pickFire, smokeColorDomain,
+import { EMBER_CORE, PLACE_LABEL_MIN_ZOOM, SMOKE_MAX_RADIUS, fireFill, fireRadius, officialColor, pickFire, smokeColorDomain,
   smokeRadiusPixels } from "./mapstyle";
 
 function fire(rank: number | null, tier: 1 | 2 | 3 = 1, in_province = true): Fire {
@@ -80,4 +80,10 @@ test("a click near several fires picks the best-ranked one in the Downwind view,
   expect(pickFire([0, 3], fires, "downwind")).toBe(0);
   expect(pickFire([1, 2], fires, "official")).toBe(1);
   expect(pickFire([], fires, "downwind")).toBeNull();
+});
+
+test("place labels start above the province view and below the close fire view", () => {
+  expect(PLACE_LABEL_MIN_ZOOM).toBe(7);
+  expect(PLACE_LABEL_MIN_ZOOM).toBeGreaterThan(6.3);   // story province zoom, app opening zoom 6.2
+  expect(PLACE_LABEL_MIN_ZOOM).toBeLessThan(8.2);      // story fire zoom
 });

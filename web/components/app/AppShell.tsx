@@ -140,7 +140,7 @@ function Status({ error, retry }: { error: string | null; retry: () => void }) {
 // ---- the shell
 
 export default function AppShell() {
-  const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, mode, setMode,
+  const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode,
     place, setPlace, panel, setPanel, limits, limitsError, chatEnabled, setStoryFocus, flyTo, mapReady } = useReplay();
   const wide = useWide();
   const [leftOpen, setLeftOpen] = useState(true);
@@ -175,17 +175,20 @@ export default function AppShell() {
     if (!wide) document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")?.classList.remove("maplibregl-compact-show");
   }, [mapReady, flyTo]);
 
-  // Selecting a fire (list, map or Protect) shows its card.
+  // Selecting a fire (list, map, Protect or the story's hand-off) shows its card, also when it is the fire already
+  // selected: every select(i) bumps selectSeq. A change of `selected` alone (window.__dw.select) counts too.
   const lastSelected = useRef(selected);
+  const lastSeq = useRef(selectSeq);
   useEffect(() => {
-    if (selected !== null && selected !== lastSelected.current) {
+    if (selected !== null && (selected !== lastSelected.current || selectSeq !== lastSeq.current)) {
       setPanel("fire");
       setRightOpen(true);
       setListView(false);
       setSheet((s) => (s === "collapsed" ? "half" : s));
     }
     lastSelected.current = selected;
-  }, [selected, setPanel]);
+    lastSeq.current = selectSeq;
+  }, [selected, selectSeq, setPanel]);
 
   const onDay = useCallback((d: string) => { setDate(d); setFrame(0); }, [setDate, setFrame]);
   const onCityFire = useCallback((i: number) => { select(i); setPanel("fire"); }, [select, setPanel]);
@@ -225,7 +228,7 @@ export default function AppShell() {
     const phoneTabs: TabItem[] = [{ id: "list", label: "Ranking" }, ...tabs];
     return (
       <div className="pointer-events-none fixed inset-0">
-        <header className="absolute inset-x-3 top-3 space-y-2">
+        <header className="dw-enter absolute inset-x-3 top-3 space-y-2 [--dw-from:0_-8px]">
           <div className="flex items-center justify-between gap-3">
             <div className="pointer-events-auto"><Wordmark size="sm" /></div>
             {days.length > 0 && <DaySwitch days={days} date={date} onDay={onDay} />}
@@ -234,6 +237,7 @@ export default function AppShell() {
         </header>
         {day ? (
           <Sheet
+            className="dw-enter [--dw-from:0_24px] [animation-delay:80ms]"
             state={sheet}
             onState={setSheet}
             top={PHONE_TOP}
@@ -266,7 +270,7 @@ export default function AppShell() {
 
   return (
     <div className="pointer-events-none fixed inset-0" style={offsets}>
-      <header className="absolute inset-x-4 top-4 flex items-center gap-4">
+      <header className="dw-enter absolute inset-x-4 top-4 flex items-center gap-4 [--dw-from:0_-8px]">
         <div className="pointer-events-auto mr-2"><Wordmark /></div>
         {days.length > 0 && <DaySwitch days={days} date={date} onDay={onDay} />}
         <ModeSwitch mode={mode} onMode={setMode} className="pointer-events-auto" />
@@ -283,7 +287,7 @@ export default function AppShell() {
           <aside
             aria-label="Ranked fires"
             inert={!leftOpen}
-            className={`panel pointer-events-auto absolute bottom-[6rem] left-4 top-[4.5rem] flex w-[340px] flex-col transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none xl:bottom-8 ${
+            className={`panel dw-enter pointer-events-auto absolute bottom-[6rem] left-4 top-[4.5rem] flex w-[340px] flex-col [--dw-from:-16px_0] [animation-delay:60ms] transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none xl:bottom-8 ${
               leftOpen ? "" : "-translate-x-[calc(100%+1rem)] opacity-0"}`}
           >
             <div className="flex shrink-0 items-center justify-between border-b border-rule py-1 pl-5 pr-1">
@@ -311,7 +315,7 @@ export default function AppShell() {
           <aside
             aria-label="Details"
             inert={!rightOpen}
-            className={`panel pointer-events-auto absolute right-4 top-[4.5rem] flex max-h-[calc(100%-4.5rem-6rem)] w-[380px] flex-col transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none xl:max-h-[calc(100%-4.5rem-2rem)] ${
+            className={`panel dw-enter pointer-events-auto absolute right-4 top-[4.5rem] flex max-h-[calc(100%-4.5rem-6rem)] w-[380px] flex-col transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none xl:max-h-[calc(100%-4.5rem-2rem)] [--dw-from:16px_0] [animation-delay:100ms] ${
               rightOpen ? "" : "translate-x-[calc(100%+1rem)] opacity-0"}`}
           >
             <div className="flex shrink-0 items-stretch">
@@ -337,7 +341,7 @@ export default function AppShell() {
           </button>
 
           {/* Bottom: the time slider. */}
-          <div className="panel pointer-events-auto absolute bottom-8 left-4 right-4 mx-auto max-w-[56rem] px-3 py-0.5 transition-[left,right] duration-300 ease-out motion-reduce:transition-none xl:left-(--sl) xl:right-(--sr)">
+          <div className="panel dw-enter pointer-events-auto absolute bottom-8 left-4 right-4 mx-auto max-w-[56rem] px-3 py-0.5 transition-[left,right] duration-300 ease-out motion-reduce:transition-none xl:left-(--sl) xl:right-(--sr) [--dw-from:0_10px] [animation-delay:140ms]">
             {slider}
           </div>
         </>

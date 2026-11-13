@@ -168,6 +168,8 @@ export const BASEMAP_HIDDEN = [
   "place_country_other", "place_country_minor", "place_country_major",
 ];
 
-// No place labels when zoomed out past the province (country labels are hidden entirely above).
+// Place labels only in close views (zoom 7 and in): the region and province views (zoom 4.6 to 6.3) carry none, so
+// no foreign capital sits at the edge of the smoke (controller ruling, neutral framing). Country labels are hidden
+// entirely above.
 export const PLACE_LABELS = ["place_city", "place_city_large", "place_town"];
-export const PLACE_LABEL_MIN_ZOOM = 6;
+export const PLACE_LABEL_MIN_ZOOM = 7;

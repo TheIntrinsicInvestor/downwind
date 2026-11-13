@@ -14,6 +14,7 @@ export type Replay = {
   day: Day | null; bin: ArrayBuffer | null; error: string | null; retry(): void;
   frame: number; setFrame(f: number): void; playing: boolean; setPlaying(p: boolean): void;
   selected: number | null; select(i: number | null): void;
+  selectSeq: number;               // counts select(i) calls with a fire, so choosing the selected fire again is visible
   mode: Mode; setMode(m: Mode): void;
   place: string | null; setPlace(p: string | null): void;
   panel: Panel; setPanel(p: Panel): void;
@@ -78,6 +79,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
+  const [selectSeq, setSelectSeq] = useState(0);
   const [mode, setMode] = useState<Mode>("downwind");
   const [panel, setPanel] = useState<Panel>("fire");
   const [place, setPlace] = useState<string | null>(null);
@@ -137,7 +139,10 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   }, [storyFocus, day, panel, place, selected]);
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
-  const select = useCallback((i: number | null) => setSelected(i), []);
+  const select = useCallback((i: number | null) => {
+    setSelected(i);
+    if (i !== null) setSelectSeq((n) => n + 1);
+  }, []);
 
   // Before the map exists, the latest request is kept and the camera jumps there when the stage attaches.
   const flyTo = useCallback((c: Camera, opts?: { instant?: boolean }) => {
@@ -166,7 +171,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
 
   const value: Replay = {
     index, date, setDate, day, bin: data?.bin ?? null, error, retry,
-    frame, setFrame, playing, setPlaying, selected, select, mode, setMode, place, setPlace, panel, setPanel,
+    frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
     limits, limitsError, storyFocus, setStoryFocus, focus, chatEnabled, flyTo, mapReady, mapError,
     mapInteractive, setMapInteractive,
   };

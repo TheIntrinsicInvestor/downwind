@@ -1,13 +1,11 @@
 "use client";
 
 // The view switch (Official tiers / Downwind order) and the note that goes with each view. The app shows the switch
-// in its top bar and the note above the ranked list, so both parts are exported; the default export composes them.
+// in its top bar and the note above the ranked list.
 
 import { memo } from "react";
 import { type Day, type Mode } from "@/lib/replay";
 import { officialColor } from "@/lib/mapstyle";
-
-type Props = { mode: Mode; onMode: (m: Mode) => void; day: Day };
 
 // Legend swatches use the map's own palette, so the legend matches the dots.
 const rgb = (t: 1 | 2 | 3) => `rgb(${officialColor(t).join(",")})`;
@@ -64,12 +62,3 @@ export const ModeNote = memo(function ModeNote({ mode, day }: { mode: Mode; day:
     </div>
   );
 });
-
-export default function ModeToggle({ mode, onMode, day }: Props) {
-  return (
-    <div className="space-y-3">
-      <ModeSwitch mode={mode} onMode={onMode} />
-      <ModeNote mode={mode} day={day} />
-    </div>
-  );
-}

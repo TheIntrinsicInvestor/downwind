@@ -15,6 +15,7 @@ type Props = {
   top: number;          // px kept clear at the top of the screen (the top bar) when full
   header: ReactNode;    // always visible under the grip
   children: ReactNode;  // scrolls
+  className?: string;
 };
 
 const NEXT: Record<SheetState, SheetState> = { collapsed: "half", half: "full", full: "collapsed" };
@@ -28,7 +29,7 @@ function Chevron({ up }: { up: boolean }) {
   );
 }
 
-export default function Sheet({ state, onState, top, header, children }: Props) {
+export default function Sheet({ state, onState, top, header, children, className = "" }: Props) {
   const sheet = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
   const [vh, setVh] = useState(0);
@@ -88,7 +89,7 @@ export default function Sheet({ state, onState, top, header, children }: Props) 
   return (
     <div
       ref={sheet}
-      className="panel pointer-events-auto fixed inset-x-0 bottom-0 z-20 flex flex-col border-x-0 border-b-0 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+      className={`panel pointer-events-auto fixed inset-x-0 bottom-0 z-20 flex flex-col border-x-0 border-b-0 bg-[rgb(11_16_23/0.97)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${className}`}
       style={{ height: full || undefined, transform: offset(visible), visibility: vh ? undefined : "hidden" }}
     >
       <div ref={head} className="shrink-0">
@@ -118,7 +119,8 @@ export default function Sheet({ state, onState, top, header, children }: Props) 
         </div>
         {header}
       </div>
-      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto" style={{ paddingBottom: full - visible }}>
+      {/* Collapsed, the body is pushed off screen: inert keeps it out of the tab order and the accessibility tree. */}
+      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto" inert={state === "collapsed"} style={{ paddingBottom: full - visible }}>
         {children}
       </div>
     </div>
