@@ -4,7 +4,7 @@
 // It owns the provider while it shows: 20 September, Downwind view, no selection, a passive map. Next keeps this page
 // in <Activity> when the reader goes to /app, so the setup runs again on every return (effects re-run, state stays).
 
-import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, type MouseEvent } from "react";
 import { useReplay } from "@/components/ReplayProvider";
 import TopBar from "@/components/landing/TopBar";
 import Hero, { type LoadStatus } from "@/components/landing/Hero";
@@ -15,7 +15,10 @@ export default function Home() {
   const { day, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
   const beatRef = useRef(-1);    // the beat on screen (-1: hero), for the hand-off
 
-  useEffect(() => {
+  // A layout effect, so it runs before every passive effect of the same commit, including Story's (children's passive
+  // effects run before the parent's). Story then applies the beat for the current scroll position on top of this
+  // reset, on first load and on every return from /app.
+  useLayoutEffect(() => {
     setMapInteractive(false);
     setStoryFocus(undefined);     // before the day changes: a focus from another day is not valid on this one
     setDate(STORY_DATE);

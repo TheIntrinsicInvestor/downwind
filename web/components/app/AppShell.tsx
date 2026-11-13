@@ -176,8 +176,9 @@ export default function AppShell() {
   }, [mapReady, flyTo]);
 
   // Selecting a fire (list, map, Protect or the story's hand-off) shows its card, also when it is the fire already
-  // selected: every select(i) bumps selectSeq. A change of `selected` alone (window.__dw.select) counts too.
-  const lastSelected = useRef(selected);
+  // selected: every select(i) bumps selectSeq. A change of `selected` alone (window.__dw.select) counts too. Starts
+  // from "nothing selected", so a fire chosen before the shell first mounts (the story's hand-off) also opens.
+  const lastSelected = useRef<number | null>(null);
   const lastSeq = useRef(selectSeq);
   useEffect(() => {
     if (selected !== null && (selected !== lastSelected.current || selectSeq !== lastSeq.current)) {
