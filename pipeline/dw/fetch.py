@@ -135,15 +135,16 @@ def forecast_run(day) -> pd.Timestamp:
     return pd.Timestamp(day).normalize() - pd.Timedelta(hours=12)
 
 
-def fetch_forecast(day) -> Path:
-    """Winds and rain from the forecast_run(day) ECMWF IFS 0.25 degree run, same 1 degree grid as fetch_met."""
+def fetch_forecast(day, step: int = 1) -> Path:
+    """Winds and rain from the forecast_run(day) ECMWF IFS 0.25 degree run, on fetch_met's 1 degree grid, or every
+    `step`-th point of it (the free API counts each point as a call; forecast_check uses step 2)."""
     run = forecast_run(day)
-    out_path = config.DATA / f"forecast_{run:%Y%m%dT%H}.npz"
+    out_path = config.DATA / (f"forecast_{run:%Y%m%dT%H}.npz" if step == 1 else f"forecast_{run:%Y%m%dT%H}_{step}deg.npz")
     if out_path.exists():
         return out_path
     lon0, lat0, lon1, lat1 = config.BOX
-    lats = np.arange(lat0, lat1 + 0.01, 1.0)
-    lons = np.arange(lon0, lon1 + 0.01, 1.0)
+    lats = np.arange(lat0, lat1 + 0.01, 1.0)[::step]
+    lons = np.arange(lon0, lon1 + 0.01, 1.0)[::step]
     la, lo = np.meshgrid(lats, lons, indexing="ij")
     pts = list(zip(la.ravel(), lo.ravel()))
     cols = {v: [] for v in REQUIRED}
