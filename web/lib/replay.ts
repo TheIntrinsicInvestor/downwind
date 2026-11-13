@@ -10,7 +10,7 @@ export type Day = {
   top10_share: number;
   fires: Fire[];                                            // every simulated or detected square in the box
   places: Place[];                                          // Indonesian regencies receiving smoke
-  stability: { seed_overlap: number; wind_level_overlap: number; cell: number; k: number };
+  stability: { seed_overlap: number; wind_level_overlap: number; cell: number; k: number; hindsight_overlap?: number };
   changes: { new_in_top10: number[]; left_top10: number } | null;   // indices into fires; null on the first day
   bulletin: { text: string; source: "llm" | "template"; model: string | null };
   frames: { offset: number; count: number }[];              // 48 entries, byte offsets into the .bin
@@ -24,10 +24,11 @@ export type Fire = {
   first_arrival_h: number | null; heading: string | null;
   reach_km: number | null;                                  // null until Task 13
   persist_p: number | null;                                 // null until Task 11
+  age_days: number | null;                                  // days running in the area, capped at 14 (display only)
 };
 export type Place = { name: string; contributions: { fire: number; share: number; first_arrival_h: number }[] };  // top 15 per place
 export type Limits = {
-  replay2023: { pooled: 0.45; pontianak: 0.80; worst_quartile_hit: 0.50; chance: 0.25; airports: 7; days: 421 };
+  replay2023: { pooled: 0.45; pontianak: 0.81; worst_quartile_hit: 0.48; chance: 0.25; airports: 7; days: 421 };
   learn: { shipped: boolean; test_auc_2026: number; heuristic_auc_2026: number; cv_auc: [number, number, number];
           base_rate_2026: number; visibility_correction: "tested, not used" } | null;   // set by Task 11
   ignores: string[]; not_claimed: string[];
@@ -158,7 +159,15 @@ export function orderForMode(fires: Fire[], mode: Mode): number[] {
 }
 
 export function stabilityLine(s: Day["stability"]): string {
-  return `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
+  const base = `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
+  return s.hindsight_overlap === undefined ? base
+    : `${base} The ranking uses the forecast available that morning; with the weather that actually followed, ${s.hindsight_overlap} of 10 stay.`;
+}
+
+export function ageLabel(days: number | null): string | null {
+  if (days === null) return null;
+  if (days >= 14) return "14 days or more";
+  return days === 1 ? "1 day" : `${days} days running`;
 }
 
 const VIS_LINE = "We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.";

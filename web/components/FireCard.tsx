@@ -1,6 +1,6 @@
 "use client";
 
-import { type Fire, pct } from "@/lib/replay";
+import { type Fire, ageLabel, pct } from "@/lib/replay";
 
 const PEOPLE_LABEL = "residents within 40 km of this fire's modelled smoke path";
 const TIER_NAME = { 1: "Priority 1", 2: "Priority 2", 3: "Priority 3" } as const;
@@ -47,6 +47,15 @@ export default function FireCard({ fire, nRanked, onClose }: Props) {
                 className="cursor-help underline decoration-dotted underline-offset-2">Likelihood of being seen again tomorrow</span>
             </dt>
             <dd className="tabular-nums">{pct(fire.persist_p)}</dd>
+          </>
+        )}
+        {ageLabel(fire.age_days) && (
+          <>
+            <dt className="text-stone-500">
+              <span title="Days in a row with a satellite detection in this square or next to it. Long-burning peat fires are often harder to put out."
+                className="cursor-help underline decoration-dotted underline-offset-2">Seen in this area</span>
+            </dt>
+            <dd className="tabular-nums">{ageLabel(fire.age_days)}</dd>
           </>
         )}
         <dt className="text-stone-500">Detections</dt><dd className="tabular-nums">{fire.n_detect}</dd>

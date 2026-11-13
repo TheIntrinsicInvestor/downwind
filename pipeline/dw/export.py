@@ -74,6 +74,7 @@ def _fires(sq: pd.DataFrame) -> list:
             "heading": r.heading if isinstance(r.heading, str) else None,
             "reach_km": _num(getattr(r, "reach_km", None), 1),
             "persist_p": _num(getattr(r, "persist_p", None), 3),
+            "age_days": _int(getattr(r, "age_days", None)),
         })
     return out
 
@@ -154,7 +155,7 @@ def write_index(days: list, default: str, out: Path) -> None:
 def write_limits(learn: dict | None, out: Path) -> None:
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     _write_json({
-        "replay2023": {"pooled": 0.45, "pontianak": 0.80, "worst_quartile_hit": 0.50, "chance": 0.25,
+        "replay2023": {"pooled": 0.45, "pontianak": 0.81, "worst_quartile_hit": 0.48, "chance": 0.25,
                        "airports": 7, "days": 421},
         "learn": learn,
         "ignores": [WEIGHTED_LINE if (x == BURNING_LINE and learn and learn.get("shipped")) else x for x in IGNORES],

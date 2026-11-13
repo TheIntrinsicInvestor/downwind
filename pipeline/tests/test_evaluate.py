@@ -30,5 +30,5 @@ def test_2023_reproduction():          # slow: about 40 s
     assert sim.shape[1] == 21
     obs = {c: metar_daily(metar_path(2023, icao), DAY0_2023) for c, icao in STATIONS_2023.items()}
     rho, n, hit = pooled_spearman(clip_eval(sim, "2023-09-01", "2023-10-31"), obs)
-    assert rho == pytest.approx(0.45, abs=0.02) and n == 421 and hit == pytest.approx(0.50, abs=0.03)
+    assert rho == pytest.approx(0.45, abs=0.02) and n == 421 and hit == pytest.approx(0.48, abs=0.01)
     assert pooled_spearman(clip_eval(base, "2023-09-01", "2023-10-31"), obs)[0] == pytest.approx(0.38, abs=0.01)

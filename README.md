@@ -12,8 +12,8 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 
 - **Map:** every fire detected the day before, with a 48 hour smoke animation and the ranked list beside it. Selecting a fire shows only its smoke.
 - **Official tiers / Downwind order:** switch between the official tiers and Downwind's order inside Priority 1.
-- **Fire card:** residents within 40 km of the fire's modelled smoke path, its share of smoke over residents, when its smoke first reaches the main receiving place, where the smoke is heading, and how likely the fire is to be seen again tomorrow.
-- **City view:** pick an Indonesian regency or city and see which fires send it smoke, with each fire's share and arrival time.
+- **Fire card:** residents within 40 km of the fire's modelled smoke path, its share of smoke over residents, when its smoke first reaches the main receiving place, where the smoke is heading, how likely the fire is to be seen again tomorrow, and how many days running it has been seen in the area.
+- **Protection view:** for district health and education offices. Pick an Indonesian regency or city and see which fires send it smoke, with each fire's share and arrival time.
 - **Bulletin:** a morning briefing written by a language model from the computed facts. Every number in it is checked against those facts; if the check fails twice, a plain template is used instead, and the page says which.
 - **Limits:** what the model ignores, what we do not claim, and the measured accuracy.
 - **Ask (local only):** a chat that answers questions from the day's data, for example "what if we can only reach five fires?". It needs an API key, so it is switched off on the public site.
@@ -22,15 +22,16 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 
 1. **Fires:** NASA FIRMS VIIRS detections, grouped into 0.015 degree squares (about 1.7 km).
 2. **Official tiers:** our reading of Pasal 9. Priority 1 is a fire on peat, in a cluster of 3 or more detections, or seen 3 days running (confidence not low). The regulation gives no cluster size, so 3 is our own number. Its "smoke visible on imagery" input is not computed.
-3. **Smoke:** each fire releases particles every hour, weighted by its fire radiative power, carried by 925 hPa winds with random spread and washed out by rain, for 48 hours. These settings were tested on the 2023 season and not tuned afterwards.
-4. **Learned persistence model (the AI component):** most fires are not seen again the next day. A gradient-boosted classifier, trained on the 2019, 2023 and 2025 seasons, predicts each fire's likelihood of being seen again tomorrow from what is known that morning. Smoke is weighted by that likelihood.
-5. **Ranking:** exposure is smoke times people, summed over the populated cells it reaches. Priority 1 fires are ordered by exposure.
-6. **Bulletin:** the language model only phrases computed facts; a check rejects any number it did not receive.
+3. **Smoke:** each fire releases particles every hour, weighted by its fire radiative power, carried by 925 hPa winds with random spread and washed out by rain, for 48 hours. Peat fires count about 6 times more smoke per unit of heat (GFAS conversion factors, 5.87 against 0.96 kg per MJ, Kaiser et al. 2012). The other settings were tested on the 2023 season and not tuned afterwards.
+4. **Weather:** each replay morning uses the ECMWF forecast a task force would have had at 07:00 local (the 12:00 UTC run of the day before, from the Open-Meteo Single Runs API), not the weather that actually followed. The Limits panel reports how many of the top ten would change with hindsight weather.
+5. **Learned persistence model (the AI component):** most fires are not seen again the next day. A gradient-boosted classifier, trained on the 2019, 2023 and 2025 seasons, predicts each fire's likelihood of being seen again tomorrow from what is known that morning. Smoke is weighted by that likelihood.
+6. **Ranking:** exposure is smoke times people, summed over the populated cells it reaches. Priority 1 fires are ordered by exposure.
+7. **Bulletin:** the language model only phrases computed facts; a check rejects any number it did not receive.
 
 ## What was measured
 
-- In a replay of the 2023 haze season at 7 airports, a day-ahead smoke index tracks observed visibility at 0.45 correlation (0.80 at Pontianak).
-- It flags 50% of the worst-quartile haze days, against 25% by chance.
+- In a replay of the 2023 haze season at 7 airports, a smoke index built from the previous day's fires tracks observed visibility at 0.45 correlation (0.81 at Pontianak). That test used archived weather close to what actually happened, because no archive of past forecasts reaches back to 2023.
+- It flags 48% of the worst-quartile haze days, against 25% by chance.
 - The top ten is stable across reruns (9 to 10 of 10 kept).
 - The persistence model scores AUC 0.79 on September to October 2026, a season it never saw, against 0.62 for counting days burned. It was scored on 2026 once and not tuned afterwards. On the three training-season folds it scored 0.72 to 0.84.
 - We tested a learned correction of the smoke index against airport visibility. It did not beat the plain simulation, so it is not used.
@@ -92,9 +93,10 @@ python -m dw.build --day 2026-09-20 --days 3     # write the replay files (about
 
 ## Statement of work
 
-The handbook allows prior work if it is disclosed. Everything in this repository committed on 12 November 2026 was built before the build window (14 to 15 November) and is prior work:
+The handbook allows prior work if it is disclosed. Everything in this repository committed on 12 and 13 November 2026 was built before the build window (14 to 15 November) and is prior work:
 
 - the full pipeline and web app (plan Tasks 1 to 12 and 14), the live deploy, and the tests;
+- on 13 November, after a teammate's review: the peat emission weighting, replay weather from the forecast available each morning, fire age on the card, the protection view, and the corrected wording of the 2023 result;
 - background research, the 2023 replay accuracy test, the 2019 to 2025 model experiments (the visibility correction that was dropped and the persistence model that was adopted), the data-source check, the design spec, the build plan and the pitch deck, all kept in the wider project folder outside this repository.
 
 On 12 November an accidental `rm -rf .git` deleted this repository's history. The files were intact; the first five tasks were recommitted as one commit (`77e4956`), so the history begins there.

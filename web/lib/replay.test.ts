@@ -55,7 +55,7 @@ import type { Fire } from "./replay";
 
 function fire(id: string, tier: 1 | 2 | 3, rank: number | null, in_province = true): Fire {
   return { id, lat: 0, lon: 110, tier, in_province, frp: 1, n_detect: 1, place: null, rank, share: rank ? 0.1 : null,
-    people_40km: null, top_places: null, first_arrival_h: null, heading: null, reach_km: null, persist_p: null };
+    people_40km: null, top_places: null, first_arrival_h: null, heading: null, reach_km: null, persist_p: null, age_days: null };
 }
 const FIRES = [fire("b", 1, 2), fire("z", 3, null), fire("a", 1, 1), fire("c", 2, null), fire("x", 1, null, false), fire("d", 1, 3)];
 
@@ -77,7 +77,7 @@ test("downwind order: Priority 1 by rank, then tiers 2 and 3", () => {
 import { loadLimits, stabilityLine } from "./replay";
 
 const LIMITS = {
-  replay2023: { pooled: 0.45, pontianak: 0.8, worst_quartile_hit: 0.5, chance: 0.25, airports: 7, days: 421 },
+  replay2023: { pooled: 0.45, pontianak: 0.81, worst_quartile_hit: 0.48, chance: 0.25, airports: 7, days: 421 },
   learn: null, ignores: ["People outside Indonesia (not counted)"], not_claimed: ["Any smoke concentration"],
 };
 
@@ -100,6 +100,18 @@ test("loadLimits throws ReplayError on failure", async () => {
 test("stabilityLine states the day's overlaps", () => {
   expect(stabilityLine({ seed_overlap: 9, wind_level_overlap: 3, cell: 0.015, k: 4 })).toBe(
     "9 of 10 of the top ten are the same on a rerun; 3 of 10 if surface winds are used instead.");
+  expect(stabilityLine({ seed_overlap: 9, wind_level_overlap: 3, cell: 0.015, k: 4, hindsight_overlap: 7 })).toBe(
+    "9 of 10 of the top ten are the same on a rerun; 3 of 10 if surface winds are used instead. " +
+    "The ranking uses the forecast available that morning; with the weather that actually followed, 7 of 10 stay.");
+});
+
+import { ageLabel } from "./replay";
+
+test("ageLabel reads days running, capped at 14", () => {
+  expect(ageLabel(1)).toBe("1 day");
+  expect(ageLabel(3)).toBe("3 days running");
+  expect(ageLabel(14)).toBe("14 days or more");
+  expect(ageLabel(null)).toBeNull();
 });
 
 import { learnLine } from "./replay";

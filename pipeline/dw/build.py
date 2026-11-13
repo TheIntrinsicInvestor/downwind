@@ -11,7 +11,7 @@ from dw import config
 from dw.bulletin import TOKENS, build_facts, make_bulletin
 from dw.evaluate import metar_daily, metar_path
 from dw.export import export_day, write_index, write_limits
-from dw.fetch import load_fires, load_met
+from dw.fetch import forecast_run, load_fires, load_met, with_forecast
 from dw.grids import load_grids
 from dw.learn import load_learn, persist_for_day, run_learn
 from dw.rank import pick_day, run_day, stability, top10_overlap
@@ -44,13 +44,18 @@ def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT):
     use = bool(learn and learn["shipped"])
     print(f"persistence model: {'shipped, weighting smoke' if use else 'not used'}", flush=True)
     pers = (lambda d: persist_for_day(model, d)) if use else (lambda d: None)
-    prev = run_day(days[0], fires, met, grids, persist=pers(days[0]))
+    # each morning runs on the forecast in hand at 07:00 local (fetch.forecast_run), not on hindsight weather
+    prev = run_day(days[0], fires, with_forecast(met, days[0]), grids, persist=pers(days[0]))
     exported = []
     for d in days[1:]:
-        res = run_day(d, fires, met, grids, record_frames=True, persist=pers(d))
-        stab = stability(d, fires, met, grids, persist=pers(d))
+        met_d = with_forecast(met, d)
+        res = run_day(d, fires, met_d, grids, record_frames=True, persist=pers(d))
+        stab = stability(d, fires, met_d, grids, persist=pers(d))
+        stab["hindsight_overlap"] = top10_overlap(res, run_day(d, fires, met, grids, persist=pers(d)))
+        print(f"  forecast run {forecast_run(d):%Y-%m-%d %H} UTC; top ten shared with hindsight weather: "
+              f"{stab['hindsight_overlap']} of 10", flush=True)
         if use:
-            plain = run_day(d, fires, met, grids)
+            plain = run_day(d, fires, met_d, grids)
             print(f"  weighted vs plain ranking: {top10_overlap(res, plain)} of 10 of the top ten shared", flush=True)
         bulletin = make_bulletin(build_facts(res, prev))
         export_day(res, prev, stab, bulletin, out)

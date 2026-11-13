@@ -121,6 +121,79 @@ def fetch_met(year: int) -> Path:
     return out_path
 
 
+# ---- the forecast a task force actually had (replay window only). The historical-forecast API above stitches the
+# first hours of every model run, so it is close to what happened, not what was forecast that morning.
+
+SINGLE_RUNS = "https://single-runs-api.open-meteo.com/v1/forecast"
+FORECAST_MODEL = "ecmwf_ifs025"
+FORECAST_HOURS = 64                     # 12 UTC on T-1 to 03 UTC on T+2: covers the 48 h window from T 00 UTC
+
+
+def forecast_run(day) -> pd.Timestamp:
+    """The latest ECMWF run in hand at a 07:00 local (00 UTC) meeting on `day`: 12 UTC the day before. Runs are
+    published about 7 hours after they start, so the 00 UTC run of `day` is not out yet."""
+    return pd.Timestamp(day).normalize() - pd.Timedelta(hours=12)
+
+
+def fetch_forecast(day) -> Path:
+    """Winds and rain from the forecast_run(day) ECMWF IFS 0.25 degree run, same 1 degree grid as fetch_met."""
+    run = forecast_run(day)
+    out_path = config.DATA / f"forecast_{run:%Y%m%dT%H}.npz"
+    if out_path.exists():
+        return out_path
+    lon0, lat0, lon1, lat1 = config.BOX
+    lats = np.arange(lat0, lat1 + 0.01, 1.0)
+    lons = np.arange(lon0, lon1 + 0.01, 1.0)
+    la, lo = np.meshgrid(lats, lons, indexing="ij")
+    pts = list(zip(la.ravel(), lo.ravel()))
+    cols = {v: [] for v in REQUIRED}
+    times = None
+    for c in range(0, len(pts), 60):
+        chunk = pts[c:c + 60]
+        url = (f"{SINGLE_RUNS}?latitude=" + ",".join(f"{a:.1f}" for a, _ in chunk)
+               + "&longitude=" + ",".join(f"{b:.1f}" for _, b in chunk)
+               + "&hourly=" + ",".join(REQUIRED)
+               + f"&models={FORECAST_MODEL}&run={run:%Y-%m-%dT%H:%M}&forecast_hours={FORECAST_HOURS}&wind_speed_unit=ms")
+        raw = _get_json(url)
+        raw = raw if isinstance(raw, list) else [raw]
+        times = raw[0]["hourly"]["time"]
+        for r in raw:
+            for v in REQUIRED:
+                cols[v].append([np.nan if x is None else x for x in r["hourly"][v]])
+        print(f"forecast {run:%Y-%m-%d %H} UTC chunk {c // 60 + 1}/{(len(pts) + 59) // 60}", flush=True)
+        time.sleep(3)
+    arr = {v: np.array(cols[v], float).reshape(len(lats), len(lons), -1) for v in REQUIRED}
+    np.savez_compressed(out_path, lats=lats, lons=lons, times=np.array(times), **arr)
+    return out_path
+
+
+def with_forecast(met: Met, day, raw=None) -> Met:
+    """A copy of `met` whose hours from `day` 00 UTC to WINDOW_H later come from the forecast issued at
+    forecast_run(day). Fails if the forecast does not cover the window or has a missing wind or rain value in it."""
+    raw = raw if raw is not None else np.load(fetch_forecast(day))
+    t0 = pd.Timestamp(day).normalize()
+    want = pd.date_range(t0, periods=config.WINDOW_H + 1, freq="h")
+    ft = pd.to_datetime(raw["times"])
+    pos = {t: i for i, t in enumerate(ft)}
+    if any(t not in pos for t in want):
+        raise ValueError(f"forecast run {forecast_run(day)} does not cover {want[0]} to {want[-1]}")
+    fi = [pos[t] for t in want]
+    g = {v: np.asarray(raw[v], float)[:, :, fi] for v in REQUIRED}
+    bad = [v for v, a in g.items() if np.isnan(a).any()]
+    if bad:
+        raise ValueError(f"forecast has missing values in the window: {', '.join(bad)}")
+    mi = [met.times.get_loc(t) for t in want]
+    u925, v925 = _uv(g["wind_speed_925hPa"], g["wind_direction_925hPa"])
+    u10, v10 = _uv(g["wind_speed_10m"], g["wind_direction_10m"])
+    out = Met(lats=met.lats, lons=met.lons, times=met.times,
+              u={k: a.copy() for k, a in met.u.items()}, v={k: a.copy() for k, a in met.v.items()},
+              precip=met.precip.copy(), rh=met.rh)
+    for arr, new in ((out.u["925"], u925), (out.v["925"], v925), (out.u["10m"], u10), (out.v["10m"], v10),
+                     (out.precip, g["precipitation"])):
+        arr[:, :, mi] = new
+    return out
+
+
 def _met_file(year: int) -> Path:
     p = config.DATA / f"met_{year}.npz"
     if not p.exists() and year == 2023:

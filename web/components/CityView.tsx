@@ -9,6 +9,10 @@ export default function CityView({ day, place, onPlace, onFire }: Props) {
   const rows = place ? contributionsFor(day, place) : [];
   return (
     <div className="px-4 py-4 text-sm">
+      <p className="mb-3 text-stone-800">
+        For district health and education offices: which fires send smoke to a place, and when it arrives, to plan
+        school closures, masks and clinics.
+      </p>
       <label htmlFor="place" className="text-stone-600">Indonesian regency or city</label>
       <select
         id="place"

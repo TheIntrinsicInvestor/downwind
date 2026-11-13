@@ -156,7 +156,7 @@ export default function MapClient() {
                 onClick={() => setTab(t)}
                 className={`px-3 py-2 text-sm font-medium ${tab === t ? "border-b-2 border-stone-900 text-stone-900" : "text-stone-500 hover:text-stone-800"}`}
               >
-                {t === "ranking" ? "Ranking" : t === "city" ? "City" : t === "bulletin" ? "Bulletin" : t === "limits" ? "Limits" : "Ask"}
+                {t === "ranking" ? "Ranking" : t === "city" ? "Protect" : t === "bulletin" ? "Bulletin" : t === "limits" ? "Limits" : "Ask"}
               </button>
             ))}
           </div>

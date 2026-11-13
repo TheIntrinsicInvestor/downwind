@@ -104,3 +104,20 @@ def test_square_columns_and_place(grids):
 def test_other_day_ignored(grids, dry_pt):
     sq = build_squares(fires(det(*dry_pt, day=DAY - pd.Timedelta(days=1))), DAY, grids)
     assert len(sq) == 0
+
+
+def test_fire_age_counts_days_running_in_square_or_neighbours():
+    from dw.tiers import fire_age
+    c = FIRE_CELL
+    lat, lon = 0.5 * c, 109.0 + 0.5 * c
+    rows = [det(lat, lon)]                                              # DAY
+    rows += [det(lat + c, lon, DAY - pd.Timedelta(days=1))]             # neighbour square, DAY-1
+    rows += [det(lat, lon, DAY - pd.Timedelta(days=2))]                 # same square, DAY-2
+    rows += [det(lat, lon, DAY - pd.Timedelta(days=4))]                 # gap on DAY-3 ends the run
+    rows += [det(lat, lon, DAY - pd.Timedelta(days=3), conf="l")]       # low confidence does not count
+    fires = pd.DataFrame(rows)
+    assert fire_age(fires, DAY, [lat], [lon]).tolist() == [3]
+    far = fire_age(fires, DAY, [lat + 5 * c], [lon])                     # nothing nearby on DAY
+    assert far.tolist() == [0]
+    long = pd.DataFrame([det(lat, lon, DAY - pd.Timedelta(days=i)) for i in range(20)])
+    assert fire_age(long, DAY, [lat], [lon]).tolist() == [14]           # capped

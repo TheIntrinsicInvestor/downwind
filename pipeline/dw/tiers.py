@@ -19,6 +19,30 @@ def _keys(lat, lon, cell):
     return np.floor(np.asarray(lat) / cell).astype(int), np.floor(np.asarray(lon) / cell).astype(int)
 
 
+AGE_CAP = 14
+
+
+def fire_age(fires: pd.DataFrame, day: pd.Timestamp, lat, lon, cell=FIRE_CELL) -> np.ndarray:
+    """Consecutive days ending on `day` with a non-low detection in each square or its 8 neighbours, capped at
+    AGE_CAP. Shown on the fire card only; it does not change the ranking."""
+    nl = fires[fires.conf != "l"]
+    seen = []
+    for back in range(AGE_CAP):
+        p = nl[nl.date == day - pd.Timedelta(days=back)]
+        seen.append(set(zip(*_keys(p.lat, p.lon, cell))))
+    iy, ix = _keys(lat, lon, cell)
+    out = []
+    for a, b in zip(iy, ix):
+        near = {(a + dy, b + dx) for dy in (-1, 0, 1) for dx in (-1, 0, 1)}
+        n = 0
+        for s in seen:
+            if not (near & s):
+                break
+            n += 1
+        out.append(n)
+    return np.array(out, int)
+
+
 def build_squares(fires: pd.DataFrame, day: pd.Timestamp, grids: Grids, cell=FIRE_CELL) -> pd.DataFrame:
     """One row per square with any detection on `day` (UTC acquisition date)."""
     day = pd.Timestamp(day)

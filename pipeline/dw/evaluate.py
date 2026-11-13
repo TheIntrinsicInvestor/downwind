@@ -9,6 +9,7 @@ from scipy.stats import spearmanr
 
 from dw import config
 from dw.fetch import load_fires, load_met
+from dw.grids import peat_at
 from dw.sim import run_particles
 
 
@@ -31,6 +32,7 @@ def _season_cells(year, cell):
     last = met.times[-1].normalize() - pd.Timedelta(days=3)
     f = load_fires(year)
     f = f[(f.conf != "l") & (f.date >= day0) & (f.date <= last)].copy()
+    f["frp"] = f.frp * np.where(peat_at(f.lat.to_numpy(), f.lon.to_numpy()), config.PEAT_RATIO, 1.0)   # as rank.py
     f["clat"] = (np.floor(f.lat / cell) + 0.5) * cell
     f["clon"] = (np.floor(f.lon / cell) + 0.5) * cell
     cells = f.groupby(["date", "clat", "clon"]).agg(frp=("frp", "sum")).reset_index()
@@ -41,7 +43,7 @@ def _season_cells(year, cell):
 def season_scores(year: int, level="925", fire_lag=1, cell=0.25, seed=0) -> pd.DataFrame:
     """Daily (local day) mean smoke score within R_KM of each city in cities.json. Index: local date."""
     default = (level, fire_lag, cell, seed) == ("925", 1, 0.25, 0)
-    cache = config.DATA / f"season_{year}_{level}.csv"
+    cache = config.DATA / f"season_{year}_{level}_peat.csv"
     if default and cache.exists():
         return pd.read_csv(cache, index_col=0, parse_dates=True, encoding="utf-8")
     names, cla, clo = _cities()

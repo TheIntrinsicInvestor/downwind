@@ -105,6 +105,19 @@ def test_persist_halves_exposure_same_squares():
     assert weighted.squares.set_index("id").exposure[A_ID] == pytest.approx(0.5 * a)
 
 
+def test_peat_fire_releases_gfas_ratio_more_smoke(monkeypatch):
+    # GFAS (Kaiser et al. 2012, Table 2): 5.87 kg/MJ for peat against 0.96 for tropical forest
+    import dw.tiers as tiers_mod
+    from dw.config import PEAT_RATIO
+    assert PEAT_RATIO == pytest.approx(5.87 / 0.96)
+    monkeypatch.setattr(tiers_mod, "peat_at", lambda la, lo: np.zeros(len(la), bool))
+    plain = run_day(T, FIRES, MET, GRIDS).squares.set_index("id")
+    monkeypatch.setattr(tiers_mod, "peat_at", lambda la, lo: np.abs(np.asarray(lo) - A[1]) < 0.01)
+    peat = run_day(T, FIRES, MET, GRIDS).squares.set_index("id")
+    assert peat.loc[A_ID, "peat"] and not plain.loc[A_ID, "peat"]
+    assert peat.loc[A_ID, "exposure"] == pytest.approx(PEAT_RATIO * plain.loc[A_ID, "exposure"])
+
+
 def test_frames_keep_all_smoke_of_top_fires(monkeypatch):
     # with a tight cap, the best-ranked fires must keep all their particles so a selected fire's plume is visible
     import dw.rank as rank_mod

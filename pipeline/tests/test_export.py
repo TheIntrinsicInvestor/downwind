@@ -34,7 +34,7 @@ def test_day_json_matches_contract(tmp_path, RES):
     assert set(d["counts"]) == {"p1", "p2", "p3"} and isinstance(d["top10_share"], float)
     assert d["stability"] == STAB and d["bulletin"] == BULLETIN and len(d["frames"]) == 48
     fire_keys = {"id", "lat", "lon", "tier", "in_province", "frp", "n_detect", "place", "rank", "share",
-                 "people_40km", "top_places", "first_arrival_h", "heading", "reach_km", "persist_p"}
+                 "people_40km", "top_places", "first_arrival_h", "heading", "reach_km", "persist_p", "age_days"}
     assert len(d["fires"]) == len(RES.squares)
     for f in d["fires"]:
         assert set(f) == fire_keys and f["tier"] in (1, 2, 3)

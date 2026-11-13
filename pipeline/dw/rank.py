@@ -5,10 +5,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from dw.config import FIRE_CELL, K, RELEASE_H, SEED, WINDOW_H
+from dw.config import FIRE_CELL, K, PEAT_RATIO, RELEASE_H, SEED, WINDOW_H
 from dw.grids import NC, NR, Grids, people_near
 from dw.sim import run_particles
-from dw.tiers import assign_tiers, build_squares
+from dw.tiers import assign_tiers, build_squares, fire_age
 
 FRAME_CAP = 8_000           # records per animation frame; the format allows 12,000, but particle records barely
                             # compress, and 8,000 keeps a full 5,000-fire day under 5 MB (12,000 gave 6.1 MB)
@@ -42,9 +42,12 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     sq = build_squares(fires, day - pd.Timedelta(days=1), grids, cell).reset_index(drop=True)
     sq["tier"] = assign_tiers(sq).astype(int) if len(sq) else pd.Series(dtype=int)
     n = len(sq)
+    sq["age_days"] = fire_age(fires, day - pd.Timedelta(days=1), sq.lat, sq.lon, cell) if n else []
 
     src_rows = np.where(sq.frp.to_numpy(float) > 0)[0] if n else np.empty(0, int)
     w_src = sq.frp.to_numpy(float)[src_rows] if n else np.empty(0)
+    if len(src_rows):                                   # peat makes about 6 times more smoke per unit of heat
+        w_src = w_src * np.where(sq.peat.to_numpy(bool)[src_rows], PEAT_RATIO, 1.0)
     if persist is not None and len(src_rows):
         w_src = w_src * persist.reindex(sq.id.to_numpy()[src_rows]).fillna(1.0).to_numpy(float)
     ns = len(src_rows)

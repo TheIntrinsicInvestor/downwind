@@ -12,6 +12,8 @@ RELEASE_H = 24                          # hours of release on day T
 WINDOW_H = 48                           # exposure window from T 00:00 UTC
 K = 4.0                                 # particles per source per hour (pre-build check 12 Nov: seed overlap 9, 9, 9 of 10 at k=4; Task 4 on T=2026-09-20: 9)
 SEED = 0
+PEAT_RATIO = 5.87 / 0.96                # smoke per unit of fire heat, peat vs tropical forest: GFAS conversion factors,
+                                        # Kaiser et al. 2012 Table 2 (adopted 13 Nov; 2023 test barely moves, see evaluate)
 LOCAL_OFFSET_H = 7                      # local day = UTC+7
 PROVINCE = "West Kalimantan"
 
