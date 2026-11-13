@@ -2,7 +2,7 @@
 // and one sentence. Steps 3 and 6 are the AI steps and carry a small "AI" tag. The glyphs are plain inline SVG on a
 // 40 px grid, 1.5 px stroke, so they share one weight.
 
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 const G = { width: 40, height: 40, viewBox: "0 0 40 40", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 const EMBER = "var(--ember)";
@@ -77,7 +77,7 @@ const STEPS: { title: string; text: string; glyph: ReactNode; ai?: boolean }[] =
   { title: "Brief", text: "A language model writes the morning bulletin from checked figures.", glyph: brief, ai: true },
 ];
 
-export default function HowItWorks() {
+function HowItWorks() {
   return (
     <section id="how-it-works" aria-labelledby="how-title" className="scroll-mt-16 border-t border-rule px-5 py-20 sm:px-10 lg:px-16 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -104,3 +104,5 @@ export default function HowItWorks() {
     </section>
   );
 }
+
+export default memo(HowItWorks);

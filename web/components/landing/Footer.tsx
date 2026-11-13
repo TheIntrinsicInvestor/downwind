@@ -1,9 +1,11 @@
 // Quiet bulletin footer: sources and AI tools as the README lists them, the team, and the map attribution. Source
 // names and model roles are copied from downwind/README.md ("Data sources and licences", "AI tools and models").
 
+import { memo } from "react";
+
 const DATA = [
   "NASA FIRMS: fire detections (VIIRS S-NPP)",
-  "Open-Meteo historical forecast API: winds, rain, humidity",
+  "Open-Meteo: ECMWF IFS forecast runs (winds, rain, humidity)",
   "Global Forest Watch: peatlands map",
   "WorldPop: 1 km Indonesia population, 2020",
   "geoBoundaries: province and regency boundaries",
@@ -12,11 +14,11 @@ const DATA = [
 
 const AI = [
   "Claude Code (Anthropic): wrote the code under the direction of the team",
-  "Nebius Token Factory, DeepSeek-V4-Pro-0813 and MiniMax-M3: write the bulletins and answer the local chat",
+  "Nebius Token Factory, DeepSeek-V4-Pro-0813 and MiniMax-M3: write the morning bulletins",
   "scikit-learn HistGradientBoostingClassifier: the persistence model",
 ];
 
-export default function Footer() {
+function Footer() {
   return (
     <footer className="pointer-events-auto relative border-t border-rule bg-bg px-5 py-14 sm:px-10 lg:px-16">
       <div className="mx-auto max-w-6xl">
@@ -47,3 +49,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+export default memo(Footer);

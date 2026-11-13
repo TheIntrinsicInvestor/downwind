@@ -1,13 +1,22 @@
 // The landing page's top bar: wordmark, page links, and the mono dateline built from the story's date. "Live map"
 // is the always-visible skip to the app. Fixed over the hero and story; the page's sections scroll under it.
 
-import { memo } from "react";
+import { memo, type MouseEvent } from "react";
 import Link from "next/link";
 import { longDate } from "@/lib/replay";
 import { STORY_DATE } from "@/lib/story";
 import Wordmark from "../Wordmark";
 
 const link = "focus-ring inline-flex min-h-11 items-center text-ink-2 transition-colors hover:text-ink";
+// In-page links scroll in place: a hash navigation would add a history entry the Next router does not own, and Back
+// from /app would then land on it without restoring the landing page. The href stays for no-JS and assistive tech.
+function scrollTo(e: MouseEvent<HTMLAnchorElement>) {
+  const el = document.getElementById((e.currentTarget.getAttribute("href") ?? "").slice(1));
+  if (!el) return;
+  e.preventDefault();
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+}
 const Slash = () => <span className="px-2 text-ink-3/60" aria-hidden="true">/</span>;
 
 function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
@@ -18,8 +27,8 @@ function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
         <span className="max-md:hidden"><Wordmark /></span>
         <nav aria-label="Page" className="absolute left-1/2 flex -translate-x-1/2 gap-8 text-sm max-md:hidden">
           <Link href="/app" onClick={onOpenApp} className={link}>Live map</Link>
-          <a href="#how-it-works" className={link}>How it works</a>
-          <a href="#results" className={link}>Results</a>
+          <a href="#how-it-works" onClick={scrollTo} className={link}>How it works</a>
+          <a href="#results" onClick={scrollTo} className={link}>Results</a>
         </nav>
         {/* Below 1400 px the dateline would run into the centred links. */}
         <p className="dateline max-[1399px]:hidden">

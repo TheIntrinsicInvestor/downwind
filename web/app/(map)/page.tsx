@@ -16,7 +16,7 @@ import Footer from "@/components/landing/Footer";
 import { STORY_DATE, STORY_FRAME, beats as storyBeats, storyFacts } from "@/lib/story";
 
 export default function Home() {
-  const { day, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
+  const { day, limits, limitsError, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
   const beatRef = useRef(-1);    // the beat on screen (-1: hero), for the hand-off
 
   // A layout effect, so it runs before every passive effect of the same commit, including Story's (children's passive
@@ -43,11 +43,12 @@ export default function Home() {
 
   // Leaving from beat 4 or 5 opens the app on the top-ranked fire.
   const openApp = useCallback(() => {
+    setMode("downwind");
     if (beatRef.current >= 3 && facts) {
       select(facts.top.i);
       setPanel("fire");
     }
-  }, [facts, select, setPanel]);
+  }, [facts, select, setPanel, setMode]);
 
   const seeHow = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
     const el = document.getElementById("story");
@@ -64,9 +65,9 @@ export default function Home() {
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}
       {/* Content sections, opaque so the map is covered once the story ends. */}
       <main className="pointer-events-auto relative bg-bg">
-        <Results />
+        <Results limits={limits} limitsError={limitsError} />
         <HowItWorks />
-        <WhereItFits />
+        <WhereItFits day={day} />
       </main>
       <Footer />
     </div>

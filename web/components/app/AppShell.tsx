@@ -8,6 +8,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { type Day, type Mode, localLabel, longDate } from "@/lib/replay";
+import { OPENING_CAMERA } from "@/lib/mapstyle";
 import Wordmark from "../Wordmark";
 import TimeSlider from "../TimeSlider";
 import FireList from "../FireList";
@@ -28,8 +29,6 @@ const URL_PANELS = ["limits", "city", "bulletin", "fire"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
 const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
-// Desktop view after the hand-off from the story: MapStage's opening view, the one /app shows when opened directly.
-const DESKTOP_CAMERA = { center: [111.5, 0] as [number, number], zoom: 6.2 };
 
 // ---- viewport
 
@@ -169,7 +168,7 @@ export default function AppShell() {
   useEffect(() => {
     if (!mapReady) return;
     const wide = window.matchMedia(WIDE).matches;
-    if (mapWasShowing.current) flyTo(wide ? DESKTOP_CAMERA : PHONE_CAMERA);
+    if (mapWasShowing.current) flyTo(wide ? OPENING_CAMERA : PHONE_CAMERA);
     else if (!wide) flyTo(PHONE_CAMERA, { instant: true });
     mapWasShowing.current = true;
     if (!wide) document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")?.classList.remove("maplibregl-compact-show");
@@ -229,6 +228,7 @@ export default function AppShell() {
     const phoneTabs: TabItem[] = [{ id: "list", label: "Ranking" }, ...tabs];
     return (
       <div className="pointer-events-none fixed inset-0">
+        <h1 className="sr-only">Downwind live map</h1>
         <header className="dw-enter absolute inset-x-3 top-3 space-y-2 [--dw-from:0_-8px]">
           <div className="flex items-center justify-between gap-3">
             <div className="pointer-events-auto"><Wordmark size="sm" /></div>
@@ -271,6 +271,7 @@ export default function AppShell() {
 
   return (
     <div className="pointer-events-none fixed inset-0" style={offsets}>
+      <h1 className="sr-only">Downwind live map</h1>
       <header className="dw-enter absolute inset-x-4 top-4 flex items-center gap-4 [--dw-from:0_-8px]">
         <div className="pointer-events-auto mr-2"><Wordmark /></div>
         {days.length > 0 && <DaySwitch days={days} date={date} onDay={onDay} />}

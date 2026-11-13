@@ -9,7 +9,7 @@ import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
-import { BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
+import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
 import { useReplay, useStageBinding } from "./ReplayProvider";
@@ -54,8 +54,12 @@ const ADDITIVE = {
   blendAlphaOperation: "add", blendAlphaSrcFactor: "one", blendAlphaDstFactor: "one", depthCompare: "always",
 } as const;
 
-type Smoke = { n: number; positions: Float32Array; weights: Float32Array };
-const EMPTY: Smoke = { n: 0, positions: new Float32Array(0), weights: new Float32Array(0) };
+// `data` is the heatmap layer's attribute object, built once per frame so its identity only changes with the frame.
+type Smoke = { n: number; data: { length: number; attributes: { getPosition: { value: Float32Array; size: 2 }; getWeight: { value: Float32Array; size: 1 } } } };
+const makeSmoke = (n: number, positions: Float32Array, weights: Float32Array): Smoke => ({
+  n, data: { length: n, attributes: { getPosition: { value: positions, size: 2 }, getWeight: { value: weights, size: 1 } } },
+});
+const EMPTY: Smoke = makeSmoke(0, new Float32Array(0), new Float32Array(0));
 
 export default function MapStage() {
   const { day, bin, frame, mode, focus, select, mapError, mapInteractive } = useReplay();
@@ -73,8 +77,8 @@ export default function MapStage() {
       map = new Map({
         container: box.current!,
         style: BASEMAP_STYLE,
-        center: [111.5, 0],
-        zoom: 6.2,
+        center: OPENING_CAMERA.center,
+        zoom: OPENING_CAMERA.zoom,
         maxZoom: MAP_MAX_ZOOM,
         attributionControl: { compact: true },
       });
@@ -151,7 +155,7 @@ export default function MapStage() {
     if (!focusSet) {
       const weights = new Float32Array(n);
       for (let i = 0; i < n; i++) weights[i] = f.alpha[i] / 255;
-      return { rest: { n, positions: f.positions, weights }, focused: EMPTY };
+      return { rest: makeSmoke(n, f.positions, weights), focused: EMPTY };
     }
     const take = (keep: boolean): Smoke => {
       const idx: number[] = [];
@@ -163,7 +167,7 @@ export default function MapStage() {
         positions[2 * k + 1] = f.positions[2 * j + 1];
         weights[k] = f.alpha[j] / 255;
       });
-      return { n: idx.length, positions, weights };
+      return makeSmoke(idx.length, positions, weights);
     };
     return { rest: take(false), focused: take(true) };
   }, [day, bin, frame, focusSet]);
@@ -174,7 +178,7 @@ export default function MapStage() {
     const fires = day.fires;
     const heat = (id: string, s: Smoke, colorRange: RGBA[], opacity: number) => new HeatmapLayer({
       id,
-      data: { length: s.n, attributes: { getPosition: { value: s.positions, size: 2 }, getWeight: { value: s.weights, size: 1 } } },
+      data: s.data,
       radiusPixels: smokeRadiusPixels(zoom),
       colorDomain: smokeColorDomain(zoom),
       intensity: 1,
@@ -245,7 +249,7 @@ export default function MapStage() {
     <div className={`fixed inset-0 z-0 bg-bg ${mapInteractive ? "" : "pointer-events-none [&_.maplibregl-ctrl]:pointer-events-auto"}`}>
       {/* maplibre-gl.css sets .maplibregl-map to position:relative, so the map gets its own sized child div. */}
       <div ref={box} style={{ width: "100%", height: "100%" }} />
-      {mapError && (
+      {mapError && mapInteractive && (
         <p role="alert" className="pointer-events-none absolute inset-x-0 top-1/2 px-6 text-center text-sm text-ink-2">
           {mapError}
         </p>

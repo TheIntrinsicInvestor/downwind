@@ -95,9 +95,12 @@ export default function MiniMap({ day, mode, numbered, label }: { day: Day | nul
       }
     };
     draw();
+    // The canvas font is read at draw time: redraw once the web fonts have loaded (a cold first visit).
+    let alive = true;
+    document.fonts?.ready.then(() => { if (alive) draw(); });
     const ro = new ResizeObserver(draw);
     ro.observe(box);
-    return () => ro.disconnect();
+    return () => { alive = false; ro.disconnect(); };
   }, [fires, mode, numbered, nRanked]);
 
   return (

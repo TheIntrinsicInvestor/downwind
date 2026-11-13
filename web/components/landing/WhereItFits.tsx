@@ -3,13 +3,12 @@
 // Where it fits (spec section 6): the same province fires twice on light canvas renders, once by the official tiers
 // and once in Downwind's order. The 564 comes from storyFacts, not from the page.
 
-import { useMemo } from "react";
-import { useReplay } from "@/components/ReplayProvider";
+import { memo, useMemo } from "react";
+import { type Day, longDate } from "@/lib/replay";
 import { STORY_DATE, storyFacts } from "@/lib/story";
 import MiniMap from "./MiniMap";
 
-export default function WhereItFits() {
-  const { day } = useReplay();
+function WhereItFits({ day }: { day: Day | null }) {
   const story = day && day.date === STORY_DATE ? day : null;
   const p1 = useMemo(() => (story ? storyFacts(story)?.p1 ?? null : null), [story]);
   const n = p1 === null ? "" : p1.toLocaleString("en-US");
@@ -27,7 +26,7 @@ export default function WhereItFits() {
         </p>
         <div className="mt-12 grid gap-12 border-t border-rule pt-12 lg:grid-cols-2 lg:gap-16">
           <figure className="m-0">
-            <MiniMap day={story} mode="official" numbered={false} label={`Map of West Kalimantan fires on 20 September 2026 coloured by official tier. ${left}.`} />
+            <MiniMap day={story} mode="official" numbered={false} label={`Map of West Kalimantan fires on ${longDate(STORY_DATE)} coloured by official tier. ${left}.`} />
             <figcaption className="mt-4 text-[15px] text-ink-2">{left}</figcaption>
           </figure>
           <figure className="m-0">
@@ -39,3 +38,5 @@ export default function WhereItFits() {
     </section>
   );
 }
+
+export default memo(WhereItFits);

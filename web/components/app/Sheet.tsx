@@ -75,11 +75,12 @@ export default function Sheet({ state, onState, top, header, children, className
     sheet.current.style.transition = "none";
     sheet.current.style.transform = offset(Math.min(full, Math.max(headH, d.v0 - dy)));
   }
-  function onPointerUp(e: React.PointerEvent<HTMLButtonElement>) {
+  // A real pointerup after a drag is followed by a click, which is swallowed; a cancelled drag fires no click.
+  function onPointerUp(e: React.PointerEvent<HTMLButtonElement>, cancelled = false) {
     const d = drag.current;
     drag.current = null;
     if (!d || !d.moved || !sheet.current) return;
-    suppressClick.current = true;
+    if (!cancelled) suppressClick.current = true;
     const target = nearest(Math.min(full, Math.max(headH, d.v0 - (e.clientY - d.y0))));
     sheet.current.style.transition = "";
     sheet.current.style.transform = offset(stops[target]);   // React may not re-apply an unchanged style
@@ -104,8 +105,8 @@ export default function Sheet({ state, onState, top, header, children, className
             aria-label="Resize panel"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            onPointerUp={(e) => onPointerUp(e)}
+            onPointerCancel={(e) => onPointerUp(e, true)}
             onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } onState(NEXT[state]); }}
             className="focus-ring-inset grid h-11 flex-1 touch-none place-items-center"
           >

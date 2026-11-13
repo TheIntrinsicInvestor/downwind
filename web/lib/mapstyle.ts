@@ -2,6 +2,10 @@
 // deck.gl needs numeric RGB, so the CSS tokens used on the map are mirrored here (app/globals.css is the source).
 
 import type { Fire, Mode } from "./replay";
+import type { Camera } from "./story";
+
+// The opening view, shared by the map's first frame and the app's desktop hand-off.
+export const OPENING_CAMERA: Camera = { center: [111.5, 0], zoom: 6.2 };
 
 export type RGB = [number, number, number];
 export type RGBA = [number, number, number, number];
@@ -99,7 +103,7 @@ export function pickFire(hits: number[], fires: Fire[], mode: Mode): number | nu
 // km-constant kernel the summed weight per km does not change with zoom, so a domain proportional to the radius in
 // pixels keeps a plume's brightness. The same rule is kept at the floor and the ceiling (past the ceiling the domain
 // stays fixed: a stricter area correction there made lone particles saturate into flat discs at zoom 10). Below zoom
-// 7.25 the veil is brightened (domain divided by 2^(7.25 - zoom), at most 2x): at province zoom the plume covers few
+// 7.25 the veil is brightened (domain divided by 2^(7.25 - zoom), at most SMOKE_MAX_BOOST, 1.6x): at province zoom the plume covers few
 // pixels and read as a faint smudge, and smoke reaching people is the point of the map. Checked by screenshots at zoom
 // 4.6 to 10.
 // Texture size: 256, not Task 1's 512: a quarter of the texels and, once the domain is corrected, the same look on

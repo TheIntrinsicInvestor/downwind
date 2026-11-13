@@ -1,16 +1,15 @@
 // Measured results (spec section 6): two comparison charts read from limits.json at run time, then a pointer to the
 // live map's Limits panel. A missing block omits only its chart; nothing prints undefined or NaN.
 
+import { memo } from "react";
 import Link from "next/link";
-import { useReplay } from "@/components/ReplayProvider";
-import { WORDS } from "@/lib/replay";
+import { type Limits, WORDS } from "@/lib/replay";
 import BarPair from "./BarPair";
 
 const f2 = (n: number) => n.toFixed(2);
 const word = (n: number) => WORDS[n] ?? String(n);
 
-export default function Results() {
-  const { limits, limitsError } = useReplay();
+function Results({ limits, limitsError }: { limits: Limits | null; limitsError: string | null }) {
   const fc = limits?.forecast2026;
   const learn = limits?.learn && limits.learn.shipped ? limits.learn : null;
   const none = !fc && !learn;
@@ -58,3 +57,5 @@ export default function Results() {
     </section>
   );
 }
+
+export default memo(Results);
