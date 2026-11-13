@@ -72,6 +72,24 @@ export function glowScale(zoom: number): number {
   return Math.min(1.5, Math.max(0.55, 2 ** ((zoom - 7.25) / 2)));
 }
 
+// ---- clicking fires
+// Fire dots are 1 to 5 px, so a click picks every fire within PICK_RADIUS px of the pointer. In the Downwind view the
+// best-ranked of them wins (a top fire is the one a reader means when it sits beside lesser dots); the official view
+// gives no order, so the nearest wins. `hits` are fire indices, nearest first; null when there are none.
+
+export const PICK_RADIUS = 8;
+
+export function pickFire(hits: number[], fires: Fire[], mode: Mode): number | null {
+  if (hits.length === 0) return null;
+  if (mode === "official") return hits[0];
+  let best = hits[0];
+  for (const i of hits) {
+    const r = fires[i].rank, b = fires[best].rank;
+    if (r !== null && (b === null || r < b)) best = i;
+  }
+  return best;
+}
+
 // ---- smoke veil (deck.gl HeatmapLayer, Task 1 ruling; tuned at zoom 7.25 with radius 60 px and domain [0, 0.04])
 // Radius: radiusPixels is in screen pixels, so it scales with 2^(zoom - 7.25) to keep the plume's width in km constant,
 // between a floor (below 30 px, about zoom 6.25 and out, the veil turns to grain) and a ceiling (100 px, the prop's

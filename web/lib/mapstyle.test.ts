@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import type { Fire } from "./replay";
-import { EMBER_CORE, SMOKE_MAX_RADIUS, fireFill, fireRadius, officialColor, smokeColorDomain, smokeRadiusPixels } from "./mapstyle";
+import { EMBER_CORE, SMOKE_MAX_RADIUS, fireFill, fireRadius, officialColor, pickFire, smokeColorDomain,
+  smokeRadiusPixels } from "./mapstyle";
 
 function fire(rank: number | null, tier: 1 | 2 | 3 = 1, in_province = true): Fire {
   return { id: "f", lat: 0, lon: 110, tier, in_province, frp: 1, n_detect: 1, place: null, rank, share: rank ? 0.1 : null,
@@ -70,4 +71,13 @@ test("below zoom 7.25 the veil is brightened, at most 1.6-fold", () => {
   const boost = (z: number) => perRadius(7.25) / perRadius(z);
   expect(boost(6.3)).toBeGreaterThan(1.5);
   for (const z of [3, 4.6, 5.5, 6.3, 7]) expect(boost(z)).toBeLessThanOrEqual(1.6 + 1e-9);
+});
+
+test("a click near several fires picks the best-ranked one in the Downwind view, the nearest otherwise", () => {
+  const fires = [fire(null, 2), fire(40), fire(3), fire(null, 1, false)];
+  // hits arrive nearest first
+  expect(pickFire([1, 2, 0], fires, "downwind")).toBe(2);
+  expect(pickFire([0, 3], fires, "downwind")).toBe(0);
+  expect(pickFire([1, 2], fires, "official")).toBe(1);
+  expect(pickFire([], fires, "downwind")).toBeNull();
 });

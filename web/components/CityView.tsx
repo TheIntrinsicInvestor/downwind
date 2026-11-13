@@ -1,56 +1,68 @@
 "use client";
 
+import { memo } from "react";
 import { type Day, contributionsFor, longDate, pct, placeOptions } from "@/lib/replay";
 
 type Props = { day: Day; place: string | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
 
-export default function CityView({ day, place, onPlace, onFire }: Props) {
+function CityView({ day, place, onPlace, onFire }: Props) {
   const options = placeOptions(day);
   const rows = place ? contributionsFor(day, place) : [];
   return (
-    <div className="px-4 py-4 text-sm">
-      <p className="mb-3 text-stone-800">
+    <div className="text-[13px]">
+      <p className="mb-4 leading-relaxed text-ink-2">
         For district health and education offices: which fires send smoke to a place, and when it arrives, to plan
         school closures, masks and clinics.
       </p>
-      <label htmlFor="place" className="text-stone-600">Indonesian regency or city</label>
-      <select
-        id="place"
-        value={place ?? ""}
-        onChange={(e) => onPlace(e.target.value || null)}
-        className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-1"
-      >
-        <option value="">Choose a place</option>
-        {options.map((p) => <option key={p} value={p}>{p}</option>)}
-      </select>
+      <label htmlFor="place" className="label">Indonesian regency or city</label>
+      <div className="relative mt-1.5">
+        <select
+          id="place"
+          value={place ?? ""}
+          onChange={(e) => onPlace(e.target.value || null)}
+          className="focus-ring min-h-11 w-full appearance-none border border-rule bg-[#0b1017] py-2 pl-3 pr-9 text-sm text-ink transition-colors hover:border-ink-3"
+        >
+          <option value="">Choose a place</option>
+          {options.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-3" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
 
       {place && (
         <>
-          <p className="mt-3 text-xs text-stone-500">
+          <p className="mt-4 text-xs leading-relaxed text-ink-3">
             Shares are of the modelled smoke over residents in this place, from fires detected on {longDate(day.fires_date)}.
           </p>
           {rows.length === 0 ? (
-            <p className="mt-3 text-stone-600">No modelled smoke over residents here on this day.</p>
+            <p className="mt-3 text-ink-2">No modelled smoke over residents here on this day.</p>
           ) : (
-            <table className="mt-2 w-full">
+            <table className="mt-3 w-full border-collapse">
               <thead>
-                <tr className="text-left text-xs text-stone-500">
-                  <th className="py-1 font-medium">Fire location</th>
-                  <th className="py-1 text-right font-medium">Share</th>
-                  <th className="py-1 text-right font-medium">First arrival</th>
+                <tr className="label border-b border-rule text-left">
+                  <th className="pb-2 font-normal">Fire location</th>
+                  <th className="pb-2 text-right font-normal">Share</th>
+                  <th className="pb-2 pl-3 text-right font-normal">First arrival</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200">
+              <tbody className="divide-y divide-rule">
                 {rows.map((c) => {
                   const f = day.fires[c.fire];
                   return (
-                    <tr key={c.fire} onClick={() => onFire(c.fire)} className="cursor-pointer hover:bg-stone-100">
-                      <td className="py-1.5">
-                        {f.place ?? `${f.lat.toFixed(2)}, ${f.lon.toFixed(2)}`}
-                        {f.rank !== null && <span className="ml-1 text-xs text-stone-500">rank {f.rank}</span>}
+                    <tr
+                      key={c.fire}
+                      tabIndex={0}
+                      onClick={() => onFire(c.fire)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFire(c.fire); } }}
+                      className="focus-ring-inset group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                    >
+                      <td className="py-2.5 pr-2">
+                        <span className="text-ink group-hover:text-ember-hot">{f.place ?? `${f.lat.toFixed(2)}, ${f.lon.toFixed(2)}`}</span>
+                        {f.rank !== null && <span className="figure ml-2 text-[11px] text-ink-3">rank {f.rank}</span>}
                       </td>
-                      <td className="py-1.5 text-right tabular-nums">{pct(c.share, 1)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{c.first_arrival_h} h</td>
+                      <td className="figure py-2.5 text-right text-ink">{pct(c.share, 1)}</td>
+                      <td className="figure py-2.5 pl-3 text-right text-ink-2">{c.first_arrival_h} h</td>
                     </tr>
                   );
                 })}
@@ -62,3 +74,5 @@ export default function CityView({ day, place, onPlace, onFire }: Props) {
     </div>
   );
 }
+
+export default memo(CityView);

@@ -1,5 +1,5 @@
-import MapClient from "@/components/MapClient";
+import AppShell from "@/components/app/AppShell";
 
 export default function AppPage() {
-  return <MapClient />;
+  return <AppShell />;
 }

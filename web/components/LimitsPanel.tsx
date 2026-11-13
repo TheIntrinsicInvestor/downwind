@@ -1,21 +1,22 @@
 "use client";
 
+import { memo } from "react";
 import { type Day, type Limits, forecastLine, learnLine, stabilityLine } from "@/lib/replay";
 
 type Props = { day: Day; limits: Limits | null; error: string | null };
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-b border-stone-200 px-4 py-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500">{title}</h3>
-      <div className="mt-2 space-y-2 text-sm text-stone-800">{children}</div>
+    <section className="border-t border-rule py-4 first:border-t-0 first:pt-0">
+      <h3 className="label">{title}</h3>
+      <div className="mt-2 space-y-2 text-[13px] leading-relaxed text-ink-2">{children}</div>
     </section>
   );
 }
 
-export default function LimitsPanel({ day, limits, error }: Props) {
+function LimitsPanel({ day, limits, error }: Props) {
   if (!limits) {
-    return <p className="px-4 py-6 text-sm text-stone-600">{error ?? "Loading accuracy and limits"}</p>;
+    return <p className="py-2 text-sm text-ink-2">{error ?? "Loading accuracy and limits"}</p>;
   }
   const r = limits.replay2023;
   return (
@@ -54,11 +55,13 @@ export default function LimitsPanel({ day, limits, error }: Props) {
         <p>{stabilityLine(day.stability)}</p>
       </Block>
       <Block title="What it ignores">
-        <ul className="list-disc space-y-1 pl-5">{limits.ignores.map((x) => <li key={x}>{x}</li>)}</ul>
+        <ul className="space-y-1.5">{limits.ignores.map((x) => <li key={x} className="relative pl-4 before:absolute before:left-0 before:top-[0.6em] before:h-px before:w-2 before:bg-ink-3">{x}</li>)}</ul>
       </Block>
       <Block title="What we do not claim">
-        <ul className="list-disc space-y-1 pl-5">{limits.not_claimed.map((x) => <li key={x}>{x}</li>)}</ul>
+        <ul className="space-y-1.5">{limits.not_claimed.map((x) => <li key={x} className="relative pl-4 before:absolute before:left-0 before:top-[0.6em] before:h-px before:w-2 before:bg-ink-3">{x}</li>)}</ul>
       </Block>
     </div>
   );
 }
+
+export default memo(LimitsPanel);

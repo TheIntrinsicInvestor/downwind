@@ -15,6 +15,7 @@
   --smoke: #d6dee8;
   --rule: rgb(238 240 234 / 0.14);
   --panel: rgb(11 16 23 / 0.88);
+  --official: #7fd0ff;           /* Priority 1 in the official view (lib/mapstyle.ts officialColor(1)) */
 }
 
 @theme inline {
@@ -27,6 +28,7 @@
   --color-ember-core: var(--ember-core);
   --color-rule: var(--rule);
   --color-panel: var(--panel);
+  --color-official: var(--official);
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -55,4 +57,83 @@ body {
     background: var(--panel);
     border: 1px solid var(--rule);
   }
+
+  /* Small-caps mono label (column heads, section titles, card eyebrows). */
+  .label {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* Figures: mono, tabular, lining. */
+  .figure {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--ember-hot);
+    outline-offset: 2px;
+  }
+  .focus-ring-inset:focus-visible {
+    outline: 2px solid var(--ember-hot);
+    outline-offset: -2px;
+  }
+
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(238 240 234 / 0.22) transparent;
+    overscroll-behavior: contain;
+  }
+
+  /* Time slider: hairline track, ember fill up to the thumb (--fill), bright thumb. */
+  .range {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 44px;
+    cursor: pointer;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(to right, var(--ember) var(--fill, 0%), rgb(238 240 234 / 0.24) var(--fill, 0%));
+  }
+  .range::-moz-range-track { height: 2px; background: rgb(238 240 234 / 0.24); }
+  .range::-moz-range-progress { height: 2px; background: var(--ember); }
+  .range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--ember-core);
+    box-shadow: 0 0 0 3px rgb(255 122 46 / 0.45);
+  }
+  .range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--ember-core);
+    box-shadow: 0 0 0 3px rgb(255 122 46 / 0.45);
+  }
+  .range:focus-visible { outline: none; }
+  .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ember-hot); }
+  .range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ember-hot); }
+}
+
+/* Map attribution on the dark map; on phones it rides above the bottom sheet (AppShell sets --dw-sheet-h). */
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background: rgb(5 7 11 / 0.75);
+  color: var(--ink-3);
+  font-size: 10px;
+}
+.maplibregl-map .maplibregl-ctrl-attrib a { color: var(--ink-3); }
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1) opacity(0.6); }
+@media (max-width: 767px) {
+  .maplibregl-map .maplibregl-ctrl-bottom-right { bottom: var(--dw-sheet-h, 0px); }
 }

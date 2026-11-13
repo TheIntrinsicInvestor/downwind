@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const SIZES = {
   sm: { mark: 24, text: "text-lg", gap: "gap-2" },
-  md: { mark: 34, text: "text-[23px]", gap: "gap-3" },
+  md: { mark: 40, text: "text-[23px]", gap: "gap-2.5" },
 };
 
 /** The Downwind mark: an ember point with a two-stroke plume drifting downwind. Same geometry as app/icon.svg. */

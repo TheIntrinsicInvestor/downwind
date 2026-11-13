@@ -10,8 +10,8 @@ import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
 import { BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
-  PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
-  smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
+  PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
+  pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
@@ -64,6 +64,7 @@ export default function MapStage() {
   const overlay = useRef<MapLibreOverlay | null>(null);
   const [ready, setReady] = useState(false);
   const [zoom, setZoom] = useState(6.25);
+  const pick = useRef<(x: number, y: number) => void>(() => {});
 
   useEffect(() => {
     let map: Map;
@@ -94,6 +95,7 @@ export default function MapStage() {
       setMapReady(true);
     });
     map.on("zoom", () => setZoom(zoomStep(map.getZoom())));
+    map.on("click", (e) => pick.current(e.point.x, e.point.y));
     setZoom(zoomStep(map.getZoom()));
     (window as unknown as { __map?: Map }).__map = map;
     attach(map);
@@ -120,6 +122,18 @@ export default function MapStage() {
     return { ...sets, glow: sets.rest.filter((i) => fireGlow(day.fires[i], mode, nRanked) !== null) };
   }, [day, mode, nRanked]);
   const glowUrl = useMemo(() => glowSprite(), []);
+
+  // A click picks the fire cores within PICK_RADIUS px (deep picking, so a dot hidden under a neighbour still counts);
+  // pickFire chooses among them. A click on empty map leaves the selection as it is.
+  useEffect(() => {
+    pick.current = (x, y) => {
+      if (!day || !overlay.current) return;
+      const hits = overlay.current.pickMultipleObjects({ x, y, radius: PICK_RADIUS, depth: 12, layerIds: ["fires", "top"] })
+        .map((h) => h.object).filter((o): o is number => typeof o === "number");
+      const i = pickFire(hits, day.fires, mode);
+      if (i !== null) select(i);
+    };
+  }, [day, mode, select]);
 
   // The frame's particles as heatmap weights (alpha / 255), split into the focused plume and the rest.
   const smoke = useMemo(() => {
@@ -171,7 +185,6 @@ export default function MapStage() {
       radiusMinPixels: minPx,
       radiusMaxPixels: maxPx,
       getFillColor: (i) => fireFill(fires[i], mode, nRanked),
-      onClick: (info) => select(typeof info.object === "number" ? info.object : null),
       updateTriggers: { getRadius: [day.date, mode], getFillColor: [day.date, mode] },
     });
     // Fire layers keep their data and accessors between smoke frames; attributes change only with day or mode, and the
@@ -217,7 +230,7 @@ export default function MapStage() {
         }),
       ],
     });
-  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, select, mode, glowUrl]);
+  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, mode, glowUrl]);
 
   return (
     <div className="fixed inset-0 z-0 bg-bg">
