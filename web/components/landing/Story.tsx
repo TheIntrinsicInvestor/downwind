@@ -58,7 +58,7 @@ function TierTable({ facts }: { facts: StoryFacts }) {
           );
         })}
       </ul>
-      <p className="mt-3 text-xs leading-relaxed text-ink-3">Tiers follow our reading of P.8/2018, Pasal 9.</p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-3">Tiers follow P.8/2018, Pasal 9. The cluster size of 3 is our own.</p>
     </>
   );
 }
@@ -169,7 +169,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
     return null;
   };
   const card = (b: Beat, k: number, variant: "float" | "flat") => (
-    <BeatCard beat={b} total={beats?.length ?? 0} variant={variant} emphasis={emphasis[b.id]}
+    <BeatCard beat={b} variant={variant} emphasis={emphasis[b.id]}
       active={variant === "float" ? k === active : k === Math.max(active, 0)}>
       {extras(b, variant)}
     </BeatCard>

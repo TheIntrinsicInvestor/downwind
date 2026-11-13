@@ -1,7 +1,7 @@
-"""Fire squares and the P.8/2018 tiers (our loose reading of Pasal 9, chosen by Brian on 12 Nov; spec 7.2).
-Priority 1: on peat, or 3+ non-low detections in the square and its 8 neighbours (our own threshold; the
-regulation gives none), or seen 3 days running. Priority 2: other non-low. Priority 3: low confidence only.
-The rule's visible-smoke input is not computable and is omitted."""
+"""Fire squares and the P.8/2018 tiers (strict reading of Pasal 9(3), adopted 13 Nov; spec 7.2).
+Priority 1: on peat with a non-low detection AND (3+ non-low detections in the square and its 8 neighbours,
+our own cluster threshold since the regulation gives none, OR seen 3 days running). Priority 2: other non-low.
+Priority 3: low confidence only. Not computed: the rule's visible-smoke input and the Pasal 7a land uses."""
 import numpy as np
 import pandas as pd
 
@@ -91,6 +91,6 @@ def build_squares(fires: pd.DataFrame, day: pd.Timestamp, grids: Grids, cell=FIR
 
 
 def assign_tiers(sq: pd.DataFrame) -> pd.Series:
-    tier1 = sq.peat.astype(bool) | (sq.neighbours_nonlow >= CLUSTER_MIN) | (sq.days_running >= PERSIST_DAYS)
+    tier1 = sq.peat.astype(bool) & ((sq.neighbours_nonlow >= CLUSTER_MIN) | (sq.days_running >= PERSIST_DAYS))
     t = np.where(sq.n_nonlow == 0, 3, np.where(tier1, 1, 2))
     return pd.Series(t, index=sq.index, name="tier", dtype=int)

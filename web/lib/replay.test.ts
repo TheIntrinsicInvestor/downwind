@@ -166,3 +166,29 @@ test("pct rounds the stored value half up, the same as the bulletin facts", () =
   expect(pct(0.3008)).toBe("30%");
   expect(pct(null)).toBe("n/a");
 });
+
+test("bulletinParts: leading fires, changes and paragraphs from the day file", async () => {
+  const { bulletinParts } = await import("./replay");
+  const fire = (o: object) => ({ id: "x", lat: 0, lon: 0, tier: 1, in_province: true, frp: 1, n_detect: 3, place: "Ketapang",
+    rank: null, share: null, people_40km: null, top_places: null, first_arrival_h: null, heading: null,
+    reach_km: null, persist_p: null, age_days: null, ...o });
+  const day = {
+    fires: [
+      fire({ id: "b", rank: 2, share: 0.04, people_40km: 3035431, heading: "NW", top_places: [{ name: "Kota Batam", share: 0.5 }], first_arrival_h: 39 }),
+      fire({ id: "a", rank: 1, share: 0.061, place: "Kayong Utara", people_40km: 2028881, heading: "W", top_places: [{ name: "Kayong Utara", share: 0.4 }], first_arrival_h: 0 }),
+      fire({ id: "c", rank: 3, share: 0.03 }),
+      fire({ id: "d", rank: 4, share: 0.02 }),
+    ],
+    changes: { new_in_top10: [0, 1, 3], left_top10: 3 },
+    bulletin: { text: "One.\n\nTwo.\n\n\nThree.", source: "template", model: null },
+  } as unknown as Parameters<typeof bulletinParts>[0];
+  const p = bulletinParts(day);
+  expect(p.leading.map((l) => l.fire.id)).toEqual(["a", "b", "c"]);
+  expect(p.leading[0].detail).toBe("2,028,881 residents within 40 km of its smoke path. Heading W, over Kayong Utara from the start.");
+  expect(p.leading[1].detail).toBe("3,035,431 residents within 40 km of its smoke path. Heading NW, reaching Kota Batam after 39 h.");
+  expect(p.leading[2].detail).toBe("");
+  expect(p.newPlaces).toEqual(["Ketapang", "Kayong Utara"]);
+  expect([p.nNew, p.nLeft]).toEqual([3, 3]);
+  expect(p.paragraphs).toEqual(["One.", "Two.", "Three."]);
+  expect(bulletinParts({ ...day, changes: null }).nNew).toBe(0);
+});

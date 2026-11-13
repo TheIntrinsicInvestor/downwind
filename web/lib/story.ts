@@ -105,7 +105,7 @@ export function beats(day: Day): Beat[] | null {
       `Indonesia's rule sorts hotspots into three tiers. In West Kalimantan that morning, ${num(f.p1)} fires shared Priority 1, with no order among them.`,
       "official", null, PROVINCE, phone(...PROVINCE.center, PROVINCE.zoom), STORY_FRAME),
     make("biggest", 3, "The biggest fire",
-      `The biggest Priority 1 fire burned at ${f.biggest.frp.toFixed(1)} MW in ${f.biggest.place}. Ranked ${ordinal(f.biggest.rank)} of ${num(f.p1)}. ${f.biggest.sharePct} of the day's smoke over residents.`,
+      `The biggest Priority 1 fire burned at ${f.biggest.frp.toFixed(1)} MW in ${f.biggest.place}. Ranked only ${ordinal(f.biggest.rank)} of ${num(f.p1)}. ${f.biggest.sharePct} of the day's smoke over residents.`,
       "downwind", [f.biggest.i], fireCamera(bf.lon, bf.lat), phone(bf.lon, bf.lat, FIRE_ZOOM), STORY_FRAME),
     make("top", 4, "The fire that matters most",
       `A smaller fire in ${f.top.place}, ${f.top.frp.toFixed(1)} MW, ranks first. Its smoke is over ${f.top.arrivalPlace} ${arrival}, with ${num(f.top.people)} residents within 40 km of its modelled smoke path. It holds ${f.top.sharePct} of the day's smoke over residents.`,

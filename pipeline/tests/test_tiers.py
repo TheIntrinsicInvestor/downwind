@@ -47,18 +47,31 @@ def dry_pt():
     return _scan(False, need_clear_row=True)
 
 
-def test_tier1_on_peat(grids, peat_pt):
+@pytest.fixture(scope="module")
+def peat_row_pt():
+    return _scan(True, need_clear_row=True)
+
+
+def test_peat_alone_is_tier2(grids, peat_pt):
+    # strict Pasal 9(3): peat is necessary but not sufficient
     sq = build_squares(fires(det(*peat_pt)), DAY, grids)
     assert len(sq) == 1 and sq.peat.iloc[0] and sq.in_province.iloc[0]
-    assert assign_tiers(sq).tolist() == [1]
+    assert assign_tiers(sq).tolist() == [2]
 
 
-def test_tier1_cluster(grids, dry_pt):
-    # three mutually adjacent squares: each sees all 3 non-low detections in its 3x3 neighbourhood
+def test_tier1_peat_cluster(grids, peat_row_pt):
+    # three mutually adjacent peat squares: each sees all 3 non-low detections in its 3x3 neighbourhood
+    la, lo = peat_row_pt
+    sq = build_squares(fires(*[det(la + a * FIRE_CELL, lo + b * FIRE_CELL) for a, b in L_SHAPE]), DAY, grids)
+    assert len(sq) == 3 and sq.peat.all()
+    assert assign_tiers(sq).tolist() == [1, 1, 1]
+
+
+def test_cluster_off_peat_is_tier2(grids, dry_pt):
     la, lo = dry_pt
     sq = build_squares(fires(*[det(la + a * FIRE_CELL, lo + b * FIRE_CELL) for a, b in L_SHAPE]), DAY, grids)
     assert len(sq) == 3 and not sq.peat.any()
-    assert assign_tiers(sq).tolist() == [1, 1, 1]
+    assert assign_tiers(sq).tolist() == [2, 2, 2]
 
 
 def test_line_of_three_only_middle_is_cluster(grids, dry_pt):
@@ -68,12 +81,18 @@ def test_line_of_three_only_middle_is_cluster(grids, dry_pt):
     assert sq.sort_values("lon").neighbours_nonlow.tolist() == [2, 3, 2]
 
 
-def test_tier1_persistent(grids, dry_pt):
-    f = fires(*[det(*dry_pt, day=DAY - pd.Timedelta(days=d)) for d in (0, 1, 2)])
+def test_tier1_peat_persistent(grids, peat_pt):
+    f = fires(*[det(*peat_pt, day=DAY - pd.Timedelta(days=d)) for d in (0, 1, 2)])
     sq3 = build_squares(f, DAY, grids)
     sq2 = build_squares(f, DAY - pd.Timedelta(days=1), grids)
     assert sq3.days_running.iloc[0] == 3 and sq2.days_running.iloc[0] == 2
     assert assign_tiers(sq3).tolist() == [1] and assign_tiers(sq2).tolist() == [2]
+
+
+def test_persistent_off_peat_is_tier2(grids, dry_pt):
+    f = fires(*[det(*dry_pt, day=DAY - pd.Timedelta(days=d)) for d in (0, 1, 2)])
+    sq = build_squares(f, DAY, grids)
+    assert sq.days_running.iloc[0] == 3 and assign_tiers(sq).tolist() == [2]
 
 
 def test_tier2_isolated_non_peat(grids, dry_pt):

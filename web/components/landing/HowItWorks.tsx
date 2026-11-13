@@ -70,7 +70,7 @@ const brief = (
 
 const STEPS: { title: string; text: string; glyph: ReactNode; ai?: boolean }[] = [
   { title: "Detect", text: "Satellite fire detections (NASA FIRMS, VIIRS).", glyph: detect },
-  { title: "Tier", text: "The official P.8/2018 tiers, as we read them.", glyph: tier },
+  { title: "Tier", text: "The official P.8/2018 tiers (Pasal 9).", glyph: tier },
   { title: "Persist", text: "A learned model estimates each fire's likelihood of being seen again tomorrow.", glyph: persist, ai: true },
   { title: "Carry", text: "The morning's ECMWF wind forecast moves simulated smoke for 48 hours.", glyph: carry },
   { title: "Count", text: "Smoke is laid over where residents live (WorldPop), Indonesian places only.", glyph: count },

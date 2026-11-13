@@ -146,11 +146,34 @@ export function rankedFires(day: Day): number[] {
     .sort((a, b) => (day.fires[a].rank as number) - (day.fires[b].rank as number));
 }
 
+// The bulletin card's pieces, all from the day file: the three leading fires with one detail line each, what
+// changed in the top ten, and the written text split into its paragraphs. Arrival is measured to the place
+// receiving the most of the fire's smoke (top_places[0]), as on the fire card.
+export function bulletinParts(day: Day) {
+  const leading = rankedFires(day).slice(0, 3).map((i) => {
+    const f = day.fires[i];
+    const to = f.top_places?.[0]?.name;
+    const bits: string[] = [];
+    if (f.people_40km !== null) bits.push(`${f.people_40km.toLocaleString("en-US")} residents within 40 km of its smoke path.`);
+    const move = [f.heading ? `Heading ${f.heading}` : null,
+      to && f.first_arrival_h !== null ? (f.first_arrival_h === 0 ? `over ${to} from the start` : `reaching ${to} after ${f.first_arrival_h} h`) : null]
+      .filter(Boolean).join(", ");
+    if (move) bits.push(`${move[0].toUpperCase()}${move.slice(1)}.`);
+    return { fire: f, detail: bits.join(" ") };
+  });
+  const ch = day.changes;
+  const newPlaces = ch ? [...new Set(ch.new_in_top10.map((i) => day.fires[i].place ?? "an unnamed location"))] : [];
+  return {
+    leading, newPlaces, nNew: ch?.new_in_top10.length ?? 0, nLeft: ch?.left_top10 ?? 0,
+    paragraphs: day.bulletin.text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+  };
+}
+
 // ---- official-rule overlay
 
 export type Mode = "official" | "downwind";
 
-// Priority 1, 2, 3 (P.8/2018, our reading of Pasal 9)
+// Priority 1, 2, 3 (P.8/2018, Pasal 9(3), strict reading)
 export function tierColor(tier: 1 | 2 | 3): [number, number, number] {
   return tier === 1 ? [178, 34, 34] : tier === 2 ? [230, 150, 40] : [140, 140, 140];
 }

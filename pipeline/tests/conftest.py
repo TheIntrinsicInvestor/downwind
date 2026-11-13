@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from dw.config import BOX
 from dw.fetch import Met
@@ -23,7 +24,7 @@ def toy_grids(city_lat, city_lon, people):
 
 
 def one_fire(day, lat=0.0, lon=109.07, n=3, conf="n", frp=10.0):
-    """n detections in one square on `day` (3 nominal detections make it Priority 1 by the cluster rule)."""
+    """n detections in one square on `day` (3 nominal detections on peat make it Priority 1; see peat_everywhere)."""
     return pd.DataFrame({"lat": [lat] * n, "lon": [lon] * n, "date": [pd.Timestamp(day)] * n,
                          "frp": [frp] * n, "conf": [conf] * n})
 
@@ -38,3 +39,11 @@ def flat_met(u, v, rain, hours=60, t0=T0):
     return Met(lats=lats, lons=lons, times=pd.date_range(t0, periods=hours, freq="h"),
                u={"925": full(u), "10m": full(u)}, v={"925": full(v), "10m": full(v)},
                precip=full(rain), rh=full(80.0))
+
+
+def peat_everywhere():
+    """Module fixture body: every toy fire is on peat, so the strict tier rule (peat AND cluster or 3 days) ranks it."""
+    from dw import tiers
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(tiers, "peat_at", lambda la, lo: np.ones(len(np.asarray(la)), bool))
+        yield

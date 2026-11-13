@@ -4,7 +4,9 @@ import pytest
 
 from dw.config import FIRE_CELL
 from dw.rank import DayResult, run_day, top10_overlap
-from tests.conftest import T0, flat_met, one_fire, toy_grids
+from tests.conftest import T0, flat_met, one_fire, peat_everywhere, toy_grids
+
+_on_peat = pytest.fixture(scope="module", autouse=True)(peat_everywhere)
 
 T = T0
 Y = T - pd.Timedelta(days=1)

@@ -1,10 +1,10 @@
 # Downwind
 
-Downwind ranks active peat fires in West Kalimantan, Indonesia, by how many residents their smoke will reach in the next 48 hours. It is an extra layer on Indonesia's official hotspot tiers (Permen LHK P.8/MENLHK/SETJEN/KUM.1/3/2018, Pasal 9), which, as we read them, put hundreds of fires in Priority 1 with no order among them. Downwind orders the fires inside Priority 1. The task force decides.
+Downwind ranks active peat fires in West Kalimantan, Indonesia, by how many residents their smoke will reach in the next 48 hours. It is an extra layer on Indonesia's official hotspot tiers (Permen LHK P.8/MENLHK/SETJEN/KUM.1/3/2018, Pasal 9), which put hundreds of fires in Priority 1 with no order among them. Downwind orders the fires inside Priority 1. The task force decides.
 
 **Live demo (no login):** https://downwind-sigma.vercel.app
 
-The site replays three real mornings, 18 to 20 September 2026. On 20 September the official rule (as we read it) put 564 fires in Priority 1; the ten fires at the top of Downwind's list carry 30% of the modelled smoke over residents.
+The site replays three real mornings, 18 to 20 September 2026. On 20 September the official rule put 349 fires in Priority 1; the ten fires at the top of Downwind's list carry 28% of the modelled smoke over residents.
 
 Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 
@@ -21,7 +21,7 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 ## How it works
 
 1. **Fires:** NASA FIRMS VIIRS detections, grouped into 0.015 degree squares (about 1.7 km).
-2. **Official tiers:** our reading of Pasal 9. Priority 1 is a fire on peat, in a cluster of 3 or more detections, or seen 3 days running (confidence not low). The regulation gives no cluster size, so 3 is our own number. Its "smoke visible on imagery" input is not computed.
+2. **Official tiers:** Pasal 9(3), read strictly. Priority 1 is a fire on peat (confidence not low) that is also in a cluster of 3 or more detections or seen 3 days running. The regulation gives no cluster size, so 3 is our own number. Its "smoke visible on imagery" input and its listed land uses (Pasal 7a) are not computed, so the true Priority 1 count can only be higher.
 3. **Smoke:** each fire releases particles every hour, weighted by its fire radiative power, carried by 925 hPa winds with random spread and washed out by rain, for 48 hours. Peat fires count about 6 times more smoke per unit of heat (GFAS conversion factors, 5.87 against 0.96 kg per MJ, Kaiser et al. 2012). The other settings were tested on the 2023 season and not tuned afterwards.
 4. **Weather:** each replay morning uses the ECMWF forecast a task force would have had at 07:00 local (the 12:00 UTC run of the day before, from the Open-Meteo Single Runs API), not the weather that actually followed. The Limits panel reports how many of the top ten would change with hindsight weather.
 5. **Learned persistence model (the AI component):** most fires are not seen again the next day. A gradient-boosted classifier, trained on the 2019, 2023 and 2025 seasons, predicts each fire's likelihood of being seen again tomorrow from what is known that morning. Smoke is weighted by that likelihood.

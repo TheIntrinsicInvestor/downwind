@@ -30,9 +30,12 @@ SYSTEM_PROMPT = ("You write a morning briefing for a provincial fire task force 
                  "heading is the direction the smoke is travelling towards (heading "
                  "NW means it drifts to the northwest, not from it); top_places share_pct is how that fire's own "
                  "smoke over residents splits between places; fires_date is when the fires were detected. "
-                 "Write in full sentences as a short "
-                 "paragraph, not a list. Do not name companies. 120 to 160 words, plain English, no headings, "
-                 "no em dashes. End with the limits sentence unchanged.")
+                 "Satellites detected the fires: never say the task force logged, recorded or reported them. "
+                 "Write in full sentences, not a list, as three short paragraphs separated by a blank line: first "
+                 "the day's situation (the tier counts and the top-ten share), then the leading fires, then what "
+                 "changed since the day before. Call the tiers Priority 1, Priority 2 and Priority 3 (never p1). "
+                 "Do not name companies. About 150 words (no need to count exactly), plain English, no headings, "
+                 "no em dashes. End the last paragraph with the limits sentence unchanged.")
 LIMITS_SENTENCE = ("This is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not "
                    "counted. The task force decides.")
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
@@ -142,7 +145,7 @@ def _scrub(msg: str, key: str | None) -> str:
     return msg.replace(key, "***") if key else msg
 
 
-def call_llm(messages, models, *, attempts=4, pause=3.0, max_tokens=4000, temperature=0.3, opener=None) -> tuple[str, str]:
+def call_llm(messages, models, *, attempts=4, pause=3.0, max_tokens=16000, temperature=0.3, opener=None) -> tuple[str, str]:
     """Alternate models; an HTTP error, timeout or empty reply counts as a failure. Returns (text, model)."""
     opener = opener or urllib.request.urlopen
     key = config.secret("NEBIUS_API_KEY")
@@ -171,16 +174,16 @@ def call_llm(messages, models, *, attempts=4, pause=3.0, max_tokens=4000, temper
 
 def template_bulletin(facts: dict) -> str:
     """Plain bulletin built only from the facts, so it always passes the number check."""
-    parts = []
     head = f"Morning of {facts.get('date', 'today')}."
     if "fires_date" in facts:
         head += f" Fires detected on {facts['fires_date']}"
         head += f" put {facts['p1_count']:,} fires in Priority 1 in West Kalimantan." if "p1_count" in facts else "."
     elif "p1_count" in facts:
         head += f" {facts['p1_count']:,} fires are in Priority 1 in West Kalimantan."
-    parts.append(head)
+    situation = [head]
     if "top10_share_pct" in facts:
-        parts.append(f"The ten fires at the top of the list carry {facts['top10_share_pct']}% of the modelled smoke over residents.")
+        situation.append(f"The ten fires at the top of the list carry {facts['top10_share_pct']}% of the modelled smoke over residents.")
+    fires = []
     for t in facts.get("top", [])[:3]:
         s = f"Fire {t['rank']}, near {t.get('near') or 'an unnamed location'}, carries {t['share_pct']}% of it"
         if t.get("people_40km") is not None:
@@ -193,12 +196,13 @@ def template_bulletin(facts: dict) -> str:
             s += f", already over {place} as the window opens"
         elif place and t.get("first_arrival_h") is not None:
             s += f", reaching {place} after {t['first_arrival_h']} hours"
-        parts.append(s + ".")
+        fires.append(s + ".")
+    changes = []
     if facts.get("new_in_top10"):
         names = list(dict.fromkeys(n or "an unnamed location" for n in facts["new_in_top10"]))
-        parts.append("New in the top ten today: fires near " + ", ".join(names) + ".")
-    parts.append(facts.get("limits", LIMITS_SENTENCE))
-    return " ".join(parts)
+        changes.append("New in the top ten today: fires near " + ", ".join(names) + ".")
+    changes.append(facts.get("limits", LIMITS_SENTENCE))
+    return "\n\n".join(" ".join(p) for p in (situation, fires, changes) if p)
 
 
 def make_bulletin(facts: dict, *, opener=None) -> dict:

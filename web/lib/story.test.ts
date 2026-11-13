@@ -29,10 +29,10 @@ test("golden: 20 September facts", () => {
   expect(f).not.toBeNull();
   if (!f) return;
   expect(f.nLocations).toBe(3151);
-  expect([f.p1, f.p2, f.p3]).toEqual([564, 82, 4]);
-  expect(f.biggest).toMatchObject({ frp: 289.5, place: "Ketapang", rank: 150, sharePct: "0.12%" });
+  expect([f.p1, f.p2, f.p3]).toEqual([349, 297, 4]);
+  expect(f.biggest).toMatchObject({ frp: 248, place: "Kayong Utara", rank: 20, sharePct: "1.06%" });
   expect(f.top).toMatchObject({
-    frp: 194, place: "Kayong Utara", sizeRank: 4, sharePct: "6.1%", people: 2028881,
+    frp: 194, place: "Kayong Utara", sizeRank: 3, sharePct: "6.1%", people: 2028881,
     arrivalPlace: "Kayong Utara", arrivalH: 0,
   });
   expect(f.top10.length).toBe(10);
@@ -44,8 +44,8 @@ test("golden: beat copy", () => {
   expect(b).not.toBeNull();
   if (!b) return;
   expect(b.map((x) => x.id)).toEqual(["region", "official", "biggest", "top", "shortlist"]);
-  expect(b[2].body).toContain("Ranked 150th of 564");
-  expect(b[2].body).toContain("0.12% of the day's smoke over residents");
+  expect(b[2].body).toContain("Ranked only 20th of 349");
+  expect(b[2].body).toContain("1.06% of the day's smoke over residents");
   expect(b[3].body).toContain("2,028,881 residents");
   expect(b[3].body).toContain("from the start");
   expect(b[1].mode).toBe("official");
@@ -63,8 +63,8 @@ test("golden: beat copy is the spec's sentences", () => {
     ["The region", "The official view", "The biggest fire", "The fire that matters most", "The short list"]);
   expect(b.map((x) => x.n)).toEqual(["01", "02", "03", "04", "05"]);
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
-  expect(b[1].body).toBe("Indonesia's rule sorts hotspots into three tiers. In West Kalimantan that morning, 564 fires shared Priority 1, with no order among them.");
-  expect(b[2].body).toBe("The biggest Priority 1 fire burned at 289.5 MW in Ketapang. Ranked 150th of 564. 0.12% of the day's smoke over residents.");
+  expect(b[1].body).toBe("Indonesia's rule sorts hotspots into three tiers. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
+  expect(b[2].body).toBe("The biggest Priority 1 fire burned at 248.0 MW in Kayong Utara. Ranked only 20th of 349. 1.06% of the day's smoke over residents.");
   expect(b[3].body).toBe("A smaller fire in Kayong Utara, 194.0 MW, ranks first. Its smoke is over Kayong Utara from the start, with 2,028,881 residents within 40 km of its modelled smoke path. It holds 6.1% of the day's smoke over residents.");
   expect(b[4].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");
 });

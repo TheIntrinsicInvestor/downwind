@@ -7,7 +7,9 @@ import pytest
 
 from dw.export import REC, export_day, write_index, write_limits
 from dw.rank import FRAME_CAP, DayResult, run_day
-from tests.conftest import T0, flat_met, one_fire, toy_grids
+from tests.conftest import T0, flat_met, one_fire, peat_everywhere, toy_grids
+
+_on_peat = pytest.fixture(scope="module", autouse=True)(peat_everywhere)
 
 DATE = T0.strftime("%Y-%m-%d")
 Y = T0 - pd.Timedelta(days=1)

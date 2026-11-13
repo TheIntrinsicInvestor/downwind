@@ -8,7 +8,9 @@ import pytest
 from dw import config
 from dw.bulletin import BULLETIN_MODELS, LIMITS_SENTENCE, LLMError, build_facts, call_llm, make_bulletin, offending, template_bulletin
 from dw.rank import run_day
-from tests.conftest import T0, flat_met, one_fire, toy_grids
+from tests.conftest import T0, flat_met, one_fire, peat_everywhere, toy_grids
+
+_on_peat = pytest.fixture(scope="module", autouse=True)(peat_everywhere)
 
 FACTS = {"date": "22 October 2026", "p1_count": 1412, "top10_share_pct": 53, "top_list_size": 10,
          "top": [{"rank": 1, "near": "Ketapang", "share_pct": 12, "people_40km": 680000, "first_arrival_h": 7}]}
@@ -97,10 +99,10 @@ def test_llm_error_falls_back_to_template():
     assert out["source"] == "template"
 
 
-def test_max_tokens_is_4000():
+def test_max_tokens_is_16000():
     fake = fake_opener(["ok"])
     call_llm(MSGS, BULLETIN_MODELS, pause=0, opener=fake)
-    assert fake.bodies[0]["max_tokens"] == 4000 and fake.bodies[0]["messages"] == MSGS
+    assert fake.bodies[0]["max_tokens"] == 16000 and fake.bodies[0]["messages"] == MSGS
 
 
 def test_template_has_no_em_dash_and_passes_own_check():
@@ -162,3 +164,8 @@ def test_facts_round_the_stored_share_like_the_card():
                                 ignore_index=True), flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 100_000))
     r = res.squares[res.squares["rank"] == 1].iloc[0]
     assert f["top"][0]["share_pct"] == pct(round(float(r.share), 5), 1)
+
+
+def test_template_is_three_paragraphs():
+    paras = template_bulletin(_real_facts()).split("\n\n")
+    assert len(paras) == 3 and paras[0].startswith("Morning of") and paras[-1].endswith(LIMITS_SENTENCE)

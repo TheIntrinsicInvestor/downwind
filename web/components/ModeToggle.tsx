@@ -54,10 +54,10 @@ export const ModeNote = memo(function ModeNote({ mode, day }: { mode: Mode; day:
         ))}
       </ul>
       <p className="mt-3 text-ink-2">
-        Tiers follow our reading of P.8/2018, Pasal 9: {p1.toLocaleString("en-US")} fires share Priority 1, with no order among them.
+        Tiers follow P.8/2018, Pasal 9: {p1.toLocaleString("en-US")} fires share Priority 1, with no order among them.
       </p>
       <p className="mt-2 text-xs leading-relaxed text-ink-3">
-        Our reading counts a fire on peat, in a cluster of 3 or more detections, or seen 3 days running. The regulation gives no cluster size, so that number is ours; its visible-smoke input is not computed here. Satellite &quot;low&quot; confidence stands in for the rule&apos;s &quot;under 30%&quot;, an approximation.
+        Priority 1 is a fire on peat that is also in a cluster of 3 or more detections or seen 3 days running. The regulation gives no cluster size, so that number is ours. Two of its inputs are not computed here, smoke visible on imagery and its listed land uses, so the full count would be higher. Satellite &quot;low&quot; confidence stands in for the rule&apos;s &quot;under 30%&quot;, an approximation.
       </p>
     </div>
   );

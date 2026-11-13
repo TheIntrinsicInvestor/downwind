@@ -17,10 +17,10 @@ function emphasise(text: string, tokens: string[]): ReactNode[] {
 }
 
 type Props = {
-  beat: Beat; total: number; active: boolean; emphasis: string[]; variant: "float" | "flat"; children?: ReactNode;
+  beat: Beat; active: boolean; emphasis: string[]; variant: "float" | "flat"; children?: ReactNode;
 };
 
-function BeatCard({ beat, total, active, emphasis, variant, children }: Props) {
+function BeatCard({ beat, active, emphasis, variant, children }: Props) {
   const titleId = `beat-${beat.id}-${variant}`;
   const shell = variant === "float"
     ? "panel w-full p-7 shadow-[0_24px_60px_rgb(0_0_0/0.45)]"
@@ -39,8 +39,7 @@ function BeatCard({ beat, total, active, emphasis, variant, children }: Props) {
           {beat.n}
         </span>
         <div className="min-w-0">
-          <p className="label">Beat {beat.n} of {String(total).padStart(2, "0")}</p>
-          <h2 id={titleId} className={`mt-1 font-display leading-tight text-ink ${variant === "float" ? "text-[27px]" : "text-[22px]"}`}>
+          <h2 id={titleId} className={`font-display leading-tight text-ink ${variant === "float" ? "text-[27px]" : "text-[22px]"}`}>
             {beat.title}
           </h2>
         </div>

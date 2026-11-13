@@ -1,7 +1,7 @@
 "use client";
 
 // Where it fits (spec section 6): the same province fires twice on light canvas renders, once by the official tiers
-// and once in Downwind's order. The 564 comes from storyFacts, not from the page.
+// and once in Downwind's order. The 349 comes from storyFacts, not from the page.
 
 import { memo, useMemo } from "react";
 import { type Day, longDate } from "@/lib/replay";
