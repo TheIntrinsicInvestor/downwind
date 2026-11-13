@@ -8,6 +8,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, type MouseEvent } from "
 import { useReplay } from "@/components/ReplayProvider";
 import TopBar from "@/components/landing/TopBar";
 import Hero, { type LoadStatus } from "@/components/landing/Hero";
+import Stakes from "@/components/landing/Stakes";
 import Story from "@/components/landing/Story";
 import Results from "@/components/landing/Results";
 import HowItWorks from "@/components/landing/HowItWorks";
@@ -62,6 +63,7 @@ export default function Home() {
     <div className="flex flex-col">
       <TopBar onOpenApp={openApp} />
       <Hero facts={facts} status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
+      <Stakes />
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}
       {/* Content sections, opaque so the map is covered once the story ends. */}
       <main className="pointer-events-auto relative bg-bg">
