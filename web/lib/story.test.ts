@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import type { Day, Fire } from "./replay";
-import { FIRE_OFFSET_PX, STORY_DATE, beatAt, beats, ordinal, storyFacts } from "./story";
+import { FIRE_OFFSET_PX, STORY_DATE, beatAt, beats, offsetCamera, ordinal, storyFacts } from "./story";
 
 const dayPath = fileURLToPath(new URL(`../public/replay/${STORY_DATE}.json`, import.meta.url));
 const loadGolden = (): Day => JSON.parse(readFileSync(dayPath, "utf-8")) as Day;
@@ -132,4 +132,24 @@ test("beatAt", () => {
 test("ordinal", () => {
   expect([1, 2, 3, 4, 11, 12, 13, 21, 150].map(ordinal))
     .toEqual(["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "150th"]);
+});
+
+// Web Mercator, 512 px world tiles: screen x and y (y down) of a lon/lat at a zoom, for checking offsetCamera.
+function screen(lon: number, lat: number, zoom: number): [number, number] {
+  const world = 512 * 2 ** zoom;
+  const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  return [((lon + 180) / 360) * world, (1 - y / Math.PI) * (world / 2)];
+}
+
+test("offsetCamera puts the camera's centre point dx px right and dy px below the middle", () => {
+  const c = { center: [110.12, -0.92] as [number, number], zoom: 8.2 };
+  for (const [dx, dy] of [[280, 0], [0, -190], [-120, 75]]) {
+    const o = offsetCamera(c, dx, dy);
+    expect(o.zoom).toBe(c.zoom);
+    const [sx, sy] = screen(...c.center, c.zoom);
+    const [mx, my] = screen(...o.center, o.zoom);
+    expect(sx - mx).toBeCloseTo(dx, 6);
+    expect(sy - my).toBeCloseTo(dy, 6);
+  }
+  expect(offsetCamera(c, 0, 0)).toEqual(c);
 });

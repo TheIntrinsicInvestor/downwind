@@ -28,6 +28,8 @@ const URL_PANELS = ["limits", "city", "bulletin", "fire"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
 const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
+// Desktop view after the hand-off from the story: MapStage's opening view, the one /app shows when opened directly.
+const DESKTOP_CAMERA = { center: [111.5, 0] as [number, number], zoom: 6.2 };
 
 // ---- viewport
 
@@ -158,16 +160,19 @@ export default function AppShell() {
     }
   }, [setStoryFocus, setPanel]);
 
-  // Phones get an opening view that clears the sheet, once the map is ready (a camera request made earlier is lost
-  // when dev Strict Mode remounts the map), and the attribution starts folded to its "i" button (as MapLibre does
-  // after the first drag) so it does not cover the map above the sheet.
-  const phoneViewSet = useRef(false);
+  // Opening view, once the map is ready (a camera request made earlier is lost when dev Strict Mode remounts the map).
+  // Opened directly: phones jump to a view that clears the sheet; desktop keeps the map's own opening view. Arriving
+  // from the landing page (the map was already on screen, and Activity re-runs this effect on every return): ease
+  // once from the story's camera to the app's view. On phones the attribution starts folded to its "i" button (as
+  // MapLibre does after the first drag) so it does not cover the map above the sheet.
+  const mapWasShowing = useRef(mapReady);
   useEffect(() => {
-    if (!mapReady || phoneViewSet.current) return;
-    phoneViewSet.current = true;
-    if (window.matchMedia(WIDE).matches) return;
-    flyTo(PHONE_CAMERA, { instant: true });
-    document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")?.classList.remove("maplibregl-compact-show");
+    if (!mapReady) return;
+    const wide = window.matchMedia(WIDE).matches;
+    if (mapWasShowing.current) flyTo(wide ? DESKTOP_CAMERA : PHONE_CAMERA);
+    else if (!wide) flyTo(PHONE_CAMERA, { instant: true });
+    mapWasShowing.current = true;
+    if (!wide) document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")?.classList.remove("maplibregl-compact-show");
   }, [mapReady, flyTo]);
 
   // Selecting a fire (list, map or Protect) shows its card.

@@ -58,10 +58,11 @@ type Smoke = { n: number; positions: Float32Array; weights: Float32Array };
 const EMPTY: Smoke = { n: 0, positions: new Float32Array(0), weights: new Float32Array(0) };
 
 export default function MapStage() {
-  const { day, bin, frame, mode, focus, select, mapError } = useReplay();
+  const { day, bin, frame, mode, focus, select, mapError, mapInteractive } = useReplay();
   const { attach, setMapReady, setMapError } = useStageBinding();
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
+  const mapObj = useRef<Map | null>(null);
   const [ready, setReady] = useState(false);
   const [zoom, setZoom] = useState(6.25);
   const pick = useRef<(x: number, y: number) => void>(() => {});
@@ -98,15 +99,22 @@ export default function MapStage() {
     map.on("click", (e) => pick.current(e.point.x, e.point.y));
     setZoom(zoomStep(map.getZoom()));
     (window as unknown as { __map?: Map }).__map = map;
+    mapObj.current = map;
     attach(map);
     return () => {
       attach(null);
       setReady(false);
       setMapReady(false);
       overlay.current = null;
+      mapObj.current = null;
       map.remove();
     };
   }, [attach, setMapReady, setMapError]);
+
+  // A passive map (landing page) also leaves the tab order, so its keyboard handler cannot move the camera.
+  useEffect(() => {
+    mapObj.current?.getCanvas().setAttribute("tabindex", mapInteractive ? "0" : "-1");
+  }, [mapInteractive, ready]);
 
   const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
 
@@ -233,7 +241,8 @@ export default function MapStage() {
   }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, mode, glowUrl]);
 
   return (
-    <div className="fixed inset-0 z-0 bg-bg">
+    // Passive: pointer input passes to the page (wheel and touch scroll it); the attribution stays clickable.
+    <div className={`fixed inset-0 z-0 bg-bg ${mapInteractive ? "" : "pointer-events-none [&_.maplibregl-ctrl]:pointer-events-auto"}`}>
       {/* maplibre-gl.css sets .maplibregl-map to position:relative, so the map gets its own sized child div. */}
       <div ref={box} style={{ width: "100%", height: "100%" }} />
       {mapError && (

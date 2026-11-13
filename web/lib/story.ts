@@ -30,7 +30,7 @@ export const FIRE_ZOOM = 8.2;
 // west of the fire puts the fire at about 67.5% across the screen (720 + 252 = 972 px). Tune here.
 export const FIRE_OFFSET_PX = 252;
 const PHONE_ZOOM_DROP = 1;
-const STORY_FRAME = 12;
+export const STORY_FRAME = 12;          // the smoke hour shown wherever the story does not scrub
 
 // MapLibre uses 512 px world tiles: at zoom z one pixel spans 360 / (512 * 2^z) degrees of longitude.
 function degPerPx(zoom: number): number {
@@ -114,6 +114,16 @@ export function beats(day: Day): Beat[] | null {
       `Ten fires hold ${f.top10SharePct} of the smoke over residents. That is the list Downwind hands the task force each morning.`,
       "downwind", f.top10, PROVINCE, phone(...PROVINCE.center, PROVINCE.zoom), STORY_FRAME),
   ];
+}
+
+// The camera that shows c's centre point dx px right of and dy px below the middle of the viewport, same zoom (exact
+// Web Mercator, 512 px world). The landing page uses it to keep a beat's subject clear of its text column.
+export function offsetCamera(c: Camera, dx: number, dy: number): Camera {
+  if (dx === 0 && dy === 0) return c;
+  const world = 512 * 2 ** c.zoom;
+  const [lon, lat] = c.center;
+  const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) + (dy * 2 * Math.PI) / world;
+  return { center: [lon - (dx * 360) / world, (Math.atan(Math.exp(y)) * 360) / Math.PI - 90], zoom: c.zoom };
 }
 
 export function beatAt(progress: number, n = 5): { index: number; local: number } {

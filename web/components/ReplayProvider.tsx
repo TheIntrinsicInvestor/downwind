@@ -23,6 +23,8 @@ export type Replay = {
   chatEnabled: boolean | null;     // GET /api/chat once; false on any failure
   flyTo(c: Camera, opts?: { instant?: boolean }): void;
   mapReady: boolean; mapError: string | null;
+  // false while the landing page shows: the map ignores pointer and keyboard input so the page scrolls over it.
+  mapInteractive: boolean; setMapInteractive(i: boolean): void;
 };
 
 // How MapStage hands its map to the provider (internal to the provider and the stage).
@@ -85,6 +87,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   const [chatEnabled, setChatEnabled] = useState<boolean | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapInteractive, setMapInteractive] = useState(true);
 
   const mapRef = useRef<MapLibreMap | null>(null);
   const pendingCamera = useRef<Camera | null>(null);
@@ -165,6 +168,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
     index, date, setDate, day, bin: data?.bin ?? null, error, retry,
     frame, setFrame, playing, setPlaying, selected, select, mode, setMode, place, setPlace, panel, setPanel,
     limits, limitsError, storyFocus, setStoryFocus, focus, chatEnabled, flyTo, mapReady, mapError,
+    mapInteractive, setMapInteractive,
   };
 
   return (
