@@ -10,6 +10,9 @@ import TopBar from "@/components/landing/TopBar";
 import Hero, { type LoadStatus } from "@/components/landing/Hero";
 import Story from "@/components/landing/Story";
 import Results from "@/components/landing/Results";
+import HowItWorks from "@/components/landing/HowItWorks";
+import WhereItFits from "@/components/landing/WhereItFits";
+import Footer from "@/components/landing/Footer";
 import { STORY_DATE, STORY_FRAME, beats as storyBeats, storyFacts } from "@/lib/story";
 
 export default function Home() {
@@ -59,12 +62,13 @@ export default function Home() {
       <TopBar onOpenApp={openApp} />
       <Hero facts={facts} status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}
-      {/* Content sections slot (Tasks 7 and 8: #results, #how-it-works, where it fits, footer). Opaque, so the map
-          is covered once the story ends. */}
+      {/* Content sections, opaque so the map is covered once the story ends. */}
       <main className="pointer-events-auto relative bg-bg">
         <Results />
-        <section aria-hidden="true" className="min-h-[50svh] border-t border-rule" />
+        <HowItWorks />
+        <WhereItFits />
       </main>
+      <Footer />
     </div>
   );
 }

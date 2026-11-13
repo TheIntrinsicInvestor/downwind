@@ -86,6 +86,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
   const phoneRef = useRef<HTMLDivElement>(null);
   const colRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
+  const railBoxRef = useRef<HTMLDivElement>(null);
   const hours = day?.hours ?? 0;
 
   useEffect(() => {
@@ -106,6 +107,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       const before = wide ? p < 0 : r.top > 0;
       const { index: i, local } = beatAt(p);
       const index = before ? -1 : i;
+      if (railBoxRef.current) railBoxRef.current.style.opacity = p >= 0 && p <= 1 ? "1" : "0";   // only while the story is on screen
       if (railRef.current) railRef.current.style.transform = `scaleY(${Math.min(1, Math.max(0, p))})`;
 
       const b = index < 0 ? hero : beats[index];
@@ -178,7 +180,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
     <div id="story" aria-label="How Downwind ranks the fires">
       {/* Desktop: one viewport per beat. The rail is pinned for the whole story and takes no space. */}
       <div ref={deskRef} className="relative max-md:hidden">
-        <div aria-hidden="true" className="pointer-events-none sticky top-0 z-10 -mb-[100svh] h-svh">
+        <div ref={railBoxRef} aria-hidden="true" className="pointer-events-none sticky top-0 z-10 -mb-[100svh] h-svh opacity-0 transition-opacity duration-300">
           <div className="absolute right-8 top-1/2 flex -translate-y-1/2 gap-3 lg:right-12">
             <ol className="flex flex-col justify-between">
               {ids.map((id, k) => (
