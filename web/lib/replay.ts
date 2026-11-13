@@ -173,7 +173,7 @@ export function stabilityLine(s: Day["stability"]): string {
     : `${base} The ranking uses the forecast available that morning; with the weather that actually followed, ${s.hindsight_overlap} of 10 stay.`;
 }
 
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+export const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
 export function forecastLine(f: NonNullable<Limits["forecast2026"]>): string {
   const n = WORDS[f.airports] ?? String(f.airports);
