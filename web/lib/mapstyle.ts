@@ -46,14 +46,44 @@ export function fireRadius(fire: Fire, mode: Mode, nRanked: number): number {
   return r <= 10 ? 6000 : 1500 + 2500 * (1 - (r - 1) / Math.max(nRanked, 1));
 }
 
+// ---- fire glow (approved night mockup: small bright points with a soft additive glow; top 10 hotter and larger)
+// Diameters in screen pixels at zoom 7.25, drawn with a radial-gradient sprite and additive blending under the cores.
+
+const TOP_GLOW: RGB = [255, 177, 90];
+
+// The glow under each fire, or null for none (unranked fires are bare dots).
+export function fireGlow(fire: Fire, mode: Mode, nRanked: number): { size: number; color: RGBA } | null {
+  if (mode === "official") return fire.in_province ? { size: 9, color: [...officialColor(fire.tier), 140] } : null;
+  const r = fire.rank;
+  if (r === null) return null;
+  if (r <= 10) return { size: 22 + 12 * (1 - (r - 1) / 9), color: [...TOP_GLOW, 170] };
+  const t = Math.max(0, 1 - Math.log(r) / Math.log(Math.max(nRanked, 2)));   // 1 at rank 1, 0 at the last rank
+  const [cr, cg, cb, ca] = fireFill(fire, mode, nRanked);
+  return { size: 8 + 14 * t, color: [cr, cg, cb, ca] };
+}
+
+// The wide faint haze around each top-10 fire.
+export function topHaze(rank: number): { size: number; color: RGBA } {
+  return { size: 70 + 40 * (1 - (rank - 1) / 9), color: [...EMBER, 34] };
+}
+
+// Glows grow gently with zoom, so fires stay points: 0.55x at the region view, 1.5x at most.
+export function glowScale(zoom: number): number {
+  return Math.min(1.5, Math.max(0.55, 2 ** ((zoom - 7.25) / 2)));
+}
+
 // ---- smoke veil (deck.gl HeatmapLayer, Task 1 ruling; tuned at zoom 7.25 with radius 60 px and domain [0, 0.04])
-// radiusPixels is in screen pixels, so it scales with 2^(zoom - 7.25) to keep the plume's width in km constant. Below
-// 30 px (zoom under about 6.25) the veil turns to grain and vanishes, so the radius is floored there and plumes are
-// drawn a little wider when zoomed far out.
-// deck multiplies a fixed SUM colorDomain by metres per texel (heatmap-layer.js _updateWeightmap). With a km-constant
-// kernel the summed weight per km does not change with zoom, so the domain scales with 2^(zoom - 7.25), which is the
-// radius in pixels over 60. Under the floor the same rule (domain proportional to radius in pixels) brightens the wider
-// kernel only partly, which keeps the region view's plumes visible; checked by screenshots at zoom 4.6 to 8.2.
+// Radius: radiusPixels is in screen pixels, so it scales with 2^(zoom - 7.25) to keep the plume's width in km constant,
+// between a floor (below 30 px, about zoom 6.25 and out, the veil turns to grain) and a ceiling (100 px, the prop's
+// declared max; past about zoom 8 each particle would otherwise cover most of the weight texture, rebuilt 8 times a
+// second while playing). The map's maxZoom is 10.
+// Brightness: deck multiplies a fixed SUM colorDomain by metres per texel (heatmap-layer.js _updateWeightmap); with a
+// km-constant kernel the summed weight per km does not change with zoom, so a domain proportional to the radius in
+// pixels keeps a plume's brightness. The same rule is kept at the floor and the ceiling (past the ceiling the domain
+// stays fixed: a stricter area correction there made lone particles saturate into flat discs at zoom 10). Below zoom
+// 7.25 the veil is brightened (domain divided by 2^(7.25 - zoom), at most 2x): at province zoom the plume covers few
+// pixels and read as a faint smudge, and smoke reaching people is the point of the map. Checked by screenshots at zoom
+// 4.6 to 10.
 // Texture size: 256, not Task 1's 512: a quarter of the texels and, once the domain is corrected, the same look on
 // Iris Xe (Task 4 screenshots). Metres per texel double with half the texels, so the domain tuned at 512 is scaled by
 // 256 / 512 to keep the brightness.
@@ -61,15 +91,19 @@ export function fireRadius(fire: Fire, mode: Mode, nRanked: number): number {
 const SMOKE_REF_ZOOM = 7.25;
 const SMOKE_REF_RADIUS = 60;
 const SMOKE_REF_DOMAIN_MAX = 0.04;       // at weightsTextureSize 512
-const SMOKE_MIN_RADIUS = 30;
+const SMOKE_MIN_RADIUS = 40;
+export const SMOKE_MAX_RADIUS = 100;
+const SMOKE_MAX_BOOST = 1.6;
 export const SMOKE_TEXTURE_SIZE = 256;
+export const MAP_MAX_ZOOM = 10;          // fires are 1.5 km squares: closer shows nothing more
 
 export function smokeRadiusPixels(zoom: number): number {
-  return Math.max(SMOKE_MIN_RADIUS, SMOKE_REF_RADIUS * 2 ** (zoom - SMOKE_REF_ZOOM));
+  return Math.min(SMOKE_MAX_RADIUS, Math.max(SMOKE_MIN_RADIUS, SMOKE_REF_RADIUS * 2 ** (zoom - SMOKE_REF_ZOOM)));
 }
 
 export function smokeColorDomain(zoom: number): [number, number] {
-  return [0, SMOKE_REF_DOMAIN_MAX * (SMOKE_TEXTURE_SIZE / 512) * (smokeRadiusPixels(zoom) / SMOKE_REF_RADIUS)];
+  const boost = Math.min(SMOKE_MAX_BOOST, 2 ** Math.max(0, SMOKE_REF_ZOOM - zoom));
+  return [0, SMOKE_REF_DOMAIN_MAX * (SMOKE_TEXTURE_SIZE / 512) * (smokeRadiusPixels(zoom) / SMOKE_REF_RADIUS) / boost];
 }
 
 // First colour fully transparent: with a fixed domain, threshold no longer trims faint weights.

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Fire } from "./replay";
-import { EMBER_CORE, fireFill, fireRadius, officialColor, smokeColorDomain, smokeRadiusPixels } from "./mapstyle";
+import { EMBER_CORE, SMOKE_MAX_RADIUS, fireFill, fireRadius, officialColor, smokeColorDomain, smokeRadiusPixels } from "./mapstyle";
 
 function fire(rank: number | null, tier: 1 | 2 | 3 = 1, in_province = true): Fire {
   return { id: "f", lat: 0, lon: 110, tier, in_province, frp: 1, n_detect: 1, place: null, rank, share: rank ? 0.1 : null,
@@ -47,8 +47,27 @@ test("official colours are three different cool colours", () => {
 
 test("smoke radius keeps the plume's width in km constant across zoom, floored against grain", () => {
   expect(smokeRadiusPixels(7.25)).toBeCloseTo(60);
-  expect(smokeRadiusPixels(8.25) / smokeRadiusPixels(7.25)).toBeCloseTo(2);
-  expect(smokeColorDomain(6.25)[1] / smokeColorDomain(7.25)[1]).toBeCloseTo(0.5);
-  expect(smokeRadiusPixels(4.6)).toBe(30);
-  expect(smokeColorDomain(4.6)[1] / smokeColorDomain(7.25)[1]).toBeCloseTo(0.5);   // 30 px against 60 px
+  expect(smokeRadiusPixels(7.75) / smokeRadiusPixels(7.25)).toBeCloseTo(2 ** 0.5);
+  expect(smokeRadiusPixels(4.6)).toBe(40);
+});
+
+test("smoke radius is capped at the ceiling at high zoom", () => {
+  expect(smokeRadiusPixels(12)).toBe(SMOKE_MAX_RADIUS);
+  expect(smokeRadiusPixels(10)).toBe(SMOKE_MAX_RADIUS);
+  for (let z = 3; z <= 16; z += 0.25) expect(smokeRadiusPixels(z)).toBeLessThanOrEqual(SMOKE_MAX_RADIUS);
+  expect(SMOKE_MAX_RADIUS).toBeLessThanOrEqual(100);     // HeatmapLayer's declared radiusPixels max
+});
+
+// The domain follows the radius in pixels (deck scales it by metres per texel), so it is fixed past the ceiling.
+const perRadius = (z: number) => smokeColorDomain(z)[1] / smokeRadiusPixels(z);
+
+test("from zoom 7.25 up the smoke domain follows the radius, and is fixed past the ceiling", () => {
+  for (const z of [7.5, 8.2, 9, 10, 12]) expect(perRadius(z)).toBeCloseTo(perRadius(7.25), 10);
+  expect(smokeColorDomain(12)).toEqual(smokeColorDomain(10));
+});
+
+test("below zoom 7.25 the veil is brightened, at most 1.6-fold", () => {
+  const boost = (z: number) => perRadius(7.25) / perRadius(z);
+  expect(boost(6.3)).toBeGreaterThan(1.5);
+  for (const z of [3, 4.6, 5.5, 6.3, 7]) expect(boost(z)).toBeLessThanOrEqual(1.6 + 1e-9);
 });

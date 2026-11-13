@@ -6,12 +6,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Map, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
-import { BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, EMBER, FOCUS_SMOKE_RANGE, INK, PLACE_LABELS,
-  PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireRadius, smokeColorDomain,
-  smokeRadiusPixels } from "@/lib/mapstyle";
+import { BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
+  PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
+  smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
@@ -34,6 +34,26 @@ function restyle(map: Map) {
   }
 }
 
+// A soft white radial-gradient sprite (the mockup's glowDot falloff), tinted per fire and blended additively.
+function glowSprite(): string {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.15, "rgba(255,255,255,0.9)");
+  g.addColorStop(0.55, "rgba(255,255,255,0.25)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  return c.toDataURL();
+}
+const GLOW_MAPPING = { glow: { x: 0, y: 0, width: 64, height: 64, mask: true } };
+const ADDITIVE = {
+  blend: true, blendColorOperation: "add", blendColorSrcFactor: "src-alpha", blendColorDstFactor: "one",
+  blendAlphaOperation: "add", blendAlphaSrcFactor: "one", blendAlphaDstFactor: "one", depthCompare: "always",
+} as const;
+
 type Smoke = { n: number; positions: Float32Array; weights: Float32Array };
 const EMPTY: Smoke = { n: 0, positions: new Float32Array(0), weights: new Float32Array(0) };
 
@@ -53,6 +73,7 @@ export default function MapStage() {
         style: BASEMAP_STYLE,
         center: [111.5, 0],
         zoom: 6.2,
+        maxZoom: MAP_MAX_ZOOM,
         attributionControl: { compact: true },
       });
     } catch {
@@ -89,14 +110,16 @@ export default function MapStage() {
 
   // Draw order: unranked first, then ranked from the last rank up, so better-ranked fires sit on top. In the Downwind
   // view the top 10 are a layer of their own (drawn last, with a larger pixel cap) so they stand out at every zoom.
+  const nRanked = useMemo(() => (day ? day.fires.filter((f) => f.rank !== null).length : 0), [day]);
   const fireSets = useMemo(() => {
-    if (!day) return { rest: [], top: [] };
+    if (!day) return { rest: [], top: [], glow: [] };
     const unranked = day.fires.map((_, i) => i).filter((i) => day.fires[i].rank === null);
     const ranked = rankedFires(day).reverse();
-    if (mode === "official") return { rest: [...unranked, ...ranked], top: [] };
-    return { rest: [...unranked, ...ranked.slice(0, -10)], top: ranked.slice(-10) };
-  }, [day, mode]);
-  const nRanked = useMemo(() => (day ? day.fires.filter((f) => f.rank !== null).length : 0), [day]);
+    const sets = mode === "official" ? { rest: [...unranked, ...ranked], top: [] as number[] }
+      : { rest: [...unranked, ...ranked.slice(0, -10)], top: ranked.slice(-10) };
+    return { ...sets, glow: sets.rest.filter((i) => fireGlow(day.fires[i], mode, nRanked) !== null) };
+  }, [day, mode, nRanked]);
+  const glowUrl = useMemo(() => glowSprite(), []);
 
   // The frame's particles as heatmap weights (alpha / 255), split into the focused plume and the rest.
   const smoke = useMemo(() => {
@@ -151,28 +174,40 @@ export default function MapStage() {
       onClick: (info) => select(typeof info.object === "number" ? info.object : null),
       updateTriggers: { getRadius: [day.date, mode], getFillColor: [day.date, mode] },
     });
+    // Fire layers keep their data and accessors between smoke frames; attributes change only with day or mode, and the
+    // glow size with the quarter-step zoom (a uniform, sizeScale).
+    const glow = (id: string, data: number[], look: (i: number) => { size: number; color: RGBA }) =>
+      new IconLayer<number>({
+        id,
+        data,
+        iconAtlas: glowUrl,
+        iconMapping: GLOW_MAPPING,
+        getIcon: () => "glow",
+        getPosition: (i) => [fires[i].lon, fires[i].lat],
+        sizeUnits: "pixels",
+        getSize: (i) => look(i).size,
+        sizeScale: glowScale(zoom),
+        getColor: (i) => look(i).color,
+        alphaCutoff: 0,
+        parameters: ADDITIVE,
+        updateTriggers: { getSize: [day.date, mode], getColor: [day.date, mode] },
+      });
     overlay.current.setProps({
       layers: [
         heat("smoke", smoke.rest, SMOKE_RANGE, focusSet ? 0.45 : 1),
         heat("smoke-focus", smoke.focused, FOCUS_SMOKE_RANGE, 1),
-        dots("fires", fireSets.rest, 1.5, 7),
-        new ScatterplotLayer<number>({
-          id: "halo",
-          data: fireSets.top,
-          getPosition: (i) => [fires[i].lon, fires[i].lat],
-          getRadius: 14000,
-          radiusMinPixels: 7,
-          radiusMaxPixels: 26,
-          getFillColor: [...EMBER, 70],
-        }),
-        dots("top", fireSets.top, 3, 11),
+        glow("glow", fireSets.glow, (i) => fireGlow(fires[i], mode, nRanked)!),
+        glow("haze", fireSets.top, (i) => topHaze(fires[i].rank as number)),
+        glow("glow-top", fireSets.top, (i) => fireGlow(fires[i], mode, nRanked)!),
+        dots("fires", fireSets.rest, 1, 2.5),
+        dots("top", fireSets.top, 2.5, 5),
         // The selected or focused fires get a ring, in screen pixels and clear of the dot so it shows on a white core.
         new ScatterplotLayer<number>({
           id: "ring",
           data: focus ?? [],
           getPosition: (i) => [fires[i].lon, fires[i].lat],
           radiusUnits: "pixels",
-          getRadius: (i) => (fireSets.top.includes(i) ? 15 : 10),
+          getRadius: (i) => (fireSets.top.includes(i) ? 15 : 8),
           filled: false,
           stroked: true,
           getLineColor: [...INK, 230],
@@ -182,7 +217,7 @@ export default function MapStage() {
         }),
       ],
     });
-  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, select, mode]);
+  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, select, mode, glowUrl]);
 
   return (
     <div className="fixed inset-0 z-0 bg-bg">
