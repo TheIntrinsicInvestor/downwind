@@ -9,7 +9,7 @@ function Stakes() {
       <div className="mx-auto max-w-6xl">
         <p className="dateline">Why the order matters</p>
         <h2 id="stakes-title" className="mt-4 max-w-2xl font-display text-3xl leading-tight text-ink sm:text-4xl">
-          What the smoke cost this season
+          What the smoke has cost so far
         </h2>
         <div className="mt-10 grid gap-10 border-t border-rule pt-10 md:grid-cols-2 md:gap-16">
           <div>
@@ -17,7 +17,7 @@ function Stakes() {
             <p className="mt-3 max-w-[26rem] text-[15px] leading-relaxed text-ink-2">
               respiratory infections linked to the fires across seven provinces by 2 November 2026. Of these, 91,913 were in children aged five and under.
             </p>
-            <p className="mt-3 text-xs text-ink-3">Source: Indonesian Ministry of Health</p>
+            <p className="mt-3 text-xs text-ink-3">Source: Indonesian Ministry of Health, press briefing of 4 November 2026 (data to 2 November)</p>
           </div>
           <div>
             <p>
@@ -25,7 +25,7 @@ function Stakes() {
               <span className="figure text-4xl text-ink md:text-5xl">3,560</span>
             </p>
             <p className="mt-3 max-w-[26rem] text-[15px] leading-relaxed text-ink-2">
-              deaths in Indonesia in September 2026 linked to short-term exposure to fire smoke. This is a modelled estimate, not a count of recorded deaths.
+              deaths in Indonesia in September 2026 estimated to have been caused by short-term exposure to fire smoke.
             </p>
             <p className="mt-3 text-xs text-ink-3">Source: Centre for Research on Energy and Clean Air (CREA), 29 October 2026</p>
           </div>
