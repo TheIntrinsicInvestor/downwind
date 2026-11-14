@@ -104,6 +104,8 @@ The command rebuilds missing grids from WorldPop's 2020 Indonesia raster adjuste
 
 The Live view on `/app` checks the feed manifest every minute. It displays a new snapshot once the matching ranking, particles, and limits have loaded. If the refresh fails, the open app keeps the last successful snapshot and shows its timestamp. September replay dates are available in the same picker. For local testing, `NEXT_PUBLIC_DOWNWIND_FEED_URL` can point the web build at a compatible feed.
 
+The [Morning feed workflow](https://github.com/TheIntrinsicInvestor/downwind/actions/workflows/morning-feed.yml) runs daily at 07:12 West Kalimantan time. It publishes one complete snapshot to the `live-data` branch and retains earlier snapshots. Use **Run workflow** on `main` for a manual refresh. If a run fails, the published manifest continues to point to the previous snapshot.
+
 `web/public/replay/` holds `index.json` (the available days), `limits.json` (the accuracy and limits panel), and per day `YYYY-MM-DD.json` (counts, fires with tier, rank, share and card fields, places with their contributing fires, ranking stability, changes since the day before, the bulletin, and byte offsets for 48 hourly frames) plus `YYYY-MM-DD.particles.bin.gz` (particle positions, source fire and opacity per hour). The TypeScript types in `web/lib/replay.ts` are the contract; `pipeline/dw/export.py` writes it.
 
 ## Data sources and licences
