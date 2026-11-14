@@ -42,11 +42,28 @@ def load_fires(year: int) -> pd.DataFrame:
     for p in _fire_files(year):
         if not p.exists():
             raise FileNotFoundError(f"{p} missing; run python -m dw.fetch first")
-        f = pd.read_csv(p, encoding="utf-8")
-        if "type" in f.columns:                     # archive files: vegetation fires only
-            f = f[f["type"] == 0]
-        frames.append(f)
+        frames.append(_read_fire_csv(p))
     f = pd.concat(frames, ignore_index=True)
+    return _fire_detections(f)
+
+
+def load_fires_csv(path: Path) -> pd.DataFrame:
+    """Read a downloaded FIRMS CSV into the ranking pipeline's detection format."""
+    return _fire_detections(_read_fire_csv(path))
+
+
+def _read_fire_csv(path: Path) -> pd.DataFrame:
+    fires = pd.read_csv(path, encoding="utf-8-sig")
+    required = {"latitude", "longitude", "acq_date", "frp", "confidence"}
+    missing = required.difference(fires.columns)
+    if missing:
+        raise ValueError(f"{path}: missing FIRMS columns: {', '.join(sorted(missing))}")
+    if "type" in fires.columns:                     # archive files: vegetation fires only
+        fires = fires[fires["type"] == 0]
+    return fires
+
+
+def _fire_detections(f: pd.DataFrame) -> pd.DataFrame:
     lon0, lat0, lon1, lat1 = config.BOX
     f = f[f.latitude.between(lat0, lat1) & f.longitude.between(lon0, lon1)]
     out = pd.DataFrame({
@@ -164,14 +181,18 @@ def fetch_forecast(day, step: int = 1) -> Path:
         print(f"forecast {run:%Y-%m-%d %H} UTC chunk {c // 60 + 1}/{(len(pts) + 59) // 60}", flush=True)
         time.sleep(3)
     arr = {v: np.array(cols[v], float).reshape(len(lats), len(lons), -1) for v in REQUIRED}
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out_path, lats=lats, lons=lons, times=np.array(times), **arr)
     return out_path
 
 
-def with_forecast(met: Met, day, raw=None) -> Met:
-    """A copy of `met` whose hours from `day` 00 UTC to WINDOW_H later come from the forecast issued at
-    forecast_run(day). Fails if the forecast does not cover the window or has a missing wind or rain value in it."""
-    raw = raw if raw is not None else np.load(fetch_forecast(day))
+def load_forecast(day) -> Met:
+    """Load the 48-hour simulation window directly from the morning's forecast."""
+    with np.load(fetch_forecast(day)) as raw:
+        return _forecast_window(day, raw)
+
+
+def _forecast_window(day, raw) -> Met:
     t0 = pd.Timestamp(day).normalize()
     want = pd.date_range(t0, periods=config.WINDOW_H + 1, freq="h")
     ft = pd.to_datetime(raw["times"])
@@ -183,15 +204,24 @@ def with_forecast(met: Met, day, raw=None) -> Met:
     bad = [v for v, a in g.items() if np.isnan(a).any()]
     if bad:
         raise ValueError(f"forecast has missing values in the window: {', '.join(bad)}")
-    mi = [met.times.get_loc(t) for t in want]
     u925, v925 = _uv(g["wind_speed_925hPa"], g["wind_direction_925hPa"])
     u10, v10 = _uv(g["wind_speed_10m"], g["wind_direction_10m"])
+    return Met(lats=raw["lats"], lons=raw["lons"], times=want,
+               u={"925": u925, "10m": u10}, v={"925": v925, "10m": v10},
+               precip=g["precipitation"], rh=None)
+
+
+def with_forecast(met: Met, day, raw=None) -> Met:
+    """Replace the morning's simulation window in the historical weather grid."""
+    forecast = load_forecast(day) if raw is None else _forecast_window(day, raw)
+    mi = [met.times.get_loc(t) for t in forecast.times]
     out = Met(lats=met.lats, lons=met.lons, times=met.times,
               u={k: a.copy() for k, a in met.u.items()}, v={k: a.copy() for k, a in met.v.items()},
               precip=met.precip.copy(), rh=met.rh)
-    for arr, new in ((out.u["925"], u925), (out.v["925"], v925), (out.u["10m"], u10), (out.v["10m"], v10),
-                     (out.precip, g["precipitation"])):
-        arr[:, :, mi] = new
+    for level in forecast.u:
+        out.u[level][:, :, mi] = forecast.u[level]
+        out.v[level][:, :, mi] = forecast.v[level]
+    out.precip[:, :, mi] = forecast.precip
     return out
 
 
