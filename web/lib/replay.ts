@@ -23,7 +23,7 @@ export type Fire = {
   people_40km: number | null;                               // 20 best-ranked only
   top_places: { name: string; share: number }[] | null;
   first_arrival_h: number | null; heading: string | null;
-  reach_km: number | null;                                  // km to the nearest mapped road, river or canal (OSM); null outside the grid. Information only
+  reach_km: number | null;                                  // km to the nearest mapped road (OSM, tracks included); null outside the grid. Information only
   persist_p: number | null;                                 // null until Task 11
   age_days: number | null;                                  // days running in the area, capped at 14 (display only)
 };
