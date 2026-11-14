@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import SmokeTimeline from "./SmokeTimeline";
 import { type Day, contributionsFor, forecastTime, longDate, pct, placeOptions } from "@/lib/replay";
 
 type Props = { day: Day; place: string | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
@@ -8,6 +9,7 @@ type Props = { day: Day; place: string | null; onPlace: (p: string | null) => vo
 function CityView({ day, place, onPlace, onFire }: Props) {
   const options = placeOptions(day);
   const rows = place ? contributionsFor(day, place) : [];
+  const hourly = place ? day.places.find((p) => p.name === place)?.hourly : undefined;
   return (
     <div className="text-[13px]">
       <p className="mb-4 leading-relaxed text-ink-2">
@@ -32,6 +34,7 @@ function CityView({ day, place, onPlace, onFire }: Props) {
 
       {place && (
         <>
+          {hourly && hourly.length >= 2 && <SmokeTimeline windowStartUtc={day.window_start_utc} values={hourly} />}
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
             Shares are of the modelled smoke over residents in this place, from fires detected on {longDate(day.fires_date)}.
           </p>
