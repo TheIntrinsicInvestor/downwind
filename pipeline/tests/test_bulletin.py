@@ -177,3 +177,30 @@ def test_facts_round_the_stored_share_like_the_card():
 def test_template_is_three_paragraphs():
     paras = template_bulletin(_real_facts()).split("\n\n")
     assert len(paras) == 3 and paras[0].startswith("Morning of") and paras[-1].endswith(LIMITS_SENTENCE)
+
+
+def _zero_p1_facts():
+    y = T0 - pd.Timedelta(days=1)
+    res = run_day(T0, one_fire(y, 0.0, 109.0, n=1), flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 100_000))
+    assert res.counts.get("p1", 0) == 0
+    return build_facts(res, None)
+
+
+def test_zero_priority_1_omits_the_ranked_list_facts():
+    f = _zero_p1_facts()
+    assert f["p1_count"] == 0
+    for k in ("top10_share_pct", "top_list_size", "new_in_top10", "fires_that_left_top10_count"):
+        assert k not in f
+    assert "top10_share_pct" in _real_facts()
+
+
+def test_zero_priority_1_template_says_there_is_no_ranked_list():
+    t = template_bulletin(_zero_p1_facts())
+    assert "put no fires in Priority 1 in West Kalimantan, so there is no ranked list today." in t
+    assert "ten fires" not in t and "0%" not in t and "\u2014" not in t
+    assert offending(t, _zero_p1_facts()) == []
+
+
+def test_template_with_priority_1_is_unchanged():
+    assert template_bulletin(_real_facts()).split("\n\n")[0].startswith(
+        "Morning of 22 October 2026. Fires detected on 21 October 2026 put 3 fires in Priority 1 in West Kalimantan.")

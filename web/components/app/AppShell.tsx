@@ -220,7 +220,7 @@ export default function AppShell() {
   function panelContent(d: Day): ReactNode {
     switch (active) {
       case "city": return <CityView day={d} place={place} onPlace={setPlace} onFire={onCityFire} />;
-      case "bulletin": return <BulletinPanel day={d} />;
+      case "bulletin": return <BulletinPanel day={d} live={liveSelected} />;
       case "limits": return <LimitsPanel day={d} limits={limits} error={limitsError} />;
       case "ask": return <ChatPanel date={d.date} />;
       default: return fire
