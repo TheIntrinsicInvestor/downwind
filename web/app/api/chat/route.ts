@@ -2,6 +2,7 @@
 // (scripts/dev-chat.ps1). The public site has no key, so GET says disabled and POST returns 503.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { connection } from "next/server";
 import { offending } from "@/lib/numbers";
 import { type Day, roundPct } from "@/lib/replay";
@@ -38,12 +39,13 @@ function facts(day: Day) {
   };
 }
 
-async function callLLM(apiKey: string, messages: { role: string; content: string }[]): Promise<string | null> {
-  for (let i = 0; i < 4; i++) {
+async function callLLM(apiKey: string, messages: { role: string; content: string }[], signal: AbortSignal): Promise<string | null> {
+  for (let i = 0; i < 4 && !signal.aborted; i++) {
     const model = CHAT_MODELS[i % CHAT_MODELS.length];
     try {
       const res = await fetch(BASE_URL, {
         method: "POST",
+        signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model, messages, max_tokens: 4000, temperature: 0.3 }),
       });
@@ -55,7 +57,7 @@ async function callLLM(apiKey: string, messages: { role: string; content: string
     } catch {
       // network failure: try the next model
     }
-    if (i < 3) await new Promise((r) => setTimeout(r, 3000));
+    if (i < 3) await delay(3000, undefined, { signal }).catch(() => undefined);
   }
   return null;
 }
@@ -63,11 +65,15 @@ async function callLLM(apiKey: string, messages: { role: string; content: string
 export async function POST(req: Request) {
   const apiKey = key();
   if (!apiKey) return Response.json({ enabled: false }, { status: 503 });
-  let body: { date?: string; question?: string };
+  let body: unknown;
   try { body = await req.json(); } catch { return Response.json({ error: "Bad request" }, { status: 400 }); }
-  const date = body.date ?? "";
-  const question = (body.question ?? "").slice(0, 500);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !question.trim()) return Response.json({ error: "Bad request" }, { status: 400 });
+  if (!body || typeof body !== "object" || !("date" in body) || !("question" in body) ||
+      typeof body.date !== "string" || typeof body.question !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !body.question.slice(0, 500).trim()) {
+    return Response.json({ error: "Bad request" }, { status: 400 });
+  }
+  const date = body.date;
+  const question = body.question.slice(0, 500);
   let day: Day;
   try {
     day = JSON.parse(await readFile(path.join(process.cwd(), "public", "replay", `${date}.json`), "utf-8"));
@@ -77,8 +83,9 @@ export async function POST(req: Request) {
   const f = facts(day);
   const messages = [{ role: "system", content: SYSTEM },
     { role: "user", content: `Facts:\n${JSON.stringify(f)}\n\nQuestion: ${question}` }];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const text = await callLLM(apiKey, messages);
+  const signal = AbortSignal.any([req.signal, AbortSignal.timeout(20_000)]);
+  for (let attempt = 0; attempt < 2 && !signal.aborted; attempt++) {
+    const text = await callLLM(apiKey, messages, signal);
     if (text && offending(text, f).length === 0 && !/[—–]/.test(text)) return Response.json({ answer: text });
   }
   return Response.json({ answer: FALLBACK });
