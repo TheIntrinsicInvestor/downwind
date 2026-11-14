@@ -50,6 +50,7 @@ def load_fires(year: int) -> pd.DataFrame:
 def load_fires_csv(path: Path, *, include_daynight: bool = False) -> pd.DataFrame:
     """Read a downloaded FIRMS CSV into the ranking pipeline's detection format."""
     raw = _read_fire_csv(path)
+    raw["confidence"] = raw.confidence.replace({"low": "l", "nominal": "n", "high": "h"})
     if include_daynight and ("daynight" not in raw or not raw.daynight.isin(["D", "N"]).all()):
         raise ValueError(f"{path}: persistence weighting requires D/N daynight values")
     return _fire_detections(raw, include_daynight=include_daynight)

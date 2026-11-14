@@ -94,6 +94,16 @@ For the Python-to-browser export check, run `DOWNWIND_TEST_PYTHON=/path/to/pipel
 
 ### Replay file format
 
+For a fresh morning snapshot using the public NOAA-21 FIRMS download and ECMWF, run this from `pipeline/`:
+
+```bash
+python -m dw.live --out /tmp/downwind-morning
+```
+
+The command rebuilds missing grids from WorldPop's 2020 Indonesia raster adjusted to UN totals, geoBoundaries, and Global Forest Watch peat tiles. It uses the previous UTC date's detections and the previous day's 12:00 UTC model run. The regional feed provides a freshness check for the requested date, including when the Downwind area has zero detections.
+
+The Live view on `/app` checks the feed manifest every minute. It displays a new snapshot once the matching ranking, particles, and limits have loaded. If the refresh fails, the open app keeps the last successful snapshot and shows its timestamp. September replay dates are available in the same picker. For local testing, `NEXT_PUBLIC_DOWNWIND_FEED_URL` can point the web build at a compatible feed.
+
 `web/public/replay/` holds `index.json` (the available days), `limits.json` (the accuracy and limits panel), and per day `YYYY-MM-DD.json` (counts, fires with tier, rank, share and card fields, places with their contributing fires, ranking stability, changes since the day before, the bulletin, and byte offsets for 48 hourly frames) plus `YYYY-MM-DD.particles.bin.gz` (particle positions, source fire and opacity per hour). The TypeScript types in `web/lib/replay.ts` are the contract; `pipeline/dw/export.py` writes it.
 
 ## Data sources and licences

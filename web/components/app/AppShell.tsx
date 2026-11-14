@@ -8,6 +8,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { type Day, type Mode, localLabel, longDate } from "@/lib/replay";
+import { wib, type Manifest } from "@/lib/live";
 import { OPENING_CAMERA } from "@/lib/mapstyle";
 import Wordmark from "../Wordmark";
 import TimeSlider from "../TimeSlider";
@@ -54,19 +55,25 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
 
 const shortDay = (iso: string) => { const [d, m] = longDate(iso).split(" "); return `${d} ${m.slice(0, 3)}`; };
 
-const DaySwitch = memo(function DaySwitch({ days, date, onDay }: { days: string[]; date: string | null; onDay: (d: string) => void }) {
+const DaySwitch = memo(function DaySwitch({ days, date, onDay, live, onLive }: {
+  days: string[]; date: string | null; onDay: (d: string) => void; live: boolean; onLive: () => void;
+}) {
   return (
-    <div role="radiogroup" aria-label="Day" className="panel pointer-events-auto flex gap-0.5 p-0.5">
+    <div role="radiogroup" aria-label="Map data" className="panel pointer-events-auto flex gap-0.5 p-0.5">
+      <button type="button" role="radio" aria-checked={live} onClick={onLive}
+        className={`focus-ring-inset min-h-9 px-2.5 text-xs font-medium max-md:min-h-11 ${live ? "bg-white/10 text-ink" : "text-ink-3 hover:text-ink"}`}>
+        Live
+      </button>
       {days.map((d) => (
         <button
           key={d}
           type="button"
           role="radio"
-          aria-checked={d === date}
+          aria-checked={!live && d === date}
           aria-label={longDate(d)}
-          onClick={() => { if (d !== date) onDay(d); }}
+          onClick={() => { if (live || d !== date) onDay(d); }}
           className={`focus-ring-inset figure min-h-9 whitespace-nowrap px-3 text-[12px] transition-colors max-md:min-h-11 max-md:px-2.5 ${
-            d === date ? "bg-white/10 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]" : "text-ink-3 hover:bg-white/5 hover:text-ink"}`}
+            !live && d === date ? "bg-white/10 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]" : "text-ink-3 hover:bg-white/5 hover:text-ink"}`}
         >
           {shortDay(d)}
         </button>
@@ -74,6 +81,16 @@ const DaySwitch = memo(function DaySwitch({ days, date, onDay }: { days: string[
     </div>
   );
 });
+
+function FeedStatus({ manifest, unavailable, stale }: { manifest: Manifest | null; unavailable: boolean; stale: boolean }) {
+  const status = manifest ? (unavailable || stale ? "Last good update" : "Updated")
+    : (unavailable ? "Live feed unavailable. Showing replay." : "Checking for live data…");
+  return (
+    <p role="status" className="panel px-3 py-1.5 text-xs text-ink-2">
+      {status}{manifest && ` ${wib(manifest.generated_at)} · Observed before ${wib(manifest.observation_cutoff)}`}
+    </p>
+  );
+}
 
 type TabItem = { id: string; label: string };
 function Tabs({ items, active, onPick, className = "" }: { items: TabItem[]; active: string; onPick: (id: string) => void; className?: string }) {
@@ -140,7 +157,8 @@ function Status({ error, retry }: { error: string | null; retry: () => void }) {
 
 export default function AppShell() {
   const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode,
-    place, setPlace, panel, setPanel, limits, limitsError, chatEnabled, setStoryFocus, flyTo, mapReady } = useReplay();
+    place, setPlace, panel, setPanel, limits, limitsError, chatEnabled, setStoryFocus, flyTo, mapReady,
+    liveSelected, showLive, feedManifest, feedUnavailable, feedStale } = useReplay();
   const wide = useWide();
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -222,6 +240,7 @@ export default function AppShell() {
     />
   );
   const days = index?.days ?? [];
+  const feedStatus = liveSelected && <FeedStatus manifest={feedManifest} unavailable={feedUnavailable} stale={feedStale} />;
   const activeLabel = tabs.find((t) => t.id === active)?.label ?? "Fire";
 
   if (!wide) {
@@ -232,16 +251,17 @@ export default function AppShell() {
         <header className="dw-enter absolute inset-x-3 top-3 space-y-2 [--dw-from:0_-8px]">
           <div className="flex items-center justify-between gap-3">
             <div className="pointer-events-auto"><Wordmark size="sm" /></div>
-            {days.length > 0 && <DaySwitch days={days} date={date} onDay={onDay} />}
+            <DaySwitch days={days} date={date} onDay={onDay} live={liveSelected} onLive={showLive} />
           </div>
           <ModeSwitch mode={mode} onMode={setMode} className="pointer-events-auto w-full" />
+          {feedStatus}
         </header>
         {day ? (
           <Sheet
             className="dw-enter [--dw-from:0_24px] [animation-delay:80ms]"
             state={sheet}
             onState={setSheet}
-            top={PHONE_TOP}
+            top={PHONE_TOP + (liveSelected ? 48 : 0)}
             header={
               <>
                 <div className="px-4 pb-1">{slider}</div>
@@ -274,9 +294,10 @@ export default function AppShell() {
       <h1 className="sr-only">Downwind live map</h1>
       <header className="dw-enter absolute inset-x-4 top-4 flex items-center gap-4 [--dw-from:0_-8px]">
         <div className="pointer-events-auto mr-2"><Wordmark /></div>
-        {days.length > 0 && <DaySwitch days={days} date={date} onDay={onDay} />}
+        <DaySwitch days={days} date={date} onDay={onDay} live={liveSelected} onLive={showLive} />
         <ModeSwitch mode={mode} onMode={setMode} className="pointer-events-auto" />
-        {day && (
+        {feedStatus}
+        {day && !liveSelected && (
           <p className="dateline ml-auto hidden xl:block">
             Situation bulletin <span className="px-1.5 text-ink-3/60">/</span> {longDate(day.date)} <span className="px-1.5 text-ink-3/60">/</span> West Kalimantan
           </p>
