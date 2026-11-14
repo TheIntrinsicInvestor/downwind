@@ -198,13 +198,11 @@ def build_live(day: pd.Timestamp, out: Path, archive: Path | None = None) -> Non
         if weighting:
             try:
                 fetch_persistence_weather(day, weather_path)
-                build_snapshots(day, 1, fires_path, out, persistence_weather=weather_path, model_learn=weighting)
-                print("persistence weighting on", flush=True)
             except Exception as error:
                 print(f"persistence weighting off, building unweighted: {type(error).__name__}: {error}", flush=True)
                 weighting = None
-        if not weighting:
-            build_snapshots(day, 1, fires_path, out, persistence_weather=None)
+        build_snapshots(day, 1, fires_path, out,
+                        persistence_weather=weather_path if weighting else None, model_learn=weighting)
     finally:
         fires_path.unlink(missing_ok=True)
         weather_path.unlink(missing_ok=True)
