@@ -260,8 +260,24 @@ export function learnLine(learn: NonNullable<Limits["learn"]>): string {
 
 // ---- city view
 
-export function placeOptions(day: Day): string[] {
-  return day.places.map((p) => p.name).sort((a, b) => a.localeCompare(b));
+const PLACE_MIN_LEVEL = 1;    // chart scale: places whose peak hourly level is below this are trace amounts
+const PLACE_CAP_NO_HOURLY = 40;
+
+// The dropdown lists affected places only, highest peak smoke level first. With a fire selected: the places that
+// fire sends smoke to. Otherwise: places whose peak level reaches PLACE_MIN_LEVEL. The chosen place always stays.
+// Files without `hourly` (older snapshots) keep their order, which is most affected first, capped.
+export function placeOptions(day: Day, fire: number | null, chosen: string | null): string[] {
+  const peak = (p: Place) => (p.hourly && p.hourly.length ? Math.max(...p.hourly) : null);
+  let list = day.places;
+  if (fire !== null) {   // a place keeps only its top 15 fires, so also match the fire's own top places
+    const own = new Set((day.fires[fire]?.top_places ?? []).map((t) => t.name));
+    list = list.filter((p) => own.has(p.name) || p.contributions.some((c) => c.fire === fire));
+  }
+  else if (list.some((p) => p.hourly)) list = list.filter((p) => (peak(p) ?? 0) >= PLACE_MIN_LEVEL);
+  else list = list.slice(0, PLACE_CAP_NO_HOURLY);
+  const names = [...list].sort((a, b) => (peak(b) ?? 0) - (peak(a) ?? 0)).map((p) => p.name);   // stable: ties keep file order
+  if (chosen && !names.includes(chosen)) names.push(chosen);
+  return names;
 }
 
 export function contributionsFor(day: Day, name: string): Place["contributions"] {
