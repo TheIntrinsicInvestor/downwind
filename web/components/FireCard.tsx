@@ -71,6 +71,13 @@ function FireCard({ fire, nRanked, onClose }: Props) {
             <dd className={DD}>{ageLabel(fire.age_days)}</dd>
           </>
         )}
+        {fire.reach_km !== null && (
+          <>
+            <dt className={DT}>Nearest mapped road, river or canal
+              <span className="mt-0.5 block text-xs">OpenStreetMap; plantation and logging tracks are often unmapped.</span></dt>
+            <dd className={DD}>{fire.reach_km.toFixed(1)} km</dd>
+          </>
+        )}
         <dt className={DT}>Detections</dt><dd className={DD}>{fire.n_detect}</dd>
       </dl>
 
