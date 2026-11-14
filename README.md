@@ -183,3 +183,33 @@ See the [infrastructure checklist](docs/infrastructure-todo.md) for remaining op
 ## Licence
 
 MIT. See `LICENSE`.
+
+## Optional site context overlay
+
+The app's **Sites** tab can overlay industrial areas and explicitly tagged
+plantations from OpenStreetMap. Enable the layer, select a fire, and reopen
+Sites to see the five nearest mapped areas, approximate distances to their
+boundaries, and the first hour that the selected fire's sampled smoke passes
+within 2 km. Click an area's name to zoom to it or open its source OSM feature.
+
+The 2 km margin is a display convention, not a fire spread or health threshold.
+This uses the existing capped animation particles; a missing match is not an
+all-clear. The overlay does not predict ground-fire spread, imply ignition
+cause/ownership, or alter the model, simulation, weights, or ranking. The mapped
+areas have incomplete coverage and are not a verified list of key facilities
+or plantation concessions. Current mapping also appears over historical replay.
+
+Refresh the committed GeoJSON separately from morning builds:
+
+```bash
+cd pipeline
+python -m dw.sites --pbf ../data/kalimantan-latest.osm.pbf --out ../web/public/context/sites.geojson
+```
+
+If the PBF is missing it is downloaded from Geofabrik. The exporter selects
+industrial polygons and explicitly tagged plantation crops in the Western
+Borneo bounding box (108–115° E, 3.5° S–3° N), including neighbouring areas.
+It preserves the source timestamp and links to OSM features. The included data
+is from the 13 November 2026 OSM snapshot: 423 industrial polygons and 1,261
+plantation polygons. These are mapped areas, not counts of distinct businesses.
+© OpenStreetMap contributors; Geofabrik extract; ODbL-1.0.
