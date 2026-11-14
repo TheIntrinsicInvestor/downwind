@@ -70,6 +70,14 @@ python -m dw.build --day 2026-09-20 --days 3     # write the replay files (about
 
 `pandas` is pinned to 2.2.3: pandas 3 orders tied days differently and changes a published baseline. The pipeline reads raw data (fire archives, the WorldPop raster, peat tiles, the 2023 weather grid) from folders beside this repository in the original project, and the language-model key from a local secrets file, so a fresh clone needs those inputs before `dw.build` runs. The tests do not need them.
 
+To build one morning snapshot from a downloaded NASA FIRMS Area API CSV, such as `VIIRS_NOAA21_NRT`:
+
+```bash
+python -m dw.build --day 2026-11-14 --fires-csv /tmp/downwind-fires.csv --out /tmp/downwind-snapshot
+```
+
+The example brief uses detections from 13 November UTC. Include earlier UTC dates in the CSV for the consecutive-day tier rule and up to 14 days for the fire-age display. The build loads the morning forecast and the prepared `grids.npz`, `adm2_names.json`, and `peat_z7.npz` at the existing pipeline paths. CSV builds use a template bulletin and skip the archived persistence weights and hindsight comparison. The output defaults to `data/snapshots/` inside the Downwind checkout.
+
 ### Replay file format
 
 `web/public/replay/` holds `index.json` (the available days), `limits.json` (the accuracy and limits panel), and per day `YYYY-MM-DD.json` (counts, fires with tier, rank, share and card fields, places with their contributing fires, ranking stability, changes since the day before, the bulletin, and byte offsets for 48 hourly frames) plus `YYYY-MM-DD.particles.bin.gz` (particle positions, source fire and opacity per hour). The TypeScript types in `web/lib/replay.ts` are the contract; `pipeline/dw/export.py` writes it.
