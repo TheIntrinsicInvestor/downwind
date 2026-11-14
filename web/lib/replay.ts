@@ -10,7 +10,8 @@ export type Day = {
   top10_share: number;
   fires: Fire[];                                            // every simulated or detected square in the box
   places: Place[];                                          // Indonesian regencies receiving smoke
-  stability: { seed_overlap: number; wind_level_overlap: number; cell: number; k: number; hindsight_overlap?: number };
+  stability: { seed_overlap: number; wind_level_overlap: number; cell: number; k: number; hindsight_overlap?: number } | null;
+  persistence_weighted?: boolean;
   changes: { new_in_top10: number[]; left_top10: number } | null;   // indices into fires; null on the first day
   bulletin: { text: string; source: "llm" | "template"; model: string | null };
   frames: { offset: number; count: number }[];              // 48 entries, byte offsets into the .bin
@@ -190,7 +191,7 @@ export function orderForMode(fires: Fire[], mode: Mode): number[] {
   return [...ranked, ...rest];
 }
 
-export function stabilityLine(s: Day["stability"]): string {
+export function stabilityLine(s: NonNullable<Day["stability"]>): string {
   const base = `${s.seed_overlap} of 10 of the top ten are the same on a rerun; ${s.wind_level_overlap} of 10 if surface winds are used instead.`;
   return s.hindsight_overlap === undefined ? base
     : `${base} The ranking uses the forecast available that morning; with the weather that actually followed, ${s.hindsight_overlap} of 10 stay.`;

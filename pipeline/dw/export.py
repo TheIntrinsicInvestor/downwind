@@ -117,7 +117,8 @@ def _frames(res: DayResult):
     return b"".join(chunks), meta
 
 
-def export_day(res: DayResult, prev: DayResult | None, stab: dict, bulletin: dict, out: Path) -> None:
+def export_day(res: DayResult, prev: DayResult | None, stab: dict | None, bulletin: dict, out: Path,
+               *, persistence_weighted: bool | None = None) -> None:
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     date = res.date.strftime("%Y-%m-%d")
     sq = res.squares
@@ -143,6 +144,8 @@ def export_day(res: DayResult, prev: DayResult | None, stab: dict, bulletin: dic
         "bulletin": bulletin,
         "frames": frames,
     }
+    if persistence_weighted is not None:
+        day["persistence_weighted"] = persistence_weighted
     _write_json(day, out / f"{date}.json")
     (out / f"{date}.particles.bin.gz").write_bytes(gzip.compress(binary, compresslevel=9, mtime=0))
 

@@ -47,36 +47,50 @@ Downwind is a ranking index, not a forecast of smoke concentration. It does not 
 
 ### Web app
 
-```
+The web app uses Node.js 24 for local development and CI.
+
+```bash
 cd web
-npm install
-npx vitest run
+npm ci
+npm test
 npm run dev
 ```
 
-The app reads only the replay files in `web/public/replay/`. No server computation and no keys are needed.
-
-To run the chat locally on Windows, `web/scripts/dev-chat.ps1` reads `NEBIUS_API_KEY` from a secrets file outside the repository into the dev server's memory and starts it on port 3125.
+The app reads the replay files in `web/public/replay/`. Set `NEBIUS_API_KEY` in the dev server's environment or `web/.env.local` to enable local chat. On Windows, `web/scripts/dev-chat.ps1` also accepts a secrets file via `DOWNWIND_SECRETS_FILE`.
 
 ### Pipeline (Python 3.11)
 
-```
+From the repository root:
+
+```bash
 cd pipeline
-pip install -r requirements.txt
-python -m pytest
-python -m dw.build --learn                       # train the persistence model, score 2026 once
-python -m dw.build --day 2026-09-20 --days 3     # write the replay files (about 5 minutes)
+python -m pip install -r requirements.txt
+python -m pytest -m "not research"
 ```
 
-`pandas` is pinned to 2.2.3: pandas 3 orders tied days differently and changes a published baseline. The pipeline reads raw data (fire archives, the WorldPop raster, peat tiles, the 2023 weather grid) from folders beside this repository in the original project, and the language-model key from a local secrets file, so a fresh clone needs those inputs before `dw.build` runs. The tests do not need them.
-
-To build one morning snapshot from a downloaded NASA FIRMS Area API CSV, such as `VIIRS_NOAA21_NRT`:
+For a morning snapshot, ask the team for the prepared `grids.npz`, `adm2_names.json`, and `peat_z7.npz`. Put them in `data/` at the repo root or set `DOWNWIND_DATA_DIR` to their directory. Download a NASA FIRMS Area API CSV, such as `VIIRS_NOAA21_NRT`, then run:
 
 ```bash
 python -m dw.build --day 2026-11-14 --fires-csv /tmp/downwind-fires.csv --out /tmp/downwind-snapshot
 ```
 
-The example brief uses detections from 13 November UTC. Include earlier UTC dates in the CSV for the consecutive-day tier rule and up to 14 days for the fire-age display. The build loads the morning forecast and the prepared `grids.npz`, `adm2_names.json`, and `peat_z7.npz` at the existing pipeline paths. CSV builds use a template bulletin and skip the archived persistence weights and hindsight comparison. The output defaults to `data/snapshots/` inside the Downwind checkout.
+The example uses detections from 13 November UTC and fetches the 12:00 UTC ECMWF forecast from that day. Include earlier detections for the consecutive-day tier rule and up to 14 UTC dates for the fire-age display. The forecast cache defaults to the data directory and can be set with `DOWNWIND_FORECAST_CACHE_DIR`. Omitting `--out` writes to `snapshots/` inside the data directory. The bulletin uses a local template when the Nebius key is absent. Set `NEBIUS_API_KEY` in the environment or set `DOWNWIND_SECRETS_FILE` to an external file containing `NEBIUS_API_KEY=…`.
+
+To enable persistence weighting for a CSV build, put the team's `persist_model.pkl` and `learn.json` in the data directory and pass `--persistence-weather /path/to/weather.npz`. Use the scikit-learn version that produced the saved model. The CSV needs its `daynight` column and up to seven UTC dates of detections for the model's history features. Supply all 24 hours of the previous UTC day in the weather file. It needs `lats`, `lons`, hourly UTC `times`, `precipitation` in mm/h, and `relative_humidity_2m` in percent. Use a regular grid with weather arrays shaped latitude × longitude × time. Each snapshot reports whether it applied persistence weighting.
+
+### Reproduce the research replay
+
+The research commands also use the original archive CSVs, weather grids, and airport observations. Set `DOWNWIND_REPLAY_DATA_DIR` and `DOWNWIND_CHECK_DATA_DIR` to the team's data directories. Their defaults are `../validation-2023-replay/data` and `../data-check/data` relative to the checkout. See the archive filenames in `pipeline/dw/fetch.py` and the weather and METAR paths in `pipeline/dw/evaluate.py`. The fetch command retrieves boundaries, the 2025 Malaysia CSV, and the listed historical weather grids. The remaining inputs come from the team's research files. The `pandas` pin preserves the published handling of tied visibility days.
+
+From `pipeline/`:
+
+```bash
+python -m pytest
+python -m dw.build --learn
+python -m dw.build --day 2026-09-20 --days 3
+```
+
+For the Python-to-browser export check, run `DOWNWIND_TEST_PYTHON=/path/to/pipeline-venv/bin/python npm test` from `web/`. CI runs this check with generated data.
 
 ### Replay file format
 
@@ -86,7 +100,7 @@ The example brief uses detections from 13 November UTC. Include earlier UTC date
 
 | Data | Source | Licence or terms |
 |---|---|---|
-| Fire detections (VIIRS S-NPP, archive and near real time) | NASA FIRMS | NASA open data; acknowledge LANCE FIRMS |
+| Fire detections (VIIRS S-NPP archives and NOAA-21 near real time) | NASA FIRMS | NASA open data; acknowledge LANCE FIRMS |
 | Winds, rain, humidity | Open-Meteo historical forecast API | CC BY 4.0 |
 | Airport visibility (2023 validation) | Iowa State University Mesonet, METAR archive | free use with acknowledgement |
 | Peat extent | Global Forest Watch peatlands map (zoom 7 tiles) | per the dataset's page on Global Forest Watch |

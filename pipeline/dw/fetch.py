@@ -41,15 +41,18 @@ def load_fires(year: int) -> pd.DataFrame:
     frames = []
     for p in _fire_files(year):
         if not p.exists():
-            raise FileNotFoundError(f"{p} missing; run python -m dw.fetch first")
+            raise FileNotFoundError(f"{p} missing; see the pipeline setup in README.md for archive inputs")
         frames.append(_read_fire_csv(p))
     f = pd.concat(frames, ignore_index=True)
     return _fire_detections(f)
 
 
-def load_fires_csv(path: Path) -> pd.DataFrame:
+def load_fires_csv(path: Path, *, include_daynight: bool = False) -> pd.DataFrame:
     """Read a downloaded FIRMS CSV into the ranking pipeline's detection format."""
-    return _fire_detections(_read_fire_csv(path))
+    raw = _read_fire_csv(path)
+    if include_daynight and ("daynight" not in raw or not raw.daynight.isin(["D", "N"]).all()):
+        raise ValueError(f"{path}: persistence weighting requires D/N daynight values")
+    return _fire_detections(raw, include_daynight=include_daynight)
 
 
 def _read_fire_csv(path: Path) -> pd.DataFrame:
@@ -63,7 +66,7 @@ def _read_fire_csv(path: Path) -> pd.DataFrame:
     return fires
 
 
-def _fire_detections(f: pd.DataFrame) -> pd.DataFrame:
+def _fire_detections(f: pd.DataFrame, *, include_daynight: bool = False, sort: bool = True) -> pd.DataFrame:
     lon0, lat0, lon1, lat1 = config.BOX
     f = f[f.latitude.between(lat0, lat1) & f.longitude.between(lon0, lon1)]
     out = pd.DataFrame({
@@ -73,7 +76,11 @@ def _fire_detections(f: pd.DataFrame) -> pd.DataFrame:
         "frp": f.frp.to_numpy(float),
         "conf": f.confidence.astype(str).to_numpy(),
     })
-    return out.sort_values(["date", "lat", "lon"], kind="stable").reset_index(drop=True)
+    if include_daynight:
+        out["daynight"] = f.daynight.astype(str).to_numpy()
+    if sort:
+        out = out.sort_values(["date", "lat", "lon"], kind="stable")
+    return out.reset_index(drop=True)
 
 
 @dataclass
@@ -156,7 +163,8 @@ def fetch_forecast(day, step: int = 1) -> Path:
     """Winds and rain from the forecast_run(day) ECMWF IFS 0.25 degree run, on fetch_met's 1 degree grid, or every
     `step`-th point of it (the free API counts each point as a call; forecast_check uses step 2)."""
     run = forecast_run(day)
-    out_path = config.DATA / (f"forecast_{run:%Y%m%dT%H}.npz" if step == 1 else f"forecast_{run:%Y%m%dT%H}_{step}deg.npz")
+    out_path = config.forecast_cache() / (f"forecast_{run:%Y%m%dT%H}.npz" if step == 1
+                                         else f"forecast_{run:%Y%m%dT%H}_{step}deg.npz")
     if out_path.exists():
         return out_path
     lon0, lat0, lon1, lat1 = config.BOX
@@ -190,6 +198,14 @@ def load_forecast(day) -> Met:
     """Load the 48-hour simulation window directly from the morning's forecast."""
     with np.load(fetch_forecast(day)) as raw:
         return _forecast_window(day, raw)
+
+
+def load_persistence_weather(path: Path) -> Met:
+    """Read precipitation and relative humidity on a regular hourly weather grid."""
+    with np.load(path) as raw:
+        times = pd.to_datetime(raw["times"], utc=True).tz_localize(None)
+        return Met(raw["lats"], raw["lons"], times, {}, {},
+                   raw["precipitation"], raw["relative_humidity_2m"])
 
 
 def _forecast_window(day, raw) -> Met:

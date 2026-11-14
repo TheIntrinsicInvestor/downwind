@@ -1,12 +1,19 @@
+from unittest.mock import Mock
+
 import numpy as np
 import pandas as pd
 import pytest
 
 import dw.learn as learn
-from dw.learn import FEATURES, cv_aucs, decide, persistence_table
+from dw.learn import FEATURES, cv_aucs, decide, persistence_table, persist_from_inputs
 from tests.conftest import flat_met
 
 T = pd.Timestamp("2026-09-20")
+
+@pytest.fixture(autouse=True)
+def mock_peat(request, monkeypatch):
+    if request.node.get_closest_marker("research") is None:
+        monkeypatch.setattr(learn, "peat_at", lambda lat, lon: np.ones(len(lat), dtype=bool))
 
 
 def two_day_fires(extra_on_T=False):
@@ -55,11 +62,13 @@ def test_decide_rule():
 
 
 @pytest.mark.slow
+@pytest.mark.research
 def test_reproduces_research_cv():           # slow: same three folds as results_v3.md
     aucs = cv_aucs()                          # leave one season out over 2019, 2023, 2025
     assert aucs == pytest.approx([0.835, 0.832, 0.720], abs=0.01)
 
 
+@pytest.mark.research
 def test_2026_never_in_training(monkeypatch):
     seen = []
     real_fit = learn.fit
@@ -67,3 +76,22 @@ def test_2026_never_in_training(monkeypatch):
     monkeypatch.setattr(learn, "SEASONS", (2023, 2025))             # keep the test quick
     learn.train_final()
     assert seen and all(2026 not in s for s in seen)
+
+
+def test_snapshot_inference_uses_supplied_inputs_outside_training_season():
+    day = pd.Timestamp("2026-11-14")
+    fires = two_day_fires(extra_on_T=True)
+    fires["date"] += day - T
+    met = flat_met(0, 0, 2, hours=48, t0=day - pd.Timedelta(hours=30))
+    model = Mock()
+    model.predict_proba.return_value = np.array([[0.75, 0.25], [0.25, 0.75]])
+
+    scores = persist_from_inputs(model, day, fires, met)
+
+    features = model.predict_proba.call_args.args[0]
+    assert list(features.columns) == FEATURES
+    assert list(features["n"]) == [1, 1]
+    assert list(features["rain_t1"]) == [48, 48]
+    assert list(features["rh_t1"]) == [80, 80]
+    assert list(features["month"]) == [11, 11]
+    assert list(scores) == [0.25, 0.75]

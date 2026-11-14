@@ -145,16 +145,19 @@ def build_grids() -> None:
 
 @lru_cache(maxsize=1)
 def load_grids() -> Grids:
-    z = np.load(config.DATA / "grids.npz")
     names = json.loads((config.DATA / "adm2_names.json").read_text(encoding="utf-8"))
-    return Grids(pop=Grid(z["pop"]), pop40=Grid(z["pop40"]), adm2=Grid(z["adm2"]),
-                 province=Grid(z["province"]), adm2_names=names)
+    with np.load(config.DATA / "grids.npz") as z:
+        return Grids(pop=Grid(z["pop"]), pop40=Grid(z["pop40"]), adm2=Grid(z["adm2"]),
+                     province=Grid(z["province"]), adm2_names=names)
 
 
 @lru_cache(maxsize=1)
 def _peat():
-    z = np.load(config.REPLAY_DATA / "peat_z7.npz")
-    return z["alpha"], 2 ** int(z["z"]), int(z["x0"]), int(z["y0"])
+    path = config.DATA / "peat_z7.npz"
+    if not path.exists():
+        path = config.REPLAY_DATA / path.name
+    with np.load(path) as z:
+        return z["alpha"], 2 ** int(z["z"]), int(z["x0"]), int(z["y0"])
 
 
 def peat_at(lat, lon) -> np.ndarray:
