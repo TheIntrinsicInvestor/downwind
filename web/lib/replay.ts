@@ -172,6 +172,19 @@ export function bulletinParts(day: Day) {
   };
 }
 
+// The two bulletin sentences that depend on context. With no Priority 1 fires there is no ranked list, so a
+// "0%" top-ten share would read as a result. Live snapshots never compare with the previous morning.
+export function shareLine(p1: number, share: number) {
+  return p1 === 0
+    ? { before: "No Priority 1 fires, so there is no ranked list today.", strong: "", after: "" }
+    : { before: "The top ten fires carry ", strong: pct(share), after: " of the modelled smoke over residents." };
+}
+
+export function noChangesLine(live: boolean): string {
+  return live ? "The live view does not compare with the previous morning yet."
+    : "First day of the replay, so there is no earlier list to compare.";
+}
+
 // ---- official-rule overlay
 
 export type Mode = "official" | "downwind";

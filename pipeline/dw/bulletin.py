@@ -33,7 +33,8 @@ SYSTEM_PROMPT = ("You write a morning briefing for a provincial fire task force 
                  "Satellites detected the fires: never say the task force logged, recorded or reported them. "
                  "Write in full sentences, not a list, as three short paragraphs separated by a blank line: first "
                  "the day's situation (the tier counts and the top-ten share), then the leading fires, then what "
-                 "changed since the day before. Call the tiers Priority 1, Priority 2 and Priority 3 (never p1). "
+                 "changed since the day before. If p1_count is 0 there is no ranked list: say so, and do not mention "
+                 "a top ten, leading fires or changes in a list. Call the tiers Priority 1, Priority 2 and Priority 3 (never p1). "
                  "Do not name companies. About 150 words (no need to count exactly), plain English, no headings, "
                  "no em dashes. End the last paragraph with the limits sentence unchanged.")
 LIMITS_SENTENCE = ("This is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not "
@@ -88,7 +89,7 @@ def build_facts(res, prev) -> dict:
         place_of = dict(zip(sq.id, sq.place))
         new = [place_of[i] for i in now if i not in before]
         left = len(before - set(now))
-    return {
+    facts = {
         "date": _long(res.date),
         "fires_date": _long(res.date - pd.Timedelta(days=1)),
         "window_hours": config.WINDOW_H,
@@ -103,6 +104,10 @@ def build_facts(res, prev) -> dict:
         "fires_that_left_top10_count": left,
         "limits": LIMITS_SENTENCE,
     }
+    if facts["p1_count"] == 0:               # nothing to rank: a 0% top-ten share would read as a result
+        for k in ("top_list_size", "top10_share_pct", "new_in_top10", "fires_that_left_top10_count"):
+            del facts[k]
+    return facts
 
 
 def numbers_in(text: str) -> list[str]:
@@ -180,7 +185,12 @@ def template_bulletin(facts: dict) -> str:
     head = f"Morning of {facts.get('date', 'today')}."
     if "fires_date" in facts:
         head += f" Fires detected on {facts['fires_date']}"
-        head += f" put {facts['p1_count']:,} fires in Priority 1 in West Kalimantan." if "p1_count" in facts else "."
+        if facts.get("p1_count") == 0:
+            head += " put no fires in Priority 1 in West Kalimantan, so there is no ranked list today."
+        else:
+            head += f" put {facts['p1_count']:,} fires in Priority 1 in West Kalimantan." if "p1_count" in facts else "."
+    elif facts.get("p1_count") == 0:
+        head += " No fires are in Priority 1 in West Kalimantan, so there is no ranked list today."
     elif "p1_count" in facts:
         head += f" {facts['p1_count']:,} fires are in Priority 1 in West Kalimantan."
     situation = [head]

@@ -4,15 +4,16 @@
 // read straight from the day file (so they always match the fire cards), then the written summary in paragraphs.
 
 import { memo } from "react";
-import { type Day, bulletinParts, longDate, pct } from "@/lib/replay";
+import { type Day, bulletinParts, longDate, noChangesLine, pct, shareLine } from "@/lib/replay";
 import { officialColor } from "@/lib/mapstyle";
 
 const rgb = (t: 1 | 2 | 3) => `rgb(${officialColor(t).join(",")})`;
 
-function BulletinPanel({ day }: { day: Day }) {
+function BulletinPanel({ day, live }: { day: Day; live: boolean }) {
   const b = day.bulletin;
   const { leading, newPlaces, nNew, nLeft, paragraphs } = bulletinParts(day);
   const { p1, p2, p3 } = day.counts;
+  const share = shareLine(p1, day.top10_share);
   return (
     <article className="text-[14px]">
       <h3 className="label">Morning bulletin, {longDate(day.date)}</h3>
@@ -31,7 +32,7 @@ function BulletinPanel({ day }: { day: Day }) {
           ))}
         </ul>
         <p className="mt-3 leading-snug text-ink-2">
-          The top ten fires carry <strong className="font-medium text-ink">{pct(day.top10_share)}</strong> of the modelled smoke over residents.
+          {share.before}{share.strong && <strong className="font-medium text-ink">{share.strong}</strong>}{share.after}
         </p>
       </section>
 
@@ -58,7 +59,7 @@ function BulletinPanel({ day }: { day: Day }) {
         <h4 id="bulletin-changed" className="label">Since the day before</h4>
         <p className="mt-2 leading-snug text-ink-2">
           {day.changes === null
-            ? "First day of the replay, so there is no earlier list to compare."
+            ? noChangesLine(live)
             : nNew === 0
               ? "The top ten is unchanged."
               : <>{nNew} new in the top ten, near {newPlaces.join(", ")}. {nLeft} left it.</>}
