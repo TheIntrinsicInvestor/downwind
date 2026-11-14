@@ -7,6 +7,7 @@ import pandas as pd
 
 from dw.config import FIRE_CELL, K, PEAT_RATIO, RELEASE_H, SEED, WINDOW_H
 from dw.grids import NC, NR, Grids, people_near
+from dw.reach import reach_km
 from dw.sim import run_particles
 from dw.tiers import assign_tiers, build_squares, fire_age
 
@@ -43,6 +44,7 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     sq["tier"] = assign_tiers(sq).astype(int) if len(sq) else pd.Series(dtype=int)
     n = len(sq)
     sq["age_days"] = fire_age(fires, day - pd.Timedelta(days=1), sq.lat, sq.lon, cell) if n else []
+    sq["reach_km"] = reach_km(sq.lat.to_numpy(float), sq.lon.to_numpy(float)) if n else []   # card information only
 
     src_rows = np.where(sq.frp.to_numpy(float) > 0)[0] if n else np.empty(0, int)
     w_src = sq.frp.to_numpy(float)[src_rows] if n else np.empty(0)

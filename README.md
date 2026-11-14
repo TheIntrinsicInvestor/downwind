@@ -123,6 +123,7 @@ Each run also keeps a detection archive at `detections/archive.csv` on the `live
 | Population | WorldPop 1 km Indonesia, 2020 | CC BY 4.0 |
 | Province and regency boundaries | geoBoundaries (gbOpen, IDN ADM1 and ADM2) | CC BY 4.0 |
 | Basemap | OpenFreeMap, OpenMapTiles, OpenStreetMap contributors | OpenStreetMap data ODbL |
+| Roads, rivers and canals (distance on the fire card) | OpenStreetMap, Geofabrik Kalimantan extract of 13 November 2026 | ODbL, © OpenStreetMap contributors |
 
 ## AI tools and models
 
@@ -140,13 +141,12 @@ The handbook allows prior work if it is disclosed. Everything in this repository
 
 On 12 November an accidental `rm -rf .git` deleted this repository's history. The files were intact; the first five tasks were recommitted as one commit (`77e4956`), so the history begins there.
 
-Reachability (distance from each fire to the nearest road or river) was built but not switched on: the public Overpass servers failed on 12 November, including a retry over three mirrors. `pipeline/dw/reach.py` remains in the repository, unused.
+The fire card shows the map distance from a fire to the nearest mapped road, river or canal, as information only: it is not used in the ranking. The distances come from a small grid built offline from the OpenStreetMap extract (`python -m dw.reach build`, which needs pyosmium; the grid is committed as `pipeline/model/reach_any_0.005.npz`). Grid error against exact distances was a median 0.13 km, at most 0.39 km. OpenStreetMap misses many plantation and logging tracks, so a large distance does not mean a fire is hard to reach.
 
 **Built during the event (14 to 15 November):** to be completed at the end of the build.
 
 ## Future work
 
-- Reachability from the Geofabrik Kalimantan OpenStreetMap extract, read locally instead of through Overpass, to grey out fires far from any road or river.
 - A pilot morning with one provincial task force.
 
 ## Licence
