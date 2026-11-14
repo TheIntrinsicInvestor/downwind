@@ -101,11 +101,11 @@ def _uv(speed, direction):
     return -speed * np.sin(rad), -speed * np.cos(rad)
 
 
-def _get_json(url: str):
+def _get_json(url: str, timeout: int = 300):
     for k in range(6):
         try:
             req = urllib.request.Request(url, headers=UA)
-            return json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
+            return json.loads(urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8"))
         except Exception as e:                      # network or HTTP error: back off and retry
             print("retry", k, type(e).__name__, flush=True)
             time.sleep(20 * (k + 1))
@@ -151,6 +151,7 @@ def fetch_met(year: int) -> Path:
 
 SINGLE_RUNS = "https://single-runs-api.open-meteo.com/v1/forecast"
 FORECAST_MODEL = "ecmwf_ifs025"
+FORECAST_TIMEOUT = 60                  # healthy chunks answer in 1 to 4 s; a hung one should fail fast and retry, not wait 300 s
 FORECAST_HOURS = 64                     # 12 UTC on T-1 to 03 UTC on T+2: covers the 48 h window from T 00 UTC
 
 
@@ -181,7 +182,7 @@ def fetch_forecast(day, step: int = 1) -> Path:
                + "&longitude=" + ",".join(f"{b:.1f}" for _, b in chunk)
                + "&hourly=" + ",".join(REQUIRED)
                + f"&models={FORECAST_MODEL}&run={run:%Y-%m-%dT%H:%M}&forecast_hours={FORECAST_HOURS}&wind_speed_unit=ms")
-        raw = _get_json(url)
+        raw = _get_json(url, timeout=FORECAST_TIMEOUT)
         raw = raw if isinstance(raw, list) else [raw]
         times = raw[0]["hourly"]["time"]
         for r in raw:

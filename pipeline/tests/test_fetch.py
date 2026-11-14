@@ -85,3 +85,61 @@ def test_with_forecast_fails_when_window_not_covered():
     raw["wind_speed_925hPa"][0, 0, 20] = np.nan
     with pytest.raises(ValueError):
         with_forecast(met, T0, raw)
+
+
+class _Resp:
+    def __init__(self, body):
+        self._body = body
+
+    def read(self):
+        return self._body
+
+
+def _record_timeouts(monkeypatch, body=b"{}"):
+    import urllib.request
+    seen = []
+
+    def fake_urlopen(req, timeout=None):
+        seen.append(timeout)
+        return _Resp(body)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    return seen
+
+
+def test_get_json_default_timeout_is_300(monkeypatch):
+    from dw import fetch
+    seen = _record_timeouts(monkeypatch)
+    fetch._get_json("http://example.invalid/x")
+    assert seen == [300]
+
+
+def test_fetch_forecast_uses_short_timeout(tmp_path, monkeypatch):
+    from dw import fetch
+    monkeypatch.setenv("DOWNWIND_FORECAST_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(fetch.time, "sleep", lambda s: None)
+    seen = []
+
+    def fake_get_json(url, timeout=300):
+        seen.append(timeout)
+        raise StopIteration                       # stop after the first chunk
+
+    monkeypatch.setattr(fetch, "_get_json", fake_get_json)
+    with pytest.raises(StopIteration):
+        fetch.fetch_forecast("2026-11-14")
+    assert seen == [fetch.FORECAST_TIMEOUT] and fetch.FORECAST_TIMEOUT <= 60
+
+
+def test_fetch_met_keeps_default_timeout(tmp_path, monkeypatch):
+    from dw import fetch
+    monkeypatch.setattr(config, "DATA", tmp_path)
+    seen = []
+
+    def fake_get_json(url, timeout=300):
+        seen.append(timeout)
+        raise StopIteration
+
+    monkeypatch.setattr(fetch, "_get_json", fake_get_json)
+    with pytest.raises(StopIteration):
+        fetch.fetch_met(2023)
+    assert seen == [300]

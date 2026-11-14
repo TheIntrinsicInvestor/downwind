@@ -16,7 +16,7 @@ jobs:
   publish:
     if: github.repository == 'TheIntrinsicInvestor/downwind' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
     env:
