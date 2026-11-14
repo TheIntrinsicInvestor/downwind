@@ -21,6 +21,11 @@ def test_lookup_matches_the_grid_cell():
     assert reach_km([lat, lat], [lon, lon]).shape == (2,)
 
 
+def test_grid_is_road_only():
+    z = np.load(reach.GRID_PATH)
+    assert reach.GRID_PATH.name == "reach_road_0.005.npz" and "road" in z.files and "any" not in z.files
+
+
 def test_known_value_in_a_city():
     near_road = reach_km(-0.0263, 109.3425)                   # Pontianak city centre: a mapped road is within a few hundred metres
     assert 0 <= near_road < 1.0

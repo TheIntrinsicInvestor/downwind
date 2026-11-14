@@ -73,7 +73,7 @@ function FireCard({ fire, nRanked, onClose }: Props) {
         )}
         {fire.reach_km !== null && (
           <>
-            <dt className={DT}>Nearest mapped road, river or canal
+            <dt className={DT}>Nearest mapped road
               <span className="mt-0.5 block text-xs">OpenStreetMap; plantation and logging tracks are often unmapped.</span></dt>
             <dd className={DD}>{fire.reach_km.toFixed(1)} km</dd>
           </>

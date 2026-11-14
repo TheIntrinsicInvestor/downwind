@@ -1,10 +1,11 @@
-"""Map distance from each fire to the nearest mapped road, river or canal (OpenStreetMap, Geofabrik Kalimantan extract).
+"""Map distance from each fire to the nearest mapped road (OpenStreetMap, Geofabrik Kalimantan extract).
 Information only: it is shown on the fire card and never enters exposure, tiers or ranking.
 
-The distances come from a committed grid, model/reach_any_0.005.npz: uint8 in 0.1 km steps (255 means 25.5 km or more),
+The distances come from a committed grid, model/reach_road_0.005.npz: uint8 in 0.1 km steps (255 means 25.5 km or more),
 0.005 degrees per cell, row 0 at the north edge, covering lon W to W+ncols*res and lat n-nrows*res to n.
-Against exact distances the grid's error was a median 0.13 km and a maximum 0.39 km at Priority 1 fires.
-Roads include tracks; waterways are rivers, canals, drains and ditches. OSM misses many plantation and logging tracks.
+Against exact road distances the grid's error was a median 0.15 km and a maximum 0.40 km at Priority 1 fires.
+Roads include tracks. Rivers and canals are left out: they are mainly pump water sources, not access routes.
+OSM misses many plantation and logging tracks.
 
 Runtime needs only numpy. Rebuilding the grid needs pyosmium, which is NOT in requirements.txt; run it by hand when
 the OSM extract is refreshed:
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-GRID_PATH = Path(__file__).resolve().parent.parent / "model" / "reach_any_0.005.npz"
+GRID_PATH = Path(__file__).resolve().parent.parent / "model" / "reach_road_0.005.npz"
 RES = 0.005
 W, S, E, N = 108.0, -3.8, 115.0, 2.6        # West Kalimantan bounding box plus margin
 LAT_REF = -0.5                               # the province straddles the equator
@@ -27,15 +28,14 @@ CLIP = 255                                   # uint8 steps of 0.1 km
 
 ROAD = {"motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link",
         "tertiary", "tertiary_link", "unclassified", "residential", "service", "track", "road", "living_street"}
-WATER = {"river", "canal", "drain", "ditch"}
 
 
 def _ways(pbf_path):
     import osmium
     fp = (osmium.FileProcessor(str(pbf_path), osmium.osm.NODE | osmium.osm.WAY).with_locations()
-          .with_filter(osmium.filter.KeyFilter("highway", "waterway")))
+          .with_filter(osmium.filter.KeyFilter("highway")))
     for w in fp:
-        if not w.is_way() or not (w.tags.get("highway") in ROAD or w.tags.get("waterway") in WATER):
+        if not w.is_way() or not (w.tags.get("highway") in ROAD):
             continue
         try:
             pts = [(nd.lon, nd.lat) for nd in w.nodes]
@@ -46,8 +46,8 @@ def _ways(pbf_path):
 
 
 def build_grid(pbf_path, out_path) -> None:
-    """Offline builder: rasterise every road, track, river, canal, drain and ditch, then take the distance
-    transform. Writes an npz with keys any (uint8), w, n, res."""
+    """Offline builder: rasterise every road and track, then take the distance
+    transform. Writes an npz with keys road (uint8), w, n, res."""
     from scipy.ndimage import distance_transform_edt
     nc, nr = int(round((E - W) / RES)), int(round((N - S) / RES))
     mask = np.ones((nr, nc), bool)
@@ -63,17 +63,17 @@ def build_grid(pbf_path, out_path) -> None:
         ok = (cc >= 0) & (cc < nc) & (rr >= 0) & (rr < nr)
         mask[rr[ok], cc[ok]] = False
     dist = distance_transform_edt(mask, sampling=(RES * KY, RES * KX)) if not mask.all() else np.full((nr, nc), 99.0)
-    np.savez_compressed(out_path, any=np.minimum(np.round(dist * 10), CLIP).astype("uint8"), w=W, n=N, res=RES)
+    np.savez_compressed(out_path, road=np.minimum(np.round(dist * 10), CLIP).astype("uint8"), w=W, n=N, res=RES)
 
 
 @lru_cache(maxsize=1)
 def _load():
     z = np.load(GRID_PATH)
-    return z["any"], float(z["w"]), float(z["n"]), float(z["res"])
+    return z["road"], float(z["w"]), float(z["n"]), float(z["res"])
 
 
 def reach_km(lat, lon) -> np.ndarray:
-    """km to the nearest mapped road, river or canal; NaN outside the grid."""
+    """km to the nearest mapped road (tracks included); NaN outside the grid."""
     grid, w, n, res = _load()
     lat = np.asarray(lat, float)
     lon = np.asarray(lon, float)
