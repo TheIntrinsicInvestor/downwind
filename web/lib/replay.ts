@@ -27,7 +27,8 @@ export type Fire = {
   persist_p: number | null;                                 // null until Task 11
   age_days: number | null;                                  // days running in the area, capped at 14 (display only)
 };
-export type Place = { name: string; contributions: { fire: number; share: number; first_arrival_h: number | null; peak_h?: number | null }[] };  // top 15 per place
+export type Place = { name: string; contributions: { fire: number; share: number; first_arrival_h: number | null; peak_h?: number | null }[];
+  hourly?: number[] };   // top 15 contributions per place; hourly: 48 smoke levels per resident, 100 = worst hour of any place on 18 to 20 Sep 2026 (older files lack it)
 export type Limits = {
   replay2023: { pooled: 0.45; pontianak: 0.81; worst_quartile_hit: 0.48; chance: 0.25; airports: 7; days: 421 };
   learn: { shipped: boolean; test_auc_2026: number; heuristic_auc_2026: number; cv_auc: [number, number, number];

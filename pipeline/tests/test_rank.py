@@ -137,3 +137,26 @@ def test_persist_p_column():
     sq = run_day(T, FIRES, MET, GRIDS, persist=persist).squares.set_index("id")
     assert sq.loc[A_ID, "persist_p"] == 0.5 and np.isnan(sq.loc[sq_id(0.3, 108.9), "persist_p"])
     assert "persist_p" not in run_day(T, FIRES, MET, GRIDS).squares
+
+
+def test_place_hourly_shape_and_zero_before_first_arrival():
+    res = run_day(T, FIRES, flat_met(5.0, 0.0, 0.0), GRIDS)
+    ph = res.place_hourly
+    assert ph.shape == (1, 48) and list(ph.index) == ["Kota Toy"]
+    first = int(res.squares.first_arrival_h.dropna().iloc[0])
+    row = ph.loc["Kota Toy"].to_numpy()
+    assert first > 0 and (row[:first] == 0).all() and row[first] > 0
+    # one populated cell, so the per-resident value is the mean particle weight there, and its peak hour matches the place's
+    pf = res.place_fire
+    assert int(np.argmax(row)) == int(pf.peak_h.iloc[0])
+
+
+def test_place_hourly_is_per_resident():
+    big = run_day(T, FIRES, flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 500_000)).place_hourly
+    small = run_day(T, FIRES, flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 100_000)).place_hourly
+    np.testing.assert_allclose(big.to_numpy(), small.to_numpy(), rtol=1e-9)    # residents cancel with one cell
+
+
+def test_place_hourly_default_none():
+    res = DayResult(date=T, squares=pd.DataFrame(), place_fire=pd.DataFrame(), counts={}, top10_share=0.0, frames=None)
+    assert res.place_hourly is None

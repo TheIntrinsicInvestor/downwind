@@ -27,6 +27,7 @@ class DayResult:
     counts: dict                  # {"p1", "p2", "p3"}, province only
     top10_share: float
     frames: list | None           # per hour: (lat, lon, w, square row index) of a fixed particle sample
+    place_hourly: pd.DataFrame | None = None  # index adm2 name, columns 0..WINDOW_H-1: mean particle weight per resident, all fires
 
 
 def _heading(lat0, lon0, lat1, lon1):
@@ -59,6 +60,7 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     place_exp = np.zeros(ns * na)
     place_first = np.full(ns * na, np.inf)
     place_peak = np.zeros(ns * na)
+    place_hourly = np.zeros((na, WINDOW_H))     # smoke over each place by hour, all sources summed
     place_peak_hour = np.zeros(ns * na, dtype=int)
     sum_lat = np.zeros(ns); sum_lon = np.zeros(ns); sum_w = np.zeros(ns)
     in_p1 = np.zeros(ns, bool)
@@ -78,6 +80,8 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
             key = s[m] * na + a[m]
             hourly = np.bincount(key, weights=pp[m], minlength=ns * na)
             place_exp[:] += hourly
+            if 0 <= h < WINDOW_H:
+                place_hourly[:, h] += np.bincount(a[m], weights=pp[m], minlength=na)
             higher = hourly > place_peak
             place_peak[higher] = hourly[higher]
             place_peak_hour[higher] = h
@@ -111,6 +115,11 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
         cand = sq[prov & (sq.tier == 1)].sort_values(["exposure", "id"], ascending=[False, True])
         sq.loc[cand.index, "rank"] = np.arange(1, len(cand) + 1, dtype=float)
     top10_share = float(sq.share[sq["rank"] <= 10].sum()) if n else 0.0
+
+    # per resident: divide by each place's population (mean particle weight over its residents)
+    cells = grids.adm2.values.ravel(); inside = cells >= 0
+    place_pop = np.bincount(cells[inside], weights=grids.pop.values.ravel()[inside], minlength=na)
+    place_hourly = place_hourly / np.where(place_pop > 0, place_pop, np.inf)[:, None]
 
     # places
     pe = place_exp.reshape(ns, na) if ns else np.zeros((0, na))
@@ -165,7 +174,8 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     p = sq[prov] if n else sq
     counts = {f"p{t}": int((p.tier == t).sum()) if n else 0 for t in (1, 2, 3)}
     return DayResult(date=day, squares=sq, place_fire=place_fire, counts=counts, top10_share=top10_share,
-                     frames=frames)
+                     frames=frames,
+                     place_hourly=pd.DataFrame(place_hourly, index=list(grids.adm2_names), columns=range(WINDOW_H)))
 
 
 def _final_frames(cands, sq, src_rows, pick):

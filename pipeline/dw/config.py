@@ -15,6 +15,10 @@ K = 4.0                                 # particles per source per hour (pre-bui
 SEED = 0
 PEAT_RATIO = 5.87 / 0.96                # smoke per unit of fire heat, peat vs tropical forest: GFAS conversion factors,
                                         # Kaiser et al. 2012 Table 2 (adopted 13 Nov; 2023 test barely moves, see evaluate)
+HOURLY_REF = 114.0                      # reference level for the hourly smoke chart (100 = this): the highest per-resident
+                                        # hourly value any place had on the replay days 18 to 20 Sep 2026 (113.554, forecast
+                                        # weather, shipped persistence weighting; python -m dw.hourly_ref). The 99th percentile
+                                        # (24.1) was rejected: trace places dominate it, so busy places peaked at 350 to 470.
 LOCAL_OFFSET_H = 7                      # local day = UTC+7
 PROVINCE = "West Kalimantan"
 

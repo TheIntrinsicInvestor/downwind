@@ -152,3 +152,17 @@ def test_limits_burning_line_follows_the_model(tmp_path):
     assert not any("assumed yes" in x for x in ign) and any("seen again" in x for x in ign)
     write_limits({**learn, "shipped": False}, tmp_path)
     assert any("assumed yes" in x for x in json.loads((tmp_path / "limits.json").read_text(encoding="utf-8"))["ignores"])
+
+
+def test_place_hourly_exported_and_scaled(tmp_path, RES):
+    from dw.config import HOURLY_REF
+    export_day(RES, None, STAB, BULLETIN, tmp_path)
+    p = _day(tmp_path)["places"][0]
+    assert len(p["hourly"]) == 48 and max(p["hourly"]) > 0
+    raw = RES.place_hourly.loc[p["name"]].to_numpy(float)
+    assert p["hourly"] == [round(100 * v / HOURLY_REF, 1) for v in raw]
+
+
+def test_place_hourly_zero_filled_for_old_results(tmp_path):
+    export_day(_synthetic(), None, STAB, BULLETIN, tmp_path)
+    assert _day(tmp_path)["places"][0]["hourly"] == [0.0] * 48

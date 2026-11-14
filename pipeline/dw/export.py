@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from dw.config import HOURLY_REF, WINDOW_H
 from dw.rank import FRAME_CAP, DayResult
 
 REC = np.dtype([("lon_q", "<i2"), ("lat_q", "<i2"), ("fire", "<u2"), ("alpha", "u1"), ("pad", "u1")])
@@ -84,12 +85,17 @@ def _places(res: DayResult, index_of: dict) -> list:
     if pf is None or not len(pf):
         return []
     out = []
+    ph = res.place_hourly
     for name, g in pf.groupby("place", sort=True):
         tot = g.exposure.sum()
         if tot <= 0:
             continue
         g = g.sort_values(["exposure", "fire_id"], ascending=[False, True]).head(PLACE_TOP)
-        out.append({"name": name, "contributions": [
+        if ph is not None and name in ph.index:
+            hourly = [round(float(100 * v / HOURLY_REF), 1) for v in ph.loc[name].to_numpy(float)]
+        else:
+            hourly = [0.0] * WINDOW_H
+        out.append({"name": name, "hourly": hourly, "contributions": [
             {"fire": index_of[row.fire_id], "share": round(float(row.exposure / tot), 4),
              "first_arrival_h": _num(row.first_arrival_h), "peak_h": _int(getattr(row, "peak_h", None))}
             for row in g.itertuples(index=False)]})
