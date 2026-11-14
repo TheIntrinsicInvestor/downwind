@@ -80,23 +80,35 @@ def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT, *, fires_csv: Path |
 
 def build_snapshots(day: pd.Timestamp, n_days: int, fires_csv: Path, out: Path, *, persistence_weather: Path | None,
                     model_learn: tuple | None = None):
-    """model_learn: (model, learn dict) to use instead of the files in DOWNWIND_DATA_DIR (live runs)."""
-    day = day.normalize()
-    weighted = persistence_weather is not None
-    fires = load_fires_csv(fires_csv, include_daynight=weighted)
+    """Build from FIRMS CSV. A supplied live model permits an unweighted fallback."""
+    days = pd.date_range(end=day.normalize(), periods=n_days, freq="D")
+    predictions = {}
+    learn = None
+    if persistence_weather is not None:
+        try:
+            model, learn = model_learn or load_learn()
+            if model is None or not learn or not learn["shipped"]:
+                raise ValueError("--persistence-weather needs a shipped persist_model.pkl and learn.json in DOWNWIND_DATA_DIR")
+            weather = load_persistence_weather(persistence_weather)
+            fires = load_fires_csv(fires_csv, include_daynight=True)
+            predictions = {current: persist_from_inputs(model, current, fires, weather) for current in days}
+        except Exception as error:
+            if model_learn is None:
+                raise
+            print(f"persistence weighting off, building unweighted: {type(error).__name__}: {error}", flush=True)
+            learn = None
+        else:
+            if model_learn is not None:
+                print("persistence weighting on", flush=True)
+    if learn is None:
+        fires = load_fires_csv(fires_csv)
     grids = load_grids()
-    model, learn, weather = None, None, None
-    if weighted:
-        model, learn = model_learn or load_learn()
-        if model is None or not learn or not learn["shipped"]:
-            raise ValueError("--persistence-weather needs a shipped persist_model.pkl and learn.json in DOWNWIND_DATA_DIR")
-        weather = load_persistence_weather(persistence_weather)
 
     prev = None
     exported = []
-    for current in pd.date_range(end=day, periods=n_days, freq="D"):
+    for current in days:
         forecast = load_forecast(current)
-        persist = None if weather is None else persist_from_inputs(model, current, fires, weather)
+        persist = predictions.get(current)
         result = run_day(current, fires, forecast, grids, record_frames=True, persist=persist)
         bulletin = make_bulletin(build_facts(result, prev))
         export_day(result, prev, None, bulletin, out, persistence_weighted=persist is not None and not persist.empty)
