@@ -133,7 +133,7 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
         order = np.argsort(-pe[j], kind="stable")
         order = order[pe[j][order] > 0]
         i = src_rows[j]
-        top_places[i] = [(grids.adm2_names[a], float(pe[j, a] / tot)) for a in order[:3]]
+        top_places[i] = [(grids.adm2_names[a], float(pe[j, a] / tot), float(pf[j, a]), int(peak_hours[j, a])) for a in order[:3]]
         first_arrival[i] = float(pf[j, order[0]])
         for a in order:
             rows.append((grids.adm2_names[a], sq.id.iat[i], float(pe[j, a]), float(pf[j, a]), int(peak_hours[j, a])))

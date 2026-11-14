@@ -58,6 +58,15 @@ def _top10_ids(res: DayResult) -> list:
     return list(sq.sort_values("rank").id[sq["rank"] <= 10])
 
 
+def _top_place(t) -> dict:
+    """(name, share, first_arrival_h, peak_h) -> day-file entry; 2-tuples (older callers) get no times."""
+    d = {"name": t[0], "share": round(float(t[1]), 4)}
+    if len(t) >= 4:
+        d["first_arrival_h"] = _num(t[2])
+        d["peak_h"] = _int(t[3])
+    return d
+
+
 def _fires(sq: pd.DataFrame) -> list:
     out = []
     for r in sq.itertuples(index=False):
@@ -70,7 +79,7 @@ def _fires(sq: pd.DataFrame) -> list:
             "rank": int(r.rank) if ranked else None,
             "share": _num(r.share, 5) if ranked else None,
             "people_40km": _int(r.people_40km),
-            "top_places": [{"name": n, "share": round(float(s), 4)} for n, s in tp] if tp else None,
+            "top_places": [_top_place(t) for t in tp] if tp else None,
             "first_arrival_h": _num(r.first_arrival_h),
             "heading": r.heading if isinstance(r.heading, str) else None,
             "reach_km": _num(getattr(r, "reach_km", None), 1),
