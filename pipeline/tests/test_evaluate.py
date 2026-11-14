@@ -7,9 +7,7 @@ from dw.config import REPLAY_DATA
 from dw.evaluate import baseline_scores, clip_eval, metar_daily, metar_path, pooled_spearman, season_scores
 
 DAY0_2023 = pd.Timestamp("2023-08-31")
-_CITIES = json.loads((REPLAY_DATA / "cities.json").read_text(encoding="utf-8"))
 _ICAOS = ["WIBB", "WIOO", "WIPP", "WAOO", "WSSS", "WMKK", "WBGG"]       # the 7 airports in replay_log.txt
-STATIONS_2023 = {c["name"]: c["icao"] for c in _CITIES if c["icao"] in _ICAOS}
 
 
 def test_metar_path():
@@ -24,11 +22,15 @@ def test_pooled_spearman_perfect_agreement():
     assert rho == pytest.approx(1.0) and n == 40 and hit == pytest.approx(1.0)
 
 
-def test_2023_reproduction():          # slow: about 40 s
-    assert len(STATIONS_2023) == 7
+@pytest.mark.research
+@pytest.mark.slow
+def test_2023_reproduction():
+    cities = json.loads((REPLAY_DATA / "cities.json").read_text(encoding="utf-8"))
+    stations = {c["name"]: c["icao"] for c in cities if c["icao"] in _ICAOS}
+    assert len(stations) == 7
     sim, base = season_scores(2023), baseline_scores(2023)
     assert sim.shape[1] == 21
-    obs = {c: metar_daily(metar_path(2023, icao), DAY0_2023) for c, icao in STATIONS_2023.items()}
+    obs = {c: metar_daily(metar_path(2023, icao), DAY0_2023) for c, icao in stations.items()}
     rho, n, hit = pooled_spearman(clip_eval(sim, "2023-09-01", "2023-10-31"), obs)
     assert rho == pytest.approx(0.45, abs=0.02) and n == 421 and hit == pytest.approx(0.48, abs=0.01)
     assert pooled_spearman(clip_eval(base, "2023-09-01", "2023-10-31"), obs)[0] == pytest.approx(0.38, abs=0.01)

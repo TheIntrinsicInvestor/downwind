@@ -11,34 +11,21 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 
 from dw import config
-from dw.fetch import Met, _fire_files, load_met
+from dw.fetch import Met, _fire_files, _fire_detections, _read_fire_csv, load_met
 from dw.grids import peat_at
 
 FEATURES = ["n", "frp_sum", "frp_max", "n_day", "n_night", "days_running", "days_in_7",
             "n_3x3", "n_5x5", "seen_t2", "seen_t3", "peat", "rain_t1", "rh_t1", "month"]
 SEASONS = (2019, 2023, 2025)
-MODEL_PATH = config.DATA / "persist_model.pkl"
-LEARN_PATH = config.DATA / "learn.json"
 
 KJ, KD, OFFI = 32768, 4096 * 32768, 1000          # square-day key: day * KD + (i + OFFI) * KJ + j
 
 
 def load_detections(year: int) -> pd.DataFrame:
     """Non-low detections with day/night flag, 1 Jul to 1 Nov, in BOX (as the research script)."""
-    frames = []
-    for p in _fire_files(year):
-        f = pd.read_csv(p, encoding="utf-8")
-        if "type" in f.columns:
-            f = f[f["type"] == 0]
-        frames.append(f)
-    f = pd.concat(frames, ignore_index=True)
-    lon0, lat0, lon1, lat1 = config.BOX
-    f["acq_date"] = pd.to_datetime(f.acq_date)
-    f = f[(f.acq_date >= f"{year}-07-01") & (f.acq_date <= f"{year}-11-01") & (f.confidence != "l")
-          & f.latitude.between(lat0, lat1) & f.longitude.between(lon0, lon1)]
-    return pd.DataFrame({"lat": f.latitude.to_numpy(float), "lon": f.longitude.to_numpy(float),
-                         "date": f.acq_date.to_numpy(), "frp": f.frp.to_numpy(float),
-                         "conf": f.confidence.astype(str).to_numpy(), "daynight": f.daynight.astype(str).to_numpy()})
+    raw = pd.concat([_read_fire_csv(p) for p in _fire_files(year)], ignore_index=True)
+    fires = _fire_detections(raw, include_daynight=True, sort=False)
+    return fires[fires.date.between(f"{year}-07-01", f"{year}-11-01") & (fires.conf != "l")]
 
 
 def _daily_weather(met: Met):
@@ -53,12 +40,15 @@ def _daily_weather(met: Met):
 def persistence_table(fires: pd.DataFrame, met: Met, cell=config.FIRE_CELL) -> pd.DataFrame:
     """One row per (square, T) for squares with a non-low detection on T-1 (T-1 from 1 Aug to 31 Oct):
     id, T, FEATURES, label (non-low detection in the same square on T; NaN when T is past the data)."""
-    last_day = pd.Timestamp(fires.date.max())
+    return _persistence_rows(fires, met, cell)
+
+
+def _persistence_rows(fires: pd.DataFrame, met: Met, cell: float, *, day: pd.Timestamp | None = None) -> pd.DataFrame:
     f = fires[fires.conf != "l"]
-    day = ((pd.to_datetime(f.date) - pd.Timestamp("1970-01-01")).dt.days).to_numpy(np.int64)
+    day_index = ((pd.to_datetime(f.date) - pd.Timestamp("1970-01-01")).dt.days).to_numpy(np.int64)
     i = np.floor(f.lat.to_numpy() / cell).astype(np.int64) + OFFI
     j = np.floor(f.lon.to_numpy() / cell).astype(np.int64)
-    d = pd.DataFrame({"K": day * KD + i * KJ + j, "frp": f.frp.to_numpy(float),
+    d = pd.DataFrame({"K": day_index * KD + i * KJ + j, "frp": f.frp.to_numpy(float),
                       "day": (f.daynight.to_numpy() == "D").astype(int), "night": (f.daynight.to_numpy() != "D").astype(int)})
     g = d.groupby("K").agg(n=("frp", "size"), frp_sum=("frp", "sum"), frp_max=("frp", "max"),
                            n_day=("day", "sum"), n_night=("night", "sum")).reset_index()
@@ -69,7 +59,10 @@ def persistence_table(fires: pd.DataFrame, met: Met, cell=config.FIRE_CELL) -> p
         return np.where(keys[ix] == q, cnt[ix], 0) if len(keys) else np.zeros(len(q), int)
 
     dates = pd.Timestamp("1970-01-01") + pd.to_timedelta(g.K.to_numpy() // KD, unit="D")
-    in_window = (dates.month >= 8) & (dates.month <= 10)
+    if day is None:
+        in_window = (dates.month >= 8) & (dates.month <= 10)
+    else:
+        in_window = dates == day - pd.Timedelta(days=1)
     r = g[in_window].reset_index(drop=True)
     K = r.K.to_numpy()
     kday = K // KD
@@ -110,9 +103,10 @@ def persistence_table(fires: pd.DataFrame, met: Met, cell=config.FIRE_CELL) -> p
     X["rain_t1"] = rain_t1
     X["rh_t1"] = rh_t1
     X["month"] = np.asarray(T.month)
-    label = (look(K + KD) > 0).astype(float)
-    label[np.asarray(T > last_day)] = np.nan
-    X["label"] = label
+    if day is None:
+        label = (look(K + KD) > 0).astype(float)
+        label[np.asarray(T > fires.date.max())] = np.nan
+        X["label"] = label
     return X
 
 
@@ -173,19 +167,37 @@ def run_learn() -> dict:
     learn = {"shipped": decide(auc26, heur26), "test_auc_2026": round(auc26, 3), "heuristic_auc_2026": round(heur26, 3),
              "cv_auc": cv, "base_rate_2026": round(float(labelled.label.mean()), 3),
              "visibility_correction": "tested, not used"}
-    MODEL_PATH.write_bytes(pickle.dumps(model))
-    LEARN_PATH.write_text(json.dumps(learn), encoding="utf-8")
+    config.DATA.mkdir(parents=True, exist_ok=True)
+    (config.DATA / "persist_model.pkl").write_bytes(pickle.dumps(model))
+    (config.DATA / "learn.json").write_text(json.dumps(learn), encoding="utf-8")
     return learn
 
 
 def load_learn():
     """(model, learn dict) if run_learn has been run, else (None, None)."""
-    if not (MODEL_PATH.exists() and LEARN_PATH.exists()):
+    model_path = config.DATA / "persist_model.pkl"
+    learn_path = config.DATA / "learn.json"
+    if not (model_path.exists() and learn_path.exists()):
         return None, None
-    return pickle.loads(MODEL_PATH.read_bytes()), json.loads(LEARN_PATH.read_text(encoding="utf-8"))
+    return pickle.loads(model_path.read_bytes()), json.loads(learn_path.read_text(encoding="utf-8"))
 
 
 def persist_for_day(model, day: pd.Timestamp) -> pd.Series:
     """Likelihood by square id for fires of day T-1 (2026)."""
     t = season_table(2026)
     return predict(model, t[t["T"] == pd.Timestamp(day)])
+
+
+def persist_from_inputs(model, day: pd.Timestamp, fires: pd.DataFrame, met: Met) -> pd.Series:
+    """Predict from the supplied detections and previous UTC day's weather."""
+    oldest = day - pd.Timedelta(days=7)
+    previous = day - pd.Timedelta(days=1)
+    hourly = pd.date_range(previous, periods=24, freq="h")
+    indices = met.times.get_indexer(hourly)
+    if (indices < 0).any() or met.rh is None:
+        raise ValueError(f"persistence weather needs all 24 UTC hours of rain and humidity for {previous:%Y-%m-%d}")
+    previous_met = Met(met.lats, met.lons, hourly, {}, {}, met.precip[:, :, indices], met.rh[:, :, indices])
+    if not np.isfinite(previous_met.precip).all() or not np.isfinite(previous_met.rh).all():
+        raise ValueError(f"persistence weather has missing rain or humidity for {previous:%Y-%m-%d}")
+    table = _persistence_rows(fires[fires.date.between(oldest, previous)], previous_met, config.FIRE_CELL, day=day)
+    return pd.Series(dtype=float) if table.empty else predict(model, table)

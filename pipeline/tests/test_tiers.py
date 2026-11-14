@@ -52,6 +52,7 @@ def peat_row_pt():
     return _scan(True, need_clear_row=True)
 
 
+@pytest.mark.research
 def test_peat_alone_is_tier2(grids, peat_pt):
     # strict Pasal 9(3): peat is necessary but not sufficient
     sq = build_squares(fires(det(*peat_pt)), DAY, grids)
@@ -59,6 +60,7 @@ def test_peat_alone_is_tier2(grids, peat_pt):
     assert assign_tiers(sq).tolist() == [2]
 
 
+@pytest.mark.research
 def test_tier1_peat_cluster(grids, peat_row_pt):
     # three mutually adjacent peat squares: each sees all 3 non-low detections in its 3x3 neighbourhood
     la, lo = peat_row_pt
@@ -67,6 +69,7 @@ def test_tier1_peat_cluster(grids, peat_row_pt):
     assert assign_tiers(sq).tolist() == [1, 1, 1]
 
 
+@pytest.mark.research
 def test_cluster_off_peat_is_tier2(grids, dry_pt):
     la, lo = dry_pt
     sq = build_squares(fires(*[det(la + a * FIRE_CELL, lo + b * FIRE_CELL) for a, b in L_SHAPE]), DAY, grids)
@@ -74,6 +77,7 @@ def test_cluster_off_peat_is_tier2(grids, dry_pt):
     assert assign_tiers(sq).tolist() == [2, 2, 2]
 
 
+@pytest.mark.research
 def test_line_of_three_only_middle_is_cluster(grids, dry_pt):
     # in a straight line the end squares see only 2 detections in their neighbourhood
     la, lo = dry_pt
@@ -81,6 +85,7 @@ def test_line_of_three_only_middle_is_cluster(grids, dry_pt):
     assert sq.sort_values("lon").neighbours_nonlow.tolist() == [2, 3, 2]
 
 
+@pytest.mark.research
 def test_tier1_peat_persistent(grids, peat_pt):
     f = fires(*[det(*peat_pt, day=DAY - pd.Timedelta(days=d)) for d in (0, 1, 2)])
     sq3 = build_squares(f, DAY, grids)
@@ -89,23 +94,27 @@ def test_tier1_peat_persistent(grids, peat_pt):
     assert assign_tiers(sq3).tolist() == [1] and assign_tiers(sq2).tolist() == [2]
 
 
+@pytest.mark.research
 def test_persistent_off_peat_is_tier2(grids, dry_pt):
     f = fires(*[det(*dry_pt, day=DAY - pd.Timedelta(days=d)) for d in (0, 1, 2)])
     sq = build_squares(f, DAY, grids)
     assert sq.days_running.iloc[0] == 3 and assign_tiers(sq).tolist() == [2]
 
 
+@pytest.mark.research
 def test_tier2_isolated_non_peat(grids, dry_pt):
     sq = build_squares(fires(det(*dry_pt)), DAY, grids)
     assert assign_tiers(sq).tolist() == [2]
 
 
+@pytest.mark.research
 def test_tier3_low_confidence(grids, peat_pt):
     sq = build_squares(fires(det(*peat_pt, conf="l"), det(*peat_pt, conf="l")), DAY, grids)
     assert len(sq) == 1 and sq.frp.iloc[0] == 0 and sq.n_detect.iloc[0] == 2 and sq.n_nonlow.iloc[0] == 0
     assert assign_tiers(sq).tolist() == [3]
 
 
+@pytest.mark.research
 def test_square_id_stable_across_days(grids, dry_pt):
     f = fires(det(*dry_pt), det(*dry_pt, day=DAY - pd.Timedelta(days=5)))
     a = build_squares(f, DAY, grids)
@@ -113,6 +122,7 @@ def test_square_id_stable_across_days(grids, dry_pt):
     assert a.id.tolist() == b.id.tolist() and len(a) == 1
 
 
+@pytest.mark.research
 def test_square_columns_and_place(grids):
     sq = build_squares(fires(det(-0.03, 109.34)), DAY, grids)
     assert {"id", "lat", "lon", "frp", "n_detect", "n_nonlow", "peat", "in_province", "place",
@@ -120,6 +130,7 @@ def test_square_columns_and_place(grids):
     assert "Pontianak" in sq.place.iloc[0]
 
 
+@pytest.mark.research
 def test_other_day_ignored(grids, dry_pt):
     sq = build_squares(fires(det(*dry_pt, day=DAY - pd.Timedelta(days=1))), DAY, grids)
     assert len(sq) == 0

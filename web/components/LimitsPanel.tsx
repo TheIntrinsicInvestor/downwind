@@ -51,9 +51,14 @@ function LimitsPanel({ day, limits, error }: Props) {
           <p>{learnLine(limits.learn)}</p>
         </Block>
       )}
-      <Block title="This day's ranking">
-        <p>{stabilityLine(day.stability)}</p>
-      </Block>
+      {(day.stability || day.persistence_weighted !== undefined) && (
+        <Block title="This day's ranking">
+          {day.stability && <p>{stabilityLine(day.stability)}</p>}
+          {day.persistence_weighted !== undefined && (
+            <p>{day.persistence_weighted ? "Persistence weighting applied." : "Persistence weighting off."}</p>
+          )}
+        </Block>
+      )}
       <Block title="What it ignores">
         <ul className="space-y-1.5">{limits.ignores.map((x) => <li key={x} className="relative pl-4 before:absolute before:left-0 before:top-[0.6em] before:h-px before:w-2 before:bg-ink-3">{x}</li>)}</ul>
       </Block>

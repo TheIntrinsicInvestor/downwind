@@ -41,6 +41,14 @@ def fake_key(monkeypatch):
     monkeypatch.setattr(config, "secret", lambda n: "SECRETVALUE")
 
 
+def test_bulletin_uses_template_when_key_is_missing(monkeypatch):
+    def missing_key(name):
+        raise KeyError(name)
+
+    monkeypatch.setattr(config, "secret", missing_key)
+    assert make_bulletin(FACTS) == {"text": template_bulletin(FACTS), "source": "template", "model": None}
+
+
 @pytest.mark.parametrize("text,bad", [
     ("Fire 1 near Ketapang puts 680,000 people under smoke.", []),
     ("The top ten carry 53% of exposure.", []),

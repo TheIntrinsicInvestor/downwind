@@ -148,7 +148,10 @@ def _scrub(msg: str, key: str | None) -> str:
 def call_llm(messages, models, *, attempts=4, pause=3.0, max_tokens=16000, temperature=0.3, opener=None) -> tuple[str, str]:
     """Alternate models; an HTTP error, timeout or empty reply counts as a failure. Returns (text, model)."""
     opener = opener or urllib.request.urlopen
-    key = config.secret("NEBIUS_API_KEY")
+    try:
+        key = config.secret("NEBIUS_API_KEY")
+    except KeyError as error:
+        raise LLMError(str(error.args[0])) from None
     last = "no attempt made"
     for i in range(attempts):
         model = models[i % len(models)]

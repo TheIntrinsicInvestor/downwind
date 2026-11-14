@@ -67,7 +67,7 @@ def thin_raw(raw, step: int) -> dict:
 
 def coarse_forecast(day, step: int = STEP) -> dict:
     """The day's forecast on the coarse grid: thinned from a 1 degree file if one exists, else downloaded."""
-    full = config.DATA / f"forecast_{forecast_run(day):%Y%m%dT%H}.npz"
+    full = config.forecast_cache() / f"forecast_{forecast_run(day):%Y%m%dT%H}.npz"
     if full.exists():
         return thin_raw(np.load(full), step)
     return dict(np.load(fetch_forecast(day, step=step)))
@@ -117,8 +117,8 @@ def fetch_all() -> int:
         except RuntimeError as e:
             print(f"stopped at {T.date()}: {e}", flush=True)
             missing = sum(1 for d in pd.date_range(T, END)
-                          if not (config.DATA / f"forecast_{forecast_run(d):%Y%m%dT%H}.npz").exists()
-                          and not (config.DATA / f"forecast_{forecast_run(d):%Y%m%dT%H}_{STEP}deg.npz").exists())
+                          if not (config.forecast_cache() / f"forecast_{forecast_run(d):%Y%m%dT%H}.npz").exists()
+                          and not (config.forecast_cache() / f"forecast_{forecast_run(d):%Y%m%dT%H}_{STEP}deg.npz").exists())
             break
     print(f"{missing} days still without a forecast", flush=True)
     return missing

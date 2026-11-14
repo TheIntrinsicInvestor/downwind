@@ -1,4 +1,5 @@
-"""Constants, paths and the secret reader. Simulation settings come from the 2023 replay; do not tune."""
+"""Simulation settings, data locations and the secret reader."""
+import os
 from pathlib import Path
 
 BOX = (95.0, -8.0, 120.0, 6.0)          # lon min, lat min, lon max, lat max
@@ -17,10 +18,20 @@ PEAT_RATIO = 5.87 / 0.96                # smoke per unit of fire heat, peat vs t
 LOCAL_OFFSET_H = 7                      # local day = UTC+7
 PROVINCE = "West Kalimantan"
 
-ROOT = Path(__file__).resolve().parents[3]     # the COP31 project folder
-DATA = ROOT / "downwind" / "data"
-REPLAY_DATA = ROOT / "validation-2023-replay" / "data"
-CHECK_DATA = ROOT / "data-check" / "data"
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _directory(variable: str, default: Path) -> Path:
+    return Path(os.environ.get(variable) or default).expanduser().resolve()
+
+
+DATA = _directory("DOWNWIND_DATA_DIR", ROOT / "data")
+REPLAY_DATA = _directory("DOWNWIND_REPLAY_DATA_DIR", ROOT.parent / "validation-2023-replay" / "data")
+CHECK_DATA = _directory("DOWNWIND_CHECK_DATA_DIR", ROOT.parent / "data-check" / "data")
+
+
+def forecast_cache() -> Path:
+    return _directory("DOWNWIND_FORECAST_CACHE_DIR", DATA)
 
 MET_RANGE = {
     2023: ("2023-08-31", "2023-11-03"),
@@ -28,13 +39,16 @@ MET_RANGE = {
     2026: ("2026-08-31", "2026-11-03"),
 }
 
-SECRETS_FILE = Path(r"C:\Users\Brian\.secrets\downwind.env")
-
-
 def secret(name: str) -> str:
-    """Value of `name` from the secrets file. Errors name the variable only, never a value."""
+    """Read a key from the environment or an explicitly configured secrets file."""
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    secrets_file = os.environ.get("DOWNWIND_SECRETS_FILE")
+    if not secrets_file:
+        raise KeyError(f"{name} is missing from the environment")
     try:
-        text = SECRETS_FILE.read_text(encoding="utf-8-sig")
+        text = Path(secrets_file).expanduser().read_text(encoding="utf-8-sig")
     except OSError:
         raise KeyError(f"secrets file not readable, needed for {name}") from None
     for line in text.splitlines():

@@ -4,6 +4,8 @@ import pytest
 from dw.config import GRID_RES, R_KM
 from dw.grids import load_grids, people_near
 
+pytestmark = pytest.mark.research
+
 
 @pytest.fixture(scope="module")
 def g():

@@ -9,17 +9,16 @@ from pathlib import Path
 import pandas as pd
 
 from dw import config
-from dw.bulletin import TOKENS, build_facts, make_bulletin, template_bulletin
+from dw.bulletin import TOKENS, build_facts, make_bulletin
 from dw.evaluate import metar_daily, metar_path
 from dw.export import export_day, write_index, write_limits
-from dw.fetch import forecast_run, load_fires, load_fires_csv, load_forecast, load_met, with_forecast
+from dw.fetch import forecast_run, load_fires, load_fires_csv, load_forecast, load_met, load_persistence_weather, with_forecast
 from dw.grids import load_grids
-from dw.learn import load_learn, persist_for_day, run_learn
+from dw.learn import load_learn, persist_for_day, persist_from_inputs, run_learn
 from dw.rank import pick_day, run_day, stability, top10_overlap
 from dw.tiers import assign_tiers, build_squares
 
-REPLAY_OUT = config.ROOT / "downwind" / "web" / "public" / "replay"
-SNAPSHOT_OUT = Path(__file__).resolve().parents[2] / "data" / "snapshots"
+REPLAY_OUT = config.ROOT / "web" / "public" / "replay"
 
 
 def pontianak_ext_2026() -> pd.Series:
@@ -38,38 +37,33 @@ def cmd_pick():
     print(f"runtime {time.time() - t0:.0f} s")
 
 
-def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT, *, fires_csv: Path | None = None):
+def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT, *, fires_csv: Path | None = None,
+            persistence_weather: Path | None = None):
+    if fires_csv is not None:
+        build_snapshots(day, n_days, fires_csv, out, persistence_weather=persistence_weather)
+        return
+
     t0 = time.time()
-    fires = load_fires(2026) if fires_csv is None else load_fires_csv(fires_csv)
-    grids = load_grids()
+    fires, met, grids = load_fires(2026), load_met(2026), load_grids()
     days = [day - pd.Timedelta(days=i) for i in range(n_days, -1, -1)]      # T-n .. T; the first is only "previous"
-    prev = None
-    met = None
-    model, learn = None, None
-    if fires_csv is None:
-        met = load_met(2026)
-        model, learn = load_learn()
+    model, learn = load_learn()
     use = bool(learn and learn["shipped"])
     print(f"persistence model: {'shipped, weighting smoke' if use else 'not used'}", flush=True)
     pers = (lambda d: persist_for_day(model, d)) if use else (lambda d: None)
     # each morning runs on the forecast in hand at 07:00 local (fetch.forecast_run), not on hindsight weather
-    if met is not None:
-        prev = run_day(days[0], fires, with_forecast(met, days[0]), grids, persist=pers(days[0]))
+    prev = run_day(days[0], fires, with_forecast(met, days[0]), grids, persist=pers(days[0]))
     exported = []
     for d in days[1:]:
-        met_d = load_forecast(d) if met is None else with_forecast(met, d)
+        met_d = with_forecast(met, d)
         res = run_day(d, fires, met_d, grids, record_frames=True, persist=pers(d))
         stab = stability(d, fires, met_d, grids, persist=pers(d))
-        print(f"  forecast run {forecast_run(d):%Y-%m-%d %H} UTC", flush=True)
-        if met is not None:
-            stab["hindsight_overlap"] = top10_overlap(res, run_day(d, fires, met, grids, persist=pers(d)))
-            print(f"  top ten shared with hindsight weather: {stab['hindsight_overlap']} of 10", flush=True)
+        stab["hindsight_overlap"] = top10_overlap(res, run_day(d, fires, met, grids, persist=pers(d)))
+        print(f"  forecast run {forecast_run(d):%Y-%m-%d %H} UTC; top ten shared with hindsight weather: "
+              f"{stab['hindsight_overlap']} of 10", flush=True)
         if use:
             plain = run_day(d, fires, met_d, grids)
             print(f"  weighted vs plain ranking: {top10_overlap(res, plain)} of 10 of the top ten shared", flush=True)
-        facts = build_facts(res, prev)
-        bulletin = (make_bulletin(facts) if fires_csv is None
-                    else {"text": template_bulletin(facts), "source": "template", "model": None})
+        bulletin = make_bulletin(build_facts(res, prev))
         export_day(res, prev, stab, bulletin, out)
         name = d.strftime("%Y-%m-%d")
         exported.append(name)
@@ -84,6 +78,34 @@ def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT, *, fires_csv: Path |
     print(f"wrote {len(exported)} days, index.json, limits.json to {out} in {time.time() - t0:.0f} s")
 
 
+def build_snapshots(day: pd.Timestamp, n_days: int, fires_csv: Path, out: Path, *, persistence_weather: Path | None):
+    day = day.normalize()
+    weighted = persistence_weather is not None
+    fires = load_fires_csv(fires_csv, include_daynight=weighted)
+    grids = load_grids()
+    model, learn, weather = None, None, None
+    if weighted:
+        model, learn = load_learn()
+        if model is None or not learn or not learn["shipped"]:
+            raise ValueError("--persistence-weather needs a shipped persist_model.pkl and learn.json in DOWNWIND_DATA_DIR")
+        weather = load_persistence_weather(persistence_weather)
+
+    prev = None
+    exported = []
+    for current in pd.date_range(end=day, periods=n_days, freq="D"):
+        forecast = load_forecast(current)
+        persist = None if weather is None else persist_from_inputs(model, current, fires, weather)
+        result = run_day(current, fires, forecast, grids, record_frames=True, persist=persist)
+        bulletin = make_bulletin(build_facts(result, prev))
+        export_day(result, prev, None, bulletin, out, persistence_weighted=persist is not None and not persist.empty)
+        exported.append(current.strftime("%Y-%m-%d"))
+        print(f"{current:%Y-%m-%d}: {result.counts}, forecast {forecast_run(current):%Y-%m-%d %H} UTC", flush=True)
+        prev = result
+    write_limits(learn, out)
+    write_index(exported, exported[-1], out)
+    print(f"wrote {len(exported)} snapshots to {out}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pick", action="store_true")
@@ -91,10 +113,13 @@ def main():
     ap.add_argument("--days", type=int, help="days to export (default: 3 for replay, 1 with --fires-csv)")
     ap.add_argument("--fires-csv", type=Path, help="downloaded NASA FIRMS CSV for --day")
     ap.add_argument("--out", type=Path, help="output directory for --day")
+    ap.add_argument("--persistence-weather", type=Path, help="hourly rain/humidity NPZ for CSV builds")
     ap.add_argument("--learn", action="store_true")
     a = ap.parse_args()
     if (a.fires_csv is not None or a.out is not None) and not a.day:
         ap.error("--fires-csv and --out require --day")
+    if a.persistence_weather is not None and a.fires_csv is None:
+        ap.error("--persistence-weather requires --fires-csv")
     if a.days is not None and a.days < 1:
         ap.error("--days must be at least 1")
     if a.pick:
@@ -106,8 +131,9 @@ def main():
               f"base rate {learn['base_rate_2026']}, shipped {learn['shipped']}")
     if a.day:
         n_days = a.days if a.days is not None else (3 if a.fires_csv is None else 1)
-        default_out = REPLAY_OUT if a.fires_csv is None else SNAPSHOT_OUT
-        cmd_day(pd.Timestamp(a.day), n_days, out=a.out or default_out, fires_csv=a.fires_csv)
+        default_out = REPLAY_OUT if a.fires_csv is None else config.DATA / "snapshots"
+        cmd_day(pd.Timestamp(a.day), n_days, out=a.out or default_out, fires_csv=a.fires_csv,
+                persistence_weather=a.persistence_weather)
 
 
 if __name__ == "__main__":

@@ -4,9 +4,11 @@ import pytest
 
 from dw import config
 from dw.config import REPLAY_DATA, secret
-from dw.fetch import load_fires, load_met
+from dw.fetch import forecast_run, load_fires, load_met, with_forecast
+from tests.conftest import T0, flat_met
 
 
+@pytest.mark.research
 def test_load_fires_2026_counts():
     f = load_fires(2026)
     assert list(f.columns) == ["lat", "lon", "date", "frp", "conf"]
@@ -15,6 +17,7 @@ def test_load_fires_2026_counts():
     assert f.date.min() == pd.Timestamp("2026-09-01") and f.date.max() == pd.Timestamp("2026-10-31")
 
 
+@pytest.mark.research
 def test_load_fires_2023_matches_replay():
     f = load_fires(2023)
     sel = f[(f.conf != "l") & (f.date >= "2023-08-31") & (f.date <= "2023-10-31")]
@@ -22,17 +25,15 @@ def test_load_fires_2023_matches_replay():
 
 
 def test_load_met_rejects_missing_winds(tmp_path, monkeypatch):
-    raw = dict(np.load(REPLAY_DATA / "met_grid.npz"))
-    w = raw["wind_speed_925hPa"].copy()
-    flat = w.reshape(-1)
-    flat[: int(0.05 * flat.size)] = np.nan          # 5% missing
-    raw["wind_speed_925hPa"] = w
+    raw = _raw_forecast(64)
+    raw["wind_speed_925hPa"][:, :, :4] = np.nan
     np.savez_compressed(tmp_path / "met_2026.npz", **raw)
     monkeypatch.setattr(config, "DATA", tmp_path)
     with pytest.raises(ValueError, match="winds missing"):
         load_met(2026)
 
 
+@pytest.mark.research
 def test_met_2023_converts_direction_to_uv(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA", tmp_path)    # no met_2023.npz here, so the replay file is used
     m = load_met(2023)
@@ -49,10 +50,6 @@ def test_secret_error_never_contains_values():
 
 
 # ---- true forecast for the replay window (13 Nov): the run a 07:00 local meeting actually had
-
-from dw.fetch import forecast_run, with_forecast
-from tests.conftest import T0, flat_met
-
 
 def _raw_forecast(hours, speed=2.0, direction=0.0, rain=1.0, start=None):
     met = flat_met(0, 0, 0, hours=1)
