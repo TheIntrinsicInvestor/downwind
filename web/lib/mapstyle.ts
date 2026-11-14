@@ -117,7 +117,10 @@ const SMOKE_MIN_RADIUS = 40;
 export const SMOKE_MAX_RADIUS = 100;
 const SMOKE_MAX_BOOST = 1.6;
 export const SMOKE_TEXTURE_SIZE = 256;
-export const MAP_MAX_ZOOM = 10;          // fires are 1.5 km squares: closer shows nothing more
+// Match the smoke simulation's geographic coverage (pipeline/dw/config.py).
+// The regional extent keeps upwind fires in Sumatra and downwind districts in view.
+export const MAP_BOUNDS: [[number, number], [number, number]] = [[95, -8], [120, 6]];
+export const MAP_MAX_ZOOM = 13;          // closer views reveal more basemap detail
 
 export function smokeRadiusPixels(zoom: number): number {
   return Math.min(SMOKE_MAX_RADIUS, Math.max(SMOKE_MIN_RADIUS, SMOKE_REF_RADIUS * 2 ** (zoom - SMOKE_REF_ZOOM)));

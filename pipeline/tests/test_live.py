@@ -194,3 +194,22 @@ def test_fallbacks_build_unweighted_and_say_why(tmp_path, monkeypatch, capsys, c
     printed = capsys.readouterr().out
     assert "persistence weighting off, building unweighted" in printed and reason in printed
     assert snapshot["fires"]                                              # a snapshot is always published
+
+
+@pytest.mark.parametrize("stage", ["load_forecast", "export_day"])
+def test_weighted_build_errors_propagate_without_retry(tmp_path, monkeypatch, capsys, stage):
+    calls = 0
+    failure = OSError(f"{stage} failed")
+
+    def fail(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        raise failure
+
+    monkeypatch.setattr(build, stage, fail)
+    with pytest.raises(OSError) as raised:
+        run_live(tmp_path, monkeypatch, SEASON_DAY)
+    assert raised.value is failure
+    assert calls == 1
+    assert "building unweighted" not in capsys.readouterr().out
+    assert not (tmp_path / "snapshot" / "manifest.json").exists()
