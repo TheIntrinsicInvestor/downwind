@@ -20,9 +20,9 @@ jobs:
     permissions:
       contents: write
     env:
-      DOWNWIND_DATA_DIR: ${{ runner.temp }}/downwind-grids
-      DOWNWIND_CHECK_DATA_DIR: ${{ runner.temp }}/downwind-grids
-      DOWNWIND_FORECAST_CACHE_DIR: ${{ runner.temp }}/downwind-forecast
+      DOWNWIND_DATA_DIR: /tmp/downwind-grids
+      DOWNWIND_CHECK_DATA_DIR: /tmp/downwind-grids
+      DOWNWIND_FORECAST_CACHE_DIR: /tmp/downwind-forecast
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: pipeline/requirements.txt
       - uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/downwind-grids
+          path: /tmp/downwind-grids
           key: downwind-grids-${{ hashFiles('pipeline/dw/live.py', 'pipeline/dw/grids.py', 'pipeline/dw/config.py') }}
       - run: python -m pip install -r requirements.txt
         working-directory: pipeline
