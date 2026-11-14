@@ -27,6 +27,7 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 5. **Learned persistence model (the AI component):** most fires are not seen again the next day. A gradient-boosted classifier, trained on the 2019, 2023 and 2025 seasons, predicts each fire's likelihood of being seen again tomorrow from what is known that morning. Smoke is weighted by that likelihood.
 6. **Ranking:** exposure is smoke times people, summed over the populated cells it reaches. Priority 1 fires are ordered by exposure.
 7. **Bulletin:** the language model only phrases computed facts; a check rejects any number it did not receive.
+8. **Distance to access (information only):** The fire card shows the map distance from a fire to the nearest mapped road, river or canal, as information only: it is not used in the ranking. The distances come from a small grid built offline from the OpenStreetMap extract (`python -m dw.reach build`, which needs pyosmium; the grid is committed as `pipeline/model/reach_any_0.005.npz`). Grid error against exact distances was a median 0.13 km, at most 0.39 km. OpenStreetMap misses many plantation and logging tracks, so a large distance does not mean a fire is hard to reach.
 
 ## What was measured
 
@@ -141,7 +142,7 @@ The handbook allows prior work if it is disclosed. Everything in this repository
 
 On 12 November an accidental `rm -rf .git` deleted this repository's history. The files were intact; the first five tasks were recommitted as one commit (`77e4956`), so the history begins there.
 
-The fire card shows the map distance from a fire to the nearest mapped road, river or canal, as information only: it is not used in the ranking. The distances come from a small grid built offline from the OpenStreetMap extract (`python -m dw.reach build`, which needs pyosmium; the grid is committed as `pipeline/model/reach_any_0.005.npz`). Grid error against exact distances was a median 0.13 km, at most 0.39 km. OpenStreetMap misses many plantation and logging tracks, so a large distance does not mean a fire is hard to reach.
+Reachability (distance from each fire to the nearest road or river) was built but not switched on: the public Overpass servers failed on 12 November, including a retry over three mirrors. `pipeline/dw/reach.py` remains in the repository, unused. On 14 November it was rebuilt from the Geofabrik extract and switched on as information on the fire card (see How it works, step 8).
 
 **Built during the event (14 to 15 November):** to be completed at the end of the build.
 
