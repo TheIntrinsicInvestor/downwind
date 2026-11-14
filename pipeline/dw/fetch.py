@@ -5,6 +5,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pandas as pd
@@ -184,15 +185,32 @@ def fetch_forecast(day, step: int = 1) -> Path:
                + f"&models={FORECAST_MODEL}&run={run:%Y-%m-%dT%H:%M}&forecast_hours={FORECAST_HOURS}&wind_speed_unit=ms")
         raw = _get_json(url, timeout=FORECAST_TIMEOUT)
         raw = raw if isinstance(raw, list) else [raw]
-        times = raw[0]["hourly"]["time"]
-        for r in raw:
-            for v in REQUIRED:
-                cols[v].append([np.nan if x is None else x for x in r["hourly"][v]])
+        if len(raw) != len(chunk):
+            raise ValueError(f"Forecast chunk returned {len(raw)} points for {len(chunk)} requested")
+        if times is None:
+            times = raw[0]["hourly"]["time"]
+        for response in raw:
+            hourly = response["hourly"]
+            if hourly["time"] != times:
+                raise ValueError("Forecast timestamps differ between grid points")
+            for variable in REQUIRED:
+                if len(hourly[variable]) != len(times):
+                    raise ValueError(f"Forecast {variable} length does not match timestamps")
+                cols[variable].append(hourly[variable])
         print(f"forecast {run:%Y-%m-%d %H} UTC chunk {c // 60 + 1}/{(len(pts) + 59) // 60}", flush=True)
         time.sleep(3)
     arr = {v: np.array(cols[v], float).reshape(len(lats), len(lons), -1) for v in REQUIRED}
+    payload = dict(lats=lats, lons=lons, times=np.array(times), **arr)
+    _forecast_window(day, payload)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out_path, lats=lats, lons=lons, times=np.array(times), **arr)
+    with NamedTemporaryFile(dir=out_path.parent, delete=False) as temporary:
+        temporary_path = Path(temporary.name)
+        try:
+            np.savez_compressed(temporary, **payload)
+            temporary.close()
+            temporary_path.replace(out_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
     return out_path
 
 
@@ -219,7 +237,7 @@ def _forecast_window(day, raw) -> Met:
         raise ValueError(f"forecast run {forecast_run(day)} does not cover {want[0]} to {want[-1]}")
     fi = [pos[t] for t in want]
     g = {v: np.asarray(raw[v], float)[:, :, fi] for v in REQUIRED}
-    bad = [v for v, a in g.items() if np.isnan(a).any()]
+    bad = [v for v, a in g.items() if not np.isfinite(a).all()]
     if bad:
         raise ValueError(f"forecast has missing values in the window: {', '.join(bad)}")
     u925, v925 = _uv(g["wind_speed_925hPa"], g["wind_direction_925hPa"])

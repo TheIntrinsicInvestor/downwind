@@ -143,3 +143,17 @@ def test_fetch_met_keeps_default_timeout(tmp_path, monkeypatch):
     with pytest.raises(StopIteration):
         fetch.fetch_met(2023)
     assert seen == [300]
+
+
+def test_forecast_rejects_misaligned_grid_point_before_caching(tmp_path, monkeypatch):
+    from dw import fetch
+
+    monkeypatch.setenv("DOWNWIND_FORECAST_CACHE_DIR", str(tmp_path))
+    times = ["2026-11-14T00:00", "2026-11-14T01:00"]
+    good = {"hourly": {"time": times, **{v: [0, 0] for v in fetch.REQUIRED}}}
+    shifted = {"hourly": {**good["hourly"], "time": ["2026-11-14T01:00", "2026-11-14T02:00"]}}
+    monkeypatch.setattr(fetch, "_get_json", lambda *args, **kwargs: [good, shifted, *([good] * 58)])
+
+    with pytest.raises(ValueError, match="timestamps differ"):
+        fetch.fetch_forecast("2026-11-14")
+    assert not list(tmp_path.iterdir())
