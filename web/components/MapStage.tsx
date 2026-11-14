@@ -9,7 +9,7 @@ import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
-import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
+import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_BOUNDS, MAP_MAX_ZOOM, PLACE_LABELS,
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
 import { SITE_COLORS } from "@/lib/sites";
@@ -80,7 +80,9 @@ export default function MapStage() {
         style: BASEMAP_STYLE,
         center: OPENING_CAMERA.center,
         zoom: OPENING_CAMERA.zoom,
+        maxBounds: MAP_BOUNDS,
         maxZoom: MAP_MAX_ZOOM,
+        renderWorldCopies: false,
         attributionControl: { compact: true },
       });
     } catch {
