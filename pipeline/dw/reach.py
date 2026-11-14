@@ -57,7 +57,7 @@ def _province_bbox():
 
 def fetch_pbf(path: Path = PBF_PATH) -> Path:
     """Stream the extract to disk; interrupted downloads never become cache hits."""
-    if path.is_file():
+    if path.is_file() and path.stat().st_size > 0:
         return path
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = None
@@ -66,6 +66,9 @@ def fetch_pbf(path: Path = PBF_PATH) -> Path:
             temporary_path = Path(temporary.name)
             with urllib.request.urlopen(urllib.request.Request(PBF_URL, headers=UA), timeout=120) as response:
                 shutil.copyfileobj(response, temporary)
+                size = response.headers.get("Content-Length")
+                if size is not None and temporary.tell() != int(size):
+                    raise ValueError("Incomplete Geofabrik extract")
         if temporary_path.stat().st_size == 0:
             raise ValueError("Empty Geofabrik extract")
         temporary_path.replace(path)
@@ -135,6 +138,9 @@ def distance_grid(lines) -> np.ndarray | None:
     """km from each 0.01 degree cell over BOX to the nearest line (row 0 at the north edge); None if no lines."""
     if not lines:
         return None
+    from PIL import Image, ImageDraw
+    from scipy.ndimage import distance_transform_edt
+
     lon0, lat0, lon1, lat1 = config.BOX
     nc, nr = int(round((lon1 - lon0) / PREP_RES)), int(round((lat1 - lat0) / PREP_RES))
     img = Image.new("L", (nc, nr), 0)
@@ -153,10 +159,13 @@ def reach_from(grid, lat, lon) -> np.ndarray:
     lat = np.asarray(lat, float); lon = np.asarray(lon, float)
     if grid is None:
         return np.full(lat.shape, np.nan)
-    lon0, lat0, lon1, lat1 = config.BOX
-    r = np.clip(np.floor((lat1 - lat) / PREP_RES).astype(int), 0, grid.shape[0] - 1)
-    c = np.clip(np.floor((lon - lon0) / PREP_RES).astype(int), 0, grid.shape[1] - 1)
-    return grid[r, c]
+    lon0, _, _, lat1 = config.BOX
+    r = np.floor((lat1 - lat) / PREP_RES)
+    c = np.floor((lon - lon0) / PREP_RES)
+    valid = (r >= 0) & (r < grid.shape[0]) & (c >= 0) & (c < grid.shape[1])
+    out = np.full(lat.shape, np.nan)
+    out[valid] = grid[r[valid].astype(int), c[valid].astype(int)]
+    return out
 
 
 @lru_cache(maxsize=2)

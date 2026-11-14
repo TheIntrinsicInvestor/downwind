@@ -14,7 +14,7 @@ const manifest: Manifest = {
 
 const signal = new AbortController().signal;
 const payload = {
-  date: manifest.date, hours: 48, fires: [], places: [],
+  date: manifest.date, hours: 48, fires: [], places: [], top10_share: 0,
   fires_date: "2026-11-13", window_start_utc: "2026-11-14T00:00Z",
   counts: { p1: 0, p2: 0, p3: 0 }, bulletin: { text: "", source: "template", model: null },
   frames: Array.from({ length: 48 }, () => ({ offset: 0, count: 0 })),
@@ -105,6 +105,9 @@ test("malformed manifest fails before requesting payloads", async () => {
 test.each([
   ["wrong date", { ...payload, date: "2026-11-13" }],
   ["missing counts", { ...payload, counts: null }],
+  ["wrong observation day", { ...payload, fires_date: "2026-11-12" }],
+  ["wrong forecast window", { ...payload, window_start_utc: "2026-11-14T01:00Z" }],
+  ["invalid ranking share", { ...payload, top10_share: 2 }],
   ["missing bulletin", { ...payload, bulletin: null }],
   ["null frame", { ...payload, frames: [null, ...payload.frames.slice(1)] }],
   ["missing frame", { ...payload, frames: payload.frames.slice(1) }],

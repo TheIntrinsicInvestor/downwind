@@ -1,6 +1,6 @@
 # Downwind infrastructure progress
 
-Checked against `main` and open PRs on 14 November 2026. This updates the
+Checked against `main` at d8dc51c on 14 November 2026. This updates the
 [original live-feed proposal](https://github.com/TheIntrinsicInvestor/downwind/pull/1).
 
 ## Completed on main
@@ -15,6 +15,10 @@ Checked against `main` and open PRs on 14 November 2026. This updates the
 - [x] Schedule daily publication at 07:12 WIB to the live-data branch (#7).
 - [x] Successful manual morning-feed workflow on 14 November at 14:25 UTC.
 
+- [x] Retain recent NOAA-21 detections for age and consecutive-day rules.
+- [x] Apply persistence weighting during validated months, with an unweighted fallback.
+- [x] Show mapped road distance on fire cards and district timing in Protect.
+
 ## Implemented on this branch
 
 - [x] Validate the manifest, observation/forecast dates, complete 48-hour
@@ -24,13 +28,7 @@ Checked against `main` and open PRs on 14 November 2026. This updates the
 
 ## Remaining
 
-- [ ] Review and integrate detection-history retention (#9). This is already
-  being implemented on `feature/live-feed-archive`; do not duplicate it.
-- [x] Replace the failed Overpass reachability fetch with optional local OSM
-  extraction and separate road/water distances (local branch; not published).
-- [ ] Validate those distances against real mapped locations before any
-  display-only integration. PR #5 contains proposed tasks, not implementation.
-  Its scoring/model/ranking changes are excluded by the user’s instruction.
+- [x] Add optional local OSM extraction and independent road and water lookups.
 - [ ] Confirm the next scheduled morning run succeeds, beyond the manual run.
 - [ ] Check the deployed `/app` against the published snapshot, including a
   failed refresh, recovery, and mobile layout.
@@ -38,9 +36,6 @@ Checked against `main` and open PRs on 14 November 2026. This updates the
   storage outside Git; the current implementation uses immutable snapshot
   directories on `live-data`. Define retention and expected storage growth
   before changing that working publishing path.
-- [ ] Enable persistence weighting for automated live builds if required.
-  `dw.live` currently supplies no persistence weather; this needs the team's
-  saved model and matching weather inputs, then production validation.
 - [ ] Finalize the README's event statement of work after the build window.
 - [ ] Run a pilot morning with a provincial task force.
 

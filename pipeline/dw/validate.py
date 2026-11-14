@@ -21,12 +21,15 @@ def validate_snapshot(root: Path) -> str:
     manifest = read("manifest.json")
     name = manifest["date"]
     day_date = date.fromisoformat(name)
+    _check(name == day_date.isoformat(), "Invalid snapshot date format")
     snapshot_id = manifest["id"]
     _check(re.fullmatch(re.escape(name) + r"-[a-f0-9]{32}", snapshot_id), "Invalid snapshot ID")
     _check(manifest["source"] == "VIIRS_NOAA21_NRT", "Invalid detection source")
     for field in ("generated_at", "observation_cutoff", "forecast_run"):
         stamp = datetime.fromisoformat(manifest[field].replace("Z", "+00:00"))
         _check(stamp.utcoffset() == timedelta(0), f"{field} must be UTC")
+    _check(datetime.fromisoformat(manifest["generated_at"].replace("Z", "+00:00")).date() >= day_date,
+           "Snapshot generated before its observation cutoff")
     _check(manifest["observation_cutoff"] == f"{name}T00:00:00Z", "Invalid observation cutoff")
     expected_run = f"{day_date - timedelta(days=1)}T12:00:00Z"
     _check(manifest["forecast_run"] == expected_run, "Invalid morning forecast run")
@@ -37,7 +40,7 @@ def validate_snapshot(root: Path) -> str:
     _check(day["window_start_utc"] == f"{name}T00:00Z" and day["hours"] == 48,
            "Invalid forecast window")
     fires, places, frames = day["fires"], day["places"], day["frames"]
-    _check(isinstance(fires, list) and isinstance(places, list) and len(frames) == 48,
+    _check(isinstance(fires, list) and isinstance(places, list) and isinstance(frames, list) and len(frames) == 48,
            "Invalid snapshot collections")
     _check(len({f["id"] for f in fires}) == len(fires), "Duplicate fire IDs")
     for place in places:
@@ -57,8 +60,9 @@ def validate_snapshot(root: Path) -> str:
     for _, _, fire, _, _ in struct.iter_unpack("<hhHBB", binary):
         _check(fire < len(fires), "Invalid particle fire reference")
     limits = read("limits.json")
-    _check(isinstance(limits["ignores"], list) and isinstance(limits["not_claimed"], list),
-           "Invalid limits")
+    for key in ("ignores", "not_claimed"):
+        values = limits[key]
+        _check(isinstance(values, list) and all(isinstance(value, str) for value in values), "Invalid limits")
     return snapshot_id
 
 
