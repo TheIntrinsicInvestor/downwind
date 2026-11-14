@@ -3,7 +3,9 @@
 Each run adds the new download to a detection archive (kept on the live-data branch by the morning workflow), so
 fire age and the "seen 3 days running" tier rule can look further back than the feed's 7 days."""
 import argparse
+import json
 import math
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from io import BytesIO
@@ -21,6 +23,7 @@ from dw.build import build_snapshots
 from dw.export import _write_json
 from dw.fetch import STATIC, UA, forecast_run
 from dw.grids import build_grids
+from dw.learn import load_learn
 
 FIRMS = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/viirs-j2-noaa21/csv/J2_VIIRS_C2_SouthEast_Asia_7d.csv"
 POPULATION = ("https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/IDN/"
@@ -112,9 +115,71 @@ def prepare_grids() -> None:
         build_peat(peat)
 
 
+def load_live_model(day: pd.Timestamp):
+    """(model, learn) when persistence weighting applies to `day`, else None after logging why not."""
+    try:
+        model, learn = load_learn(config.MODEL_DIR)
+        if model is None:
+            reason = f"no model files in {config.MODEL_DIR}"
+        elif not learn.get("shipped") or not learn.get("live_check"):
+            reason = "learn.json is not shipped or has no live_check"
+        elif day.month not in learn["live_check"]["months"]:
+            reason = f"month {day.month} is outside live_check months {learn['live_check']['months']}"
+        else:
+            return model, learn
+    except Exception as error:
+        reason = f"model failed to load ({type(error).__name__}: {error})"
+    print(f"persistence weighting off, building unweighted: {reason}", flush=True)
+    return None
+
+
+def _hourly_values(response, hours: list[str], variable: str) -> list[float]:
+    values = dict(zip(response["hourly"]["time"], response["hourly"][variable]))
+    found = [values.get(hour) for hour in hours]
+    if any(value is None for value in found):
+        raise ValueError(f"Open-Meteo {variable} is missing hours")
+    return found
+
+
+def fetch_persistence_weather(day: pd.Timestamp, path: Path) -> None:
+    """Rain (mm/h) and relative humidity (%) for all 24 hours of the previous UTC day on fetch_met's 1 degree grid,
+    from Open-Meteo's forecast API, written as the NPZ load_persistence_weather reads. Raises if anything is missing."""
+    previous = day - pd.Timedelta(days=1)
+    hours = pd.date_range(previous, periods=24, freq="h")
+    stamps = [f"{hour:%Y-%m-%dT%H:%M}" for hour in hours]
+    past_days = (pd.Timestamp(datetime.now(timezone.utc).date()) - previous).days
+    lon0, lat0, lon1, lat1 = config.BOX
+    lats = np.arange(lat0, lat1 + 0.01, 1.0)
+    lons = np.arange(lon0, lon1 + 0.01, 1.0)
+    points = [(a, b) for a in lats for b in lons]
+    columns = {"precipitation": [], "relative_humidity_2m": []}
+    for start in range(0, len(points), 60):
+        chunk = points[start:start + 60]
+        url = ("https://api.open-meteo.com/v1/forecast?latitude=" + ",".join(f"{a:.1f}" for a, _ in chunk)
+               + "&longitude=" + ",".join(f"{b:.1f}" for _, b in chunk)
+               + f"&hourly={','.join(columns)}&timezone=UTC&past_days={past_days}&forecast_days=1")
+        for attempt in range(3):
+            try:
+                raw = json.loads(download(url))
+                break
+            except Exception:
+                if attempt == 2:
+                    raise
+                time.sleep(5 * (attempt + 1))
+        raw = raw if isinstance(raw, list) else [raw]
+        if len(raw) != len(chunk):
+            raise ValueError(f"Open-Meteo returned {len(raw)} points for {len(chunk)} requested")
+        for response in raw:
+            for variable, rows in columns.items():
+                rows.append(_hourly_values(response, stamps, variable))
+        time.sleep(1)
+    arrays = {v: np.array(rows, float).reshape(len(lats), len(lons), 24) for v, rows in columns.items()}
+    np.savez_compressed(path, lats=lats, lons=lons, times=hours.to_numpy(), **arrays)
+
+
 def build_live(day: pd.Timestamp, out: Path, archive: Path | None = None) -> None:
-    with NamedTemporaryFile(suffix=".csv", delete=False) as fires:
-        fires_path = Path(fires.name)
+    with NamedTemporaryFile(suffix=".csv", delete=False) as fires, NamedTemporaryFile(suffix=".npz", delete=False) as rain:
+        fires_path, weather_path = Path(fires.name), Path(rain.name)
     try:
         fires_path.write_bytes(download(FIRMS))
         # The public regional download provides a freshness signal outside the
@@ -129,9 +194,20 @@ def build_live(day: pd.Timestamp, out: Path, archive: Path | None = None) -> Non
         print(f"detections: {len(merged)} in BOX from {merged.acq_date.min() if len(merged) else '-'} "
               f"to {merged.acq_date.max() if len(merged) else '-'}", flush=True)
         prepare_grids()
-        build_snapshots(day, 1, fires_path, out, persistence_weather=None)
+        weighting = load_live_model(day)
+        if weighting:
+            try:
+                fetch_persistence_weather(day, weather_path)
+                build_snapshots(day, 1, fires_path, out, persistence_weather=weather_path, model_learn=weighting)
+                print("persistence weighting on", flush=True)
+            except Exception as error:
+                print(f"persistence weighting off, building unweighted: {type(error).__name__}: {error}", flush=True)
+                weighting = None
+        if not weighting:
+            build_snapshots(day, 1, fires_path, out, persistence_weather=None)
     finally:
         fires_path.unlink(missing_ok=True)
+        weather_path.unlink(missing_ok=True)
 
     name = day.date().isoformat()
     _write_json({

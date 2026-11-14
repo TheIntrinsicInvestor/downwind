@@ -123,6 +123,26 @@ test("learnLine states the 2026 result, shipped or not", () => {
   expect(learnLine({ ...learn, shipped: false })).toBe("A learned persistence model did not beat counting days burned on 2026, so the ranking assumes every fire keeps burning. We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.");
 });
 
+test("learnLine for a live snapshot describes the NOAA-21 check", () => {
+  const base = { shipped: true, test_auc_2026: 0.79, heuristic_auc_2026: 0.621, cv_auc: [0.835, 0.832, 0.72] as [number, number, number],
+    base_rate_2026: 0.324, visibility_correction: "tested, not used" as const };
+  const lc = { satellite: "NOAA-21", period: "Sep to Oct 2026", test_auc: 0.793, heuristic_auc: 0.622, months: [8, 9, 10] };
+  const head = "A learned model predicts which fires will be seen again tomorrow. On NOAA-21 detections, the satellite this live map uses, it scores AUC 0.79 on Sep to Oct 2026 (counting days burned: 0.62). Downwind weights each fire's smoke by it. ";
+  const vis = " We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.";
+  expect(learnLine({ ...base, live_check: { ...lc, november: null } })).toBe(head + "The weighting is used only in August, September and October, the months it was tested; other months are untested." + vis);
+  expect(learnLine({ ...base, live_check: { ...lc, november: { auc: 0.81, heuristic_auc: 0.6, passed: true, period: "1 to 14 Nov 2026" } } })).toBe(head + "On 1 to 14 Nov 2026 it scored AUC 0.81 (counting days burned: 0.60). The weighting is used only in August, September and October, the months it was tested; other months are untested." + vis);
+  expect(learnLine({ ...base, live_check: { ...lc, november: { auc: 0.55, heuristic_auc: 0.6, passed: false, period: "1 to 14 Nov 2026" } } })).toBe(head + "It did not pass its November check, so the weighting is used only in August, September and October, the months it was tested." + vis);
+});
+
+test("Limits type accepts the shipped replay limits.json", () => {
+  const fs = require("node:fs") as typeof import("node:fs");
+  const dir = "public/replay";
+  const f = fs.readdirSync(dir, { recursive: true } as never).map(String).find((p) => p.endsWith("limits.json"));
+  expect(f).toBeDefined();
+  const limits = JSON.parse(fs.readFileSync(`${dir}/${f}`, "utf8")) as import("./replay").Limits;
+  if (limits.learn) expect(limits.learn.live_check).toBeUndefined();
+});
+
 import { contributionsFor, placeOptions } from "./replay";
 import type { Day } from "./replay";
 

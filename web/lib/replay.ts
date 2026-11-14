@@ -31,7 +31,9 @@ export type Place = { name: string; contributions: { fire: number; share: number
 export type Limits = {
   replay2023: { pooled: 0.45; pontianak: 0.81; worst_quartile_hit: 0.48; chance: 0.25; airports: 7; days: 421 };
   learn: { shipped: boolean; test_auc_2026: number; heuristic_auc_2026: number; cv_auc: [number, number, number];
-          base_rate_2026: number; visibility_correction: "tested, not used" } | null;   // set by Task 11
+          base_rate_2026: number; visibility_correction: "tested, not used";
+          live_check?: { satellite: string; period: string; test_auc: number; heuristic_auc: number; months: number[];
+            november: { auc: number; heuristic_auc: number; passed: boolean; period: string } | null } } | null;   // set by Task 11; live_check only on live snapshots
   forecast2026?: { forecast: number; hindsight: number; baseline: number; pontianak: number; airports: number; days: number;
     gain_low: number; gain_high: number };                // dw.forecast_check, 13 Nov
   ignores: string[]; not_claimed: string[];
@@ -216,7 +218,22 @@ export function ageLabel(days: number | null): string | null {
 
 const VIS_LINE = "We also tested a learned correction of the smoke index against airport visibility; it did not beat the physics, so we do not use one.";
 
+function monthList(months: number[]): string {
+  const names = months.map((m) => MONTHS[m - 1]);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+}
+
 export function learnLine(learn: NonNullable<Limits["learn"]>): string {
+  const lc = learn.live_check;
+  if (lc) {
+    const nov = lc.november;
+    const tail = nov?.passed
+      ? `On ${nov.period} it scored AUC ${nov.auc.toFixed(2)} (counting days burned: ${nov.heuristic_auc.toFixed(2)}). The weighting is used only in ${monthList(lc.months)}, the months it was tested; other months are untested.`
+      : nov
+        ? `It did not pass its November check, so the weighting is used only in ${monthList(lc.months)}, the months it was tested.`
+        : `The weighting is used only in ${monthList(lc.months)}, the months it was tested; other months are untested.`;
+    return `A learned model predicts which fires will be seen again tomorrow. On ${lc.satellite} detections, the satellite this live map uses, it scores AUC ${lc.test_auc.toFixed(2)} on ${lc.period} (counting days burned: ${lc.heuristic_auc.toFixed(2)}). Downwind weights each fire's smoke by it. ${tail} ${VIS_LINE}`;
+  }
   if (!learn.shipped) {
     return `A learned persistence model did not beat counting days burned on 2026, so the ranking assumes every fire keeps burning. ${VIS_LINE}`;
   }

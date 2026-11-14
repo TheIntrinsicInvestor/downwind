@@ -1,6 +1,6 @@
 numpy
 pandas==2.2.3   # the version that produced the 2023 replay figures; pandas 3 reorders tied visibility days (0.369 vs 0.375)
 scipy
-scikit-learn
+scikit-learn==1.9.1   # the saved persistence model (pipeline/model/persist_model.pkl) was trained with this version
 pillow
 pytest

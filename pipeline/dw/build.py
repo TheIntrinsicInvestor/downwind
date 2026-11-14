@@ -78,14 +78,16 @@ def cmd_day(day: pd.Timestamp, n_days: int, out=REPLAY_OUT, *, fires_csv: Path |
     print(f"wrote {len(exported)} days, index.json, limits.json to {out} in {time.time() - t0:.0f} s")
 
 
-def build_snapshots(day: pd.Timestamp, n_days: int, fires_csv: Path, out: Path, *, persistence_weather: Path | None):
+def build_snapshots(day: pd.Timestamp, n_days: int, fires_csv: Path, out: Path, *, persistence_weather: Path | None,
+                    model_learn: tuple | None = None):
+    """model_learn: (model, learn dict) to use instead of the files in DOWNWIND_DATA_DIR (live runs)."""
     day = day.normalize()
     weighted = persistence_weather is not None
     fires = load_fires_csv(fires_csv, include_daynight=weighted)
     grids = load_grids()
     model, learn, weather = None, None, None
     if weighted:
-        model, learn = load_learn()
+        model, learn = model_learn or load_learn()
         if model is None or not learn or not learn["shipped"]:
             raise ValueError("--persistence-weather needs a shipped persist_model.pkl and learn.json in DOWNWIND_DATA_DIR")
         weather = load_persistence_weather(persistence_weather)
