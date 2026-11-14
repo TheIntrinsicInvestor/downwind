@@ -73,7 +73,7 @@ export async function loadLimits(): Promise<Limits> {
 
 // The particle file is gzip on disk. If a server or browser has already unpacked it (no gzip magic bytes),
 // use the bytes as they are.
-async function gunzip(raw: ArrayBuffer): Promise<ArrayBuffer> {
+export async function gunzip(raw: ArrayBuffer): Promise<ArrayBuffer> {
   const u = new Uint8Array(raw);
   if (u.length < 2 || u[0] !== 0x1f || u[1] !== 0x8b) return raw;
   const stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream("gzip"));

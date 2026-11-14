@@ -4,9 +4,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
+import { usePathname } from "next/navigation";
 import { type Day, type Index, type Limits, type Mode, ReplayError, contributionsFor, loadDay, loadIndex, loadLimits,
   rankedFires } from "@/lib/replay";
 import type { Camera } from "@/lib/story";
+import { isStale, refreshSnapshot, type LiveSnapshot, type Manifest } from "@/lib/live";
 
 export type Panel = "fire" | "city" | "bulletin" | "limits" | "ask";
 export type Replay = {
@@ -26,6 +28,8 @@ export type Replay = {
   mapReady: boolean; mapError: string | null;
   // false while the landing page shows: the map ignores pointer and keyboard input so the page scrolls over it.
   mapInteractive: boolean; setMapInteractive(i: boolean): void;
+  liveSelected: boolean; showLive(): void;
+  feedManifest: Manifest | null; feedUnavailable: boolean; feedStale: boolean;
 };
 
 // How MapStage hands its map to the provider (internal to the provider and the stage).
@@ -46,6 +50,7 @@ declare global {
 
 const FPS = 8;
 const FLY_MS = 1800;
+const FEED_POLL_MS = 60_000;
 
 const ReplayContext = createContext<Replay | null>(null);
 const StageContext = createContext<StageBinding | null>(null);
@@ -71,9 +76,15 @@ function moveCamera(map: MapLibreMap, c: Camera, instant: boolean) {
 }
 
 export default function ReplayProvider({ children }: { children: ReactNode }) {
+  const isApp = usePathname() === "/app";
   const [index, setIndex] = useState<Index | null>(null);
-  const [date, setDate] = useState<string | null>(null);
-  const [data, setData] = useState<{ day: Day; bin: ArrayBuffer } | null>(null);
+  const [date, setReplayDate] = useState<string | null>(null);
+  const [replayData, setData] = useState<{ day: Day; bin: ArrayBuffer } | null>(null);
+  const [wantsLive, setWantsLive] = useState(true);
+  const [snapshot, setSnapshot] = useState<LiveSnapshot | null>(null);
+  const [feedUnavailable, setFeedUnavailable] = useState(false);
+  const [feedStale, setFeedStale] = useState(false);
+  const lastSnapshot = useRef<LiveSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [frame, setFrame] = useState(0);
@@ -93,11 +104,58 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
 
   const mapRef = useRef<MapLibreMap | null>(null);
   const pendingCamera = useRef<Camera | null>(null);
+  const liveSelected = isApp && wantsLive;
+  const liveData = liveSelected ? snapshot : null;
+  const data = liveData ?? replayData;
+  const liveSelectedRef = useRef(liveSelected);
+
+  useEffect(() => {
+    liveSelectedRef.current = liveSelected;
+  }, [liveSelected]);
+
+  const setDate = useCallback((day: string) => {
+    setWantsLive(false);
+    setReplayDate(day);
+  }, []);
+  const showLive = useCallback(() => {
+    setWantsLive(true);
+    setSelected(null);
+    setFrame(0);
+  }, []);
+
+  useEffect(() => {
+    // Start on Live when entering the app. The landing story keeps its replay date.
+    if (isApp) showLive();
+  }, [isApp, showLive]);
+
+  useEffect(() => {
+    if (!isApp) return;
+    const stop = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(25_000)]);
+        const next = await refreshSnapshot(lastSnapshot.current, signal);
+        if (stop.signal.aborted) return;
+        if (next !== lastSnapshot.current && liveSelectedRef.current) setSelected(null);
+        lastSnapshot.current = next;
+        setSnapshot(next);
+        setFeedUnavailable(false);
+      } catch {
+        if (stop.signal.aborted) return;
+        setFeedUnavailable(true);
+      }
+      setFeedStale(Boolean(lastSnapshot.current && isStale(lastSnapshot.current.manifest, Date.now())));
+      timer = setTimeout(poll, FEED_POLL_MS);
+    }
+    void poll();
+    return () => { stop.abort(); clearTimeout(timer); };
+  }, [isApp, attempt]);
 
   useEffect(() => {
     if (index) return;
     loadIndex()
-      .then((ix) => { setIndex(ix); setDate((d) => d ?? ix.default); })
+      .then((ix) => { setIndex(ix); setReplayDate((d) => d ?? ix.default); })
       .catch((e) => setError(e instanceof ReplayError ? e.message : "The list of replay days could not be loaded."));
   }, [index, attempt]);
 
@@ -170,10 +228,12 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   });
 
   const value: Replay = {
-    index, date, setDate, day, bin: data?.bin ?? null, error, retry,
+    index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
     frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
-    limits, limitsError, storyFocus, setStoryFocus, focus, chatEnabled, flyTo, mapReady, mapError,
-    mapInteractive, setMapInteractive,
+    limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,
+    chatEnabled: liveData ? false : chatEnabled, flyTo, mapReady, mapError,
+    mapInteractive, setMapInteractive, liveSelected, showLive,
+    feedManifest: liveData?.manifest ?? null, feedUnavailable, feedStale,
   };
 
   return (
