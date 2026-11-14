@@ -4,16 +4,18 @@
 import { memo } from "react";
 
 const DATA = [
-  "NASA FIRMS: fire detections (VIIRS S-NPP)",
+  "NASA FIRMS: fire detections (VIIRS: NOAA-21 for the live map, S-NPP for the replay days)",
   "Open-Meteo: ECMWF IFS forecast runs (winds, rain, humidity)",
   "Global Forest Watch: peatlands map",
   "WorldPop: 1 km Indonesia population, 2020",
   "geoBoundaries: province and regency boundaries",
+  "OpenStreetMap via Geofabrik: roads and mapped sites (ODbL)",
   "Iowa State University Mesonet: airport visibility (METAR archive, used in validation)",
 ];
 
 const AI = [
   "Claude Code (Anthropic): wrote the code under the direction of the team",
+  "OpenAI Codex: wrote code under the direction of the team",
   "Nebius Token Factory, DeepSeek-V4-Pro-0813 and MiniMax-M3: write the morning bulletins",
   "scikit-learn HistGradientBoostingClassifier: the persistence model",
 ];
@@ -39,7 +41,8 @@ function Footer() {
             <p className="label">Team</p>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">Brian Liew, Rhea Samel, Andrew Lui</p>
             <p className="mt-4 text-[13px] leading-relaxed text-ink-2">Built for the Youth Climate Hackathon at COP31</p>
-            {/* Repository link goes here once the repo is public (after sign-off). */}
+            <a href="https://github.com/TheIntrinsicInvestor/downwind" target="_blank" rel="noreferrer"
+              className="focus-ring mt-4 inline-block text-[13px] text-ember-hot underline underline-offset-4 hover:text-ember">Source code on GitHub</a>
           </div>
         </div>
         <p className="mt-12 border-t border-rule pt-6 text-xs leading-relaxed text-ink-3">

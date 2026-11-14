@@ -13,11 +13,11 @@ function Stakes() {
         </h2>
         <div className="mt-10 grid gap-10 border-t border-rule pt-10 md:grid-cols-2 md:gap-16">
           <div>
-            <p className="figure text-4xl text-ink md:text-5xl">401,586</p>
+            <p className="figure text-4xl text-ink md:text-5xl">425,167</p>
             <p className="mt-3 max-w-[26rem] text-[15px] leading-relaxed text-ink-2">
-              respiratory infections linked to the fires across seven provinces by 2 November 2026. Of these, 91,913 were in children aged five and under.
+              respiratory infections linked to the fires across seven provinces by 5 November 2026. Of these, 95,627 were in children under five.
             </p>
-            <p className="mt-3 text-xs text-ink-3">Source: Indonesian Ministry of Health, press briefing of 4 November 2026 (data to 2 November)</p>
+            <p className="mt-3 text-xs text-ink-3">Source: Indonesian Ministry of Health, figures to 5 November 2026 (reported by Bloomberg Technoz, 6 November 2026)</p>
           </div>
           <div>
             <p>
