@@ -106,6 +106,8 @@ The Live view on `/app` checks the feed manifest every minute. It displays a new
 
 The [Morning feed workflow](https://github.com/TheIntrinsicInvestor/downwind/actions/workflows/morning-feed.yml) runs daily at 07:12 West Kalimantan time. It publishes one complete snapshot to the `live-data` branch and retains earlier snapshots. Use **Run workflow** on `main` for a manual refresh. If a run fails, the published manifest continues to point to the previous snapshot.
 
+Each run also keeps a detection archive at `detections/archive.csv` on the `live-data` branch: the new FIRMS download is merged with earlier mornings' detections (inside the map's bounding box, last 21 days), so fire age and the "seen 3 days running" tier rule can look past the feed's 7 days. Locally, pass `--archive path/to/archive.csv` to `python -m dw.live`.
+
 `web/public/replay/` holds `index.json` (the available days), `limits.json` (the accuracy and limits panel), and per day `YYYY-MM-DD.json` (counts, fires with tier, rank, share and card fields, places with their contributing fires, ranking stability, changes since the day before, the bulletin, and byte offsets for 48 hourly frames) plus `YYYY-MM-DD.particles.bin.gz` (particle positions, source fire and opacity per hour). The TypeScript types in `web/lib/replay.ts` are the contract; `pipeline/dw/export.py` writes it.
 
 ## Data sources and licences
