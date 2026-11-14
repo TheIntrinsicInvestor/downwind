@@ -28,6 +28,7 @@ def _directory(variable: str, default: Path) -> Path:
 DATA = _directory("DOWNWIND_DATA_DIR", ROOT / "data")
 REPLAY_DATA = _directory("DOWNWIND_REPLAY_DATA_DIR", ROOT.parent / "validation-2023-replay" / "data")
 CHECK_DATA = _directory("DOWNWIND_CHECK_DATA_DIR", ROOT.parent / "data-check" / "data")
+MODEL_DIR = _directory("DOWNWIND_MODEL_DIR", ROOT / "pipeline" / "model")     # committed model for live runs
 
 
 def forecast_cache() -> Path:

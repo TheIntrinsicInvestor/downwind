@@ -173,10 +173,11 @@ def run_learn() -> dict:
     return learn
 
 
-def load_learn():
-    """(model, learn dict) if run_learn has been run, else (None, None)."""
-    model_path = config.DATA / "persist_model.pkl"
-    learn_path = config.DATA / "learn.json"
+def load_learn(directory=None):
+    """(model, learn dict) if run_learn has been run (in `directory`, default DATA), else (None, None)."""
+    directory = config.DATA if directory is None else directory
+    model_path = directory / "persist_model.pkl"
+    learn_path = directory / "learn.json"
     if not (model_path.exists() and learn_path.exists()):
         return None, None
     return pickle.loads(model_path.read_bytes()), json.loads(learn_path.read_text(encoding="utf-8"))
