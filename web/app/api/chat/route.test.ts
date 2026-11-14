@@ -43,7 +43,6 @@ test("128 concurrent malformed chat requests return 400 without reaching the pro
       return "uncaught";
     }
   }));
-  console.log("statuses", Object.fromEntries([...new Set(statuses)].map(s => [s, statuses.filter(x => x === s).length])));
   expect(upstream).not.toHaveBeenCalled();
   expect(statuses.every(s => s === 400)).toBe(true);
 });

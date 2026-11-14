@@ -45,7 +45,8 @@ async function callLLM(apiKey: string, messages: { role: string; content: string
     try {
       const res = await fetch(BASE_URL, {
         method: "POST",
-        signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
+        // Per call: DeepSeek takes about 23 s, MiniMax about 2 s (downwind-data skill).
+        signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model, messages, max_tokens: 4000, temperature: 0.3 }),
       });
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
   const f = facts(day);
   const messages = [{ role: "system", content: SYSTEM },
     { role: "user", content: `Facts:\n${JSON.stringify(f)}\n\nQuestion: ${question}` }];
-  const signal = AbortSignal.any([req.signal, AbortSignal.timeout(20_000)]);
+  const signal = AbortSignal.any([req.signal, AbortSignal.timeout(60_000)]);
   for (let attempt = 0; attempt < 2 && !signal.aborted; attempt++) {
     const text = await callLLM(apiKey, messages, signal);
     if (text && offending(text, f).length === 0 && !/[—–]/.test(text)) return Response.json({ answer: text });
