@@ -3,6 +3,7 @@
 import { memo } from "react";
 import SmokeTimeline from "./SmokeTimeline";
 import { type Day, contributionsFor, forecastTime, longDate, pct, placeOptions } from "@/lib/replay";
+import FacilitiesBlock from "./FacilitiesBlock";
 
 type Props = { day: Day; place: string | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
 
@@ -38,6 +39,7 @@ function CityView({ day, place, onPlace, onFire }: Props) {
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
             Shares are of the modelled smoke over residents in this place, from fires detected on {longDate(day.fires_date)}.
           </p>
+          <FacilitiesBlock day={day} place={place} />
           {rows.length === 0 ? (
             <p className="mt-3 text-ink-2">No modelled smoke over residents here on this day.</p>
           ) : (

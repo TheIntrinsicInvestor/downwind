@@ -153,6 +153,7 @@ Each run also keeps a detection archive at `detections/archive.csv` on the `live
 | Road and water distance inputs (optional) | Geofabrik Kalimantan OpenStreetMap extract | OpenStreetMap data ODbL; © OpenStreetMap contributors |
 | Basemap | OpenFreeMap, OpenMapTiles, OpenStreetMap contributors | OpenStreetMap data ODbL |
 | Roads including tracks (distance on the fire card) | OpenStreetMap, Geofabrik Kalimantan extract of 13 November 2026 | ODbL, © OpenStreetMap contributors |
+| Schools, clinics and hospitals (Protect tab) | OpenStreetMap, Geofabrik Kalimantan extract; districts from geoBoundaries ADM2 | ODbL, © OpenStreetMap contributors |
 
 ## AI tools and models
 
@@ -212,4 +213,33 @@ Borneo bounding box (108–115° E, 3.5° S–3° N), including neighbouring are
 It preserves the source timestamp and links to OSM features. The included data
 is from the 13 November 2026 OSM snapshot: 423 industrial polygons and 1,261
 plantation polygons. These are mapped areas, not counts of distinct businesses.
+© OpenStreetMap contributors; Geofabrik extract; ODbL-1.0.
+
+## Schools and clinics in the Protect tab
+
+When a district is chosen in **Protect**, the tab counts mapped schools and
+clinics or hospitals in that district with modelled smoke passing within 2 km
+during the 48-hour outlook, flags when smoke reaches schools during school
+hours (07:00 to 13:00 WIB, Monday to Saturday), and lists the facilities near
+the smoke with the time it first arrives. Click a name to zoom to it.
+
+Like the Sites overlay, this uses the existing capped animation particles and a
+2 km display margin: a heads-up, not a health threshold, and a missing match is
+not an all-clear. It does not alter the model, simulation, weights or ranking.
+OpenStreetMap misses many rural schools and clinics, so counts are minimums,
+and coverage is western Borneo only.
+
+Refresh the committed GeoJSON separately from morning builds:
+
+```bash
+cd pipeline
+python -m dw.facilities --pbf ../data/kalimantan-latest.osm.pbf --out ../web/public/context/facilities.geojson
+```
+
+If the PBF is missing it is downloaded from Geofabrik; the geoBoundaries ADM2
+file is downloaded if it isn't in the data directory. Schools are
+`amenity=school`; health facilities are `amenity=hospital`, `amenity=clinic` or
+`healthcare=hospital|clinic|centre` (Indonesian *puskesmas* are often tagged
+`healthcare=centre`). Areas are reduced to a point. Each facility carries the
+ADM2 district it falls in, matching the Protect place names.
 © OpenStreetMap contributors; Geofabrik extract; ODbL-1.0.
