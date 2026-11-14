@@ -13,6 +13,7 @@ import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMO
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
 import { SITE_COLORS } from "@/lib/sites";
+import { REGENCY_URL, type RegencyCollection, highlightPadding, regencyBounds, regencyByName } from "@/lib/regency";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
@@ -63,7 +64,7 @@ const makeSmoke = (n: number, positions: Float32Array, weights: Float32Array): S
 const EMPTY: Smoke = makeSmoke(0, new Float32Array(0), new Float32Array(0));
 
 export default function MapStage() {
-  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, sitesEnabled, sitesDataset } = useReplay();
+  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, sitesEnabled, sitesDataset, place, panel } = useReplay();
   const { attach, setMapReady, setMapError } = useStageBinding();
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
@@ -143,6 +144,41 @@ export default function MapStage() {
     }
     for (const id of ["context-sites-fill", "context-sites-outline"]) map.setLayoutProperty(id, "visibility", "visible");
   }, [ready, sitesEnabled, sitesDataset, mapInteractive]);
+
+  // Protect tab: outline the chosen regency or city and fit the map to it. The outlines load on first use.
+  const regencyData = useRef<Promise<RegencyCollection | null> | null>(null);
+  useEffect(() => {
+    const map = mapObj.current;
+    if (!ready || !map) return;
+    const show = (name: string) => {
+      for (const id of ["regency-fill", "regency-outline"]) if (map.getLayer(id)) map.setFilter(id, ["==", ["get", "name"], name]);
+    };
+    const name = panel === "city" ? place : null;
+    if (!name) { show(""); return; }
+    let live = true;
+    regencyData.current ??= fetch(REGENCY_URL).then((r) => (r.ok ? (r.json() as Promise<RegencyCollection>) : null)).catch(() => null)
+      .then((d) => { if (!d) regencyData.current = null; return d; });
+    regencyData.current.then((data) => {
+      if (!live || !data) return;
+      if (!map.getSource("regency")) {
+        map.addSource("regency", { type: "geojson", data });
+        const before = map.getStyle().layers.find((layer) => layer.type === "symbol")?.id;
+        const filter = ["==", ["get", "name"], ""] as never;
+        map.addLayer({ id: "regency-fill", type: "fill", source: "regency", filter,
+          paint: { "fill-color": "#eef0ea", "fill-opacity": 0.1 } }, before);
+        map.addLayer({ id: "regency-outline", type: "line", source: "regency", filter,
+          paint: { "line-color": "#eef0ea", "line-width": 2, "line-opacity": 0.95 } }, before);
+      }
+      show(name);
+      const r = regencyByName(data, name);
+      if (!r) return;
+      const [west, south, east, north] = regencyBounds(r);
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      map.fitBounds([[west, south], [east, north]], { padding: highlightPadding(window.innerWidth), maxZoom: 9,
+        duration: still ? 0 : 900, essential: true });
+    });
+    return () => { live = false; };
+  }, [ready, place, panel]);
 
   const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
 
