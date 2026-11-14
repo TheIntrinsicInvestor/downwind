@@ -26,7 +26,11 @@ Checked against `main` and open PRs on 14 November 2026. This updates the
 
 - [ ] Review and integrate detection-history retention (#9). This is already
   being implemented on `feature/live-feed-archive`; do not duplicate it.
-- [ ] Review and integrate reachability and the protection-view changes (#5).
+- [x] Replace the failed Overpass reachability fetch with optional local OSM
+  extraction and separate road/water distances (local branch; not published).
+- [ ] Validate those distances against real mapped locations before any
+  display-only integration. PR #5 contains proposed tasks, not implementation.
+  Its scoring/model/ranking changes are excluded by the user’s instruction.
 - [ ] Confirm the next scheduled morning run succeeds, beyond the manual run.
 - [ ] Check the deployed `/app` against the published snapshot, including a
   failed refresh, recovery, and mobile layout.

@@ -79,6 +79,33 @@ The example uses detections from 13 November UTC and fetches the 12:00 UTC ECMWF
 
 To enable persistence weighting for a CSV build (`dw.build`), put the team's `persist_model.pkl` and `learn.json` in the data directory and pass `--persistence-weather /path/to/weather.npz`. Use scikit-learn 1.9.1, the version that produced the saved model (pinned in `requirements.txt`). The live feed does this automatically, see below. The CSV needs its `daynight` column and up to seven UTC dates of detections for the model's history features. Supply all 24 hours of the previous UTC day in the weather file. It needs `lats`, `lons`, hourly UTC `times`, `precipitation` in mm/h, and `relative_humidity_2m` in percent. Use a regular grid with weather arrays shaped latitude × longitude × time. Each snapshot reports whether it applied persistence weighting.
 
+### Optional road and water distance preparation
+
+After installing the pipeline requirements and preparing the population/province
+grids, run from `pipeline/`:
+
+```bash
+python -m dw.reach
+# Or use an extract already downloaded:
+python -m dw.reach --pbf /path/to/kalimantan-latest.osm.pbf
+```
+
+The command streams the [Geofabrik Kalimantan extract](https://download.geofabrik.de/asia/indonesia/kalimantan.html)
+to the data directory on first use, then reads it locally using pyosmium.
+It writes `osm_roads.json` (trunk, primary, secondary, tertiary, unclassified,
+and track) and `osm_water.json` (river and canal), retaining ways whose bounding
+boxes overlap the province bounding box. Downloads are cached; to refresh the
+extract, remove the cached PBF explicitly and rerun the command. Extraction
+rebuilds both line files each time. It uses a disk-backed node index, so allow
+local disk space for the extract and its index.
+
+`dw.reach.road_km` and `water_km` report approximate straight-line distances
+on a 0.01-degree raster (about 1.1 km). Missing/empty datasets raise an error.
+These are distances to mapped features, not driving routes, navigability,
+water availability, or verified crew access. OSM coverage may be incomplete.
+This optional command does not run during snapshot builds and does not change
+model weights, training, smoke calculations, or rankings.
+
 ### Reproduce the research replay
 
 The research commands also use the original archive CSVs, weather grids, and airport observations. Set `DOWNWIND_REPLAY_DATA_DIR` and `DOWNWIND_CHECK_DATA_DIR` to the team's data directories. Their defaults are `../validation-2023-replay/data` and `../data-check/data` relative to the checkout. See the archive filenames in `pipeline/dw/fetch.py` and the weather and METAR paths in `pipeline/dw/evaluate.py`. The fetch command retrieves boundaries, the 2025 Malaysia CSV, and the listed historical weather grids. The remaining inputs come from the team's research files. The `pandas` pin preserves the published handling of tied visibility days.
@@ -123,6 +150,7 @@ Each run also keeps a detection archive at `detections/archive.csv` on the `live
 | Peat extent | Global Forest Watch peatlands map (zoom 7 tiles) | per the dataset's page on Global Forest Watch |
 | Population | WorldPop 1 km Indonesia, 2020 | CC BY 4.0 |
 | Province and regency boundaries | geoBoundaries (gbOpen, IDN ADM1 and ADM2) | CC BY 4.0 |
+| Road and water distance inputs (optional) | Geofabrik Kalimantan OpenStreetMap extract | OpenStreetMap data ODbL; © OpenStreetMap contributors |
 | Basemap | OpenFreeMap, OpenMapTiles, OpenStreetMap contributors | OpenStreetMap data ODbL |
 | Roads including tracks (distance on the fire card) | OpenStreetMap, Geofabrik Kalimantan extract of 13 November 2026 | ODbL, © OpenStreetMap contributors |
 
