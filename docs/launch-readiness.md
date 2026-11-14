@@ -11,7 +11,7 @@ The [public app](https://downwind-sigma.vercel.app) offers a daily Live outlook 
 ## Review with this pull request
 
 - Validate a complete snapshot before publishing. Check browser refresh failure, recovery, and rollback protection.
-- Check coastline, borders, and the Sites overlay on desktop and mobile using real tiles. Verify fire selection, site source links, visibility toggle and retry.
+- Check coastline and borders on desktop and mobile using real tiles. Verify fire selection.
 - Verify that model, smoke simulation and ranking code match main.
 
 ## Before operational launch
@@ -21,4 +21,4 @@ The [public app](https://downwind-sigma.vercel.app) offers a daily Live outlook 
 - Monitor branch growth and upstream availability before changing the publishing cadence or storage.
 - Pilot with a provincial task force. Validate district timing and compare weighted and unweighted smoke outputs against observations.
 
-Protect shows relative modeled impact. Sites shows mapped areas and proximity to detected fires and sampled forecast smoke. Coverage is incomplete. Neither feature provides AQI or predicts ground-fire spread.
+Protect shows relative modeled impact. Coverage is incomplete. It does not provide AQI or predict ground-fire spread.

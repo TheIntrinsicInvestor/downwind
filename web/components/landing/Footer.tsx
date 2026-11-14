@@ -9,7 +9,7 @@ const DATA = [
   "Global Forest Watch: peatlands map",
   "WorldPop: 1 km Indonesia population, 2020",
   "geoBoundaries: province and regency boundaries",
-  "OpenStreetMap via Geofabrik: roads and mapped sites (ODbL)",
+  "OpenStreetMap via Geofabrik: roads (ODbL)",
   "Iowa State University Mesonet: airport visibility (METAR archive, used in validation)",
 ];
 

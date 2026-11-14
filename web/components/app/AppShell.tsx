@@ -19,15 +19,14 @@ import LimitsPanel from "../LimitsPanel";
 import BulletinPanel from "../BulletinPanel";
 import CityView from "../CityView";
 import ChatPanel from "../ChatPanel";
-import SitesPanel from "../SitesPanel";
 import { type Panel, useReplay } from "../ReplayProvider";
 import Sheet, { type SheetState } from "./Sheet";
 
 const TABS: { id: Panel; label: string }[] = [
   { id: "fire", label: "Fire" }, { id: "city", label: "Protect" }, { id: "bulletin", label: "Bulletin" },
-  { id: "sites", label: "Sites" }, { id: "limits", label: "Limits" }, { id: "ask", label: "Ask" },
+  { id: "limits", label: "Limits" }, { id: "ask", label: "Ask" },
 ];
-const URL_PANELS = ["limits", "city", "bulletin", "fire", "sites"] as const;
+const URL_PANELS = ["limits", "city", "bulletin", "fire"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
 const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
@@ -220,7 +219,6 @@ export default function AppShell() {
 
   function panelContent(d: Day): ReactNode {
     switch (active) {
-      case "sites": return <SitesPanel />;
       case "city": return <CityView day={d} place={place} fire={selected} onPlace={setPlace} onFire={onCityFire} />;
       case "bulletin": return <BulletinPanel day={d} live={liveSelected} />;
       case "limits": return <LimitsPanel day={d} limits={limits} error={limitsError} />;
