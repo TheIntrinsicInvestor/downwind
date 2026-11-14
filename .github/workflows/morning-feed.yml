@@ -36,7 +36,17 @@ jobs:
           key: downwind-grids-${{ hashFiles('pipeline/dw/live.py', 'pipeline/dw/grids.py', 'pipeline/dw/config.py') }}
       - run: python -m pip install -r requirements.txt
         working-directory: pipeline
-      - run: python -m dw.live --out "$RUNNER_TEMP/snapshot"
+      - name: Restore detection archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Detections from earlier mornings, so fire age and the 3-days-running rule see past the 7-day feed.
+          if git ls-remote --exit-code --heads origin refs/heads/live-data > /dev/null; then
+            git fetch --depth=1 origin refs/heads/live-data
+            git show FETCH_HEAD:detections/archive.csv > "$RUNNER_TEMP/archive.csv" 2> /dev/null \
+              || rm -f "$RUNNER_TEMP/archive.csv"
+          fi
+      - run: python -m dw.live --out "$RUNNER_TEMP/snapshot" --archive "$RUNNER_TEMP/archive.csv"
         working-directory: pipeline
       - name: Publish complete snapshot
         shell: bash
@@ -61,7 +71,9 @@ jobs:
           mkdir "$feed/snapshots/$id"
           cp "$snapshot/$day.json" "$snapshot/$day.particles.bin.gz" "$snapshot/limits.json" "$feed/snapshots/$id/"
           cp "$snapshot/manifest.json" "$feed/manifest.json"
-          git -C "$feed" add -- manifest.json "snapshots/$id"
+          mkdir -p "$feed/detections"
+          cp "$RUNNER_TEMP/archive.csv" "$feed/detections/archive.csv"
+          git -C "$feed" add -- manifest.json "snapshots/$id" detections/archive.csv
           git -C "$feed" -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Publish Downwind snapshot for $day"
           commit=$(git -C "$feed" rev-parse HEAD)
           git push origin "$commit:refs/heads/live-data"
