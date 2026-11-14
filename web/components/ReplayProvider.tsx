@@ -8,10 +8,13 @@ import { usePathname } from "next/navigation";
 import { type Day, type Index, type Limits, type Mode, ReplayError, contributionsFor, loadDay, loadIndex, loadLimits,
   rankedFires } from "@/lib/replay";
 import type { Camera } from "@/lib/story";
+import type { SiteDataset } from "@/lib/sites";
 import { isStale, refreshSnapshot, type LiveSnapshot, type Manifest } from "@/lib/live";
 
-export type Panel = "fire" | "city" | "bulletin" | "limits" | "ask";
+export type Panel = "fire" | "city" | "bulletin" | "limits" | "ask" | "sites";
 export type Replay = {
+  sitesEnabled: boolean; setSitesEnabled(value: boolean): void;
+  sitesDataset: SiteDataset | null; sitesError: string | null; retrySites(): void;
   index: Index | null; date: string | null; setDate(d: string): void;
   day: Day | null; bin: ArrayBuffer | null; error: string | null; retry(): void;
   frame: number; setFrame(f: number): void; playing: boolean; setPlaying(p: boolean): void;
@@ -78,6 +81,11 @@ function moveCamera(map: MapLibreMap, c: Camera, instant: boolean) {
 
 export default function ReplayProvider({ children }: { children: ReactNode }) {
   const isApp = usePathname() === "/app";
+  const [sitesEnabled, setSitesEnabled] = useState(false);
+  const [sitesDataset, setSitesDataset] = useState<SiteDataset | null>(null);
+  const [sitesError, setSitesError] = useState<string | null>(null);
+  const [sitesAttempt, setSitesAttempt] = useState(0);
+  const retrySites = useCallback(() => setSitesAttempt((n) => n + 1), []);
   const [index, setIndex] = useState<Index | null>(null);
   const [date, setReplayDate] = useState<string | null>(null);
   const [replayData, setData] = useState<{ day: Day; bin: ArrayBuffer } | null>(null);
@@ -114,6 +122,24 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     liveSelectedRef.current = liveSelected;
   }, [liveSelected]);
+
+  useEffect(() => {
+    if (!isApp || !sitesEnabled || sitesDataset) return;
+    const stop = new AbortController();
+    setSitesError(null);
+    fetch("/context/sites.geojson", { signal: AbortSignal.any([stop.signal, AbortSignal.timeout(30_000)]) })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Sites unavailable");
+        const data = await response.json();
+        if (data?.type !== "FeatureCollection" || !Array.isArray(data.features) ||
+          !data.metadata?.extracted_at || data.features.some((f: SiteDataset["features"][number]) =>
+            !f || !["Polygon", "MultiPolygon"].includes(f.geometry?.type) ||
+            !["industrial", "plantation"].includes(f.properties?.kind))) throw new Error("Invalid sites");
+        if (!stop.signal.aborted) setSitesDataset(data);
+      })
+      .catch(() => { if (!stop.signal.aborted) setSitesError("Mapped sites could not be loaded. Fire and smoke data are still available."); });
+    return () => stop.abort();
+  }, [isApp, sitesEnabled, sitesDataset, sitesAttempt]);
 
   const setDate = useCallback((day: string) => {
     setWantsLive(false);
@@ -231,6 +257,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   });
 
   const value: Replay = {
+    sitesEnabled, setSitesEnabled, sitesDataset, sitesError, retrySites,
     index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
     frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
     limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,

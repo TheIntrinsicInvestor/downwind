@@ -48,6 +48,9 @@ jobs:
           fi
       - run: python -m dw.live --out "$RUNNER_TEMP/snapshot" --archive "$RUNNER_TEMP/archive.csv"
         working-directory: pipeline
+      - name: Validate complete snapshot
+        run: python -m dw.validate "$RUNNER_TEMP/snapshot"
+        working-directory: pipeline
       - name: Publish complete snapshot
         shell: bash
         run: |

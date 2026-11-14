@@ -3,9 +3,9 @@
 /* Design tokens (spec section 4). */
 :root {
   --bg: #05070b;
-  --land: #10161f;
-  --water: #03060b;
-  --coast: #26384d;
+  --land: #263b46;
+  --water: #071522;
+  --coast: #7293a3;
   --ink: #eef0ea;
   --ink-2: #b9c1cc;
   --ink-3: #8d97a6;

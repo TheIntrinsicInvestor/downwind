@@ -79,6 +79,33 @@ The example uses detections from 13 November UTC and fetches the 12:00 UTC ECMWF
 
 To enable persistence weighting for a CSV build (`dw.build`), put the team's `persist_model.pkl` and `learn.json` in the data directory and pass `--persistence-weather /path/to/weather.npz`. Use scikit-learn 1.9.1, the version that produced the saved model (pinned in `requirements.txt`). The live feed does this automatically, see below. The CSV needs its `daynight` column and up to seven UTC dates of detections for the model's history features. Supply all 24 hours of the previous UTC day in the weather file. It needs `lats`, `lons`, hourly UTC `times`, `precipitation` in mm/h, and `relative_humidity_2m` in percent. Use a regular grid with weather arrays shaped latitude × longitude × time. Each snapshot reports whether it applied persistence weighting.
 
+### Optional road and water distance preparation
+
+After installing the pipeline requirements and preparing the population/province
+grids, run from `pipeline/`:
+
+```bash
+python -m dw.reach
+# Or use an extract already downloaded:
+python -m dw.reach --pbf /path/to/kalimantan-latest.osm.pbf
+```
+
+The command streams the [Geofabrik Kalimantan extract](https://download.geofabrik.de/asia/indonesia/kalimantan.html)
+to the data directory on first use, then reads it locally using pyosmium.
+It writes `osm_roads.json` (trunk, primary, secondary, tertiary, unclassified,
+and track) and `osm_water.json` (river and canal), retaining ways whose bounding
+boxes overlap the province bounding box. Downloads are cached; to refresh the
+extract, remove the cached PBF explicitly and rerun the command. Extraction
+rebuilds both line files each time. It uses a disk-backed node index, so allow
+local disk space for the extract and its index.
+
+`dw.reach.road_km` and `water_km` report approximate straight-line distances
+on a 0.01-degree raster (about 1.1 km). Missing/empty datasets raise an error.
+These are distances to mapped features, not driving routes, navigability,
+water availability, or verified crew access. OSM coverage may be incomplete.
+This optional command does not run during snapshot builds and does not change
+model weights, training, smoke calculations, or rankings.
+
 ### Reproduce the research replay
 
 The research commands also use the original archive CSVs, weather grids, and airport observations. Set `DOWNWIND_REPLAY_DATA_DIR` and `DOWNWIND_CHECK_DATA_DIR` to the team's data directories. Their defaults are `../validation-2023-replay/data` and `../data-check/data` relative to the checkout. See the archive filenames in `pipeline/dw/fetch.py` and the weather and METAR paths in `pipeline/dw/evaluate.py`. The fetch command retrieves boundaries, the 2025 Malaysia CSV, and the listed historical weather grids. The remaining inputs come from the team's research files. The `pandas` pin preserves the published handling of tied visibility days.
@@ -107,7 +134,7 @@ The Live view on `/app` checks the feed manifest every minute. It displays a new
 
 The [Morning feed workflow](https://github.com/TheIntrinsicInvestor/downwind/actions/workflows/morning-feed.yml) runs daily at 07:12 West Kalimantan time. It publishes one complete snapshot to the `live-data` branch and retains earlier snapshots. Use **Run workflow** on `main` for a manual refresh. If a run fails, the published manifest continues to point to the previous snapshot.
 
-**Persistence weighting on the live feed.** The model and its `learn.json` are committed in `pipeline/model/` (override the folder with `DOWNWIND_MODEL_DIR`). The live feed uses NOAA-21 detections and the model was trained on S-NPP, so it was checked on NOAA-21 for September to October 2026: AUC 0.793 against 0.622 for counting days burned, with the mean predicted likelihood (0.337) close to the observed rate (0.332). That check is recorded in `learn.json` under `live_check`, together with `months`, the calendar months of the snapshot day in which weighting applies (currently 8 to 11: November was checked separately on 1 to 13 Nov 2026 NOAA-21 detections, AUC 0.829 against 0.653, and on November 2019, 2023 and 2025 S-NPP detections, AUC 0.834 against 0.644; other months are untested). In those months `dw.live` fetches the previous UTC day's hourly rain and humidity on the 1 degree grid from Open-Meteo's forecast API (all 24 hours), and the snapshot is weighted: its day file reports `persistence_weighted: true` and `limits.json` carries the model details including `live_check`. In any other month, or if the model files fail to load, the weather download fails or has gaps, or the prediction raises, the run logs one line starting `persistence weighting off, building unweighted:` with the reason and publishes an unweighted snapshot as before. A snapshot is always published. To test a month outside the list, point `DOWNWIND_MODEL_DIR` at a copy of the folder whose `learn.json` lists that month.
+**Persistence weighting on the live feed.** The model and its `learn.json` are committed in `pipeline/model/` (override the folder with `DOWNWIND_MODEL_DIR`). The live feed uses NOAA-21 detections and the model was trained on S-NPP, so it was checked on NOAA-21 for September to October 2026: AUC 0.793 against 0.622 for counting days burned, with the mean predicted likelihood (0.337) close to the observed rate (0.332). That check is recorded in `learn.json` under `live_check`, together with `months`, the calendar months of the snapshot day in which weighting applies (currently 8 to 11: November was checked separately on 1 to 13 Nov 2026 NOAA-21 detections, AUC 0.829 against 0.653, and on November 2019, 2023 and 2025 S-NPP detections, AUC 0.834 against 0.644; other months are untested). In those months `dw.live` fetches the previous UTC day's hourly rain and humidity on the 1 degree grid from Open-Meteo's forecast API (all 24 hours), and the snapshot is weighted: its day file reports `persistence_weighted: true` and `limits.json` carries the model details including `live_check`. In any other month, or if the model files fail to load, the weather download fails or has gaps, or the prediction raises, the run logs one line starting `persistence weighting off, building unweighted:` with the reason and publishes an unweighted snapshot as before. Successful builds publish after snapshot validation. A failed build or validation leaves the last published snapshot available. To test a month outside the list, point `DOWNWIND_MODEL_DIR` at a copy of the folder whose `learn.json` lists that month.
 
 Each run also keeps a detection archive at `detections/archive.csv` on the `live-data` branch: the new FIRMS download is merged with earlier mornings' detections (inside the map's bounding box, last 21 days), so fire age and the "seen 3 days running" tier rule can look past the feed's 7 days. Locally, pass `--archive path/to/archive.csv` to `python -m dw.live`.
 
@@ -123,6 +150,7 @@ Each run also keeps a detection archive at `detections/archive.csv` on the `live
 | Peat extent | Global Forest Watch peatlands map (zoom 7 tiles) | per the dataset's page on Global Forest Watch |
 | Population | WorldPop 1 km Indonesia, 2020 | CC BY 4.0 |
 | Province and regency boundaries | geoBoundaries (gbOpen, IDN ADM1 and ADM2) | CC BY 4.0 |
+| Road and water distance inputs (optional) | Geofabrik Kalimantan OpenStreetMap extract | OpenStreetMap data ODbL; © OpenStreetMap contributors |
 | Basemap | OpenFreeMap, OpenMapTiles, OpenStreetMap contributors | OpenStreetMap data ODbL |
 | Roads including tracks (distance on the fire card) | OpenStreetMap, Geofabrik Kalimantan extract of 13 November 2026 | ODbL, © OpenStreetMap contributors |
 
@@ -142,14 +170,46 @@ The handbook allows prior work if it is disclosed. Everything in this repository
 
 On 12 November an accidental `rm -rf .git` deleted this repository's history. The files were intact; the first five tasks were recommitted as one commit (`77e4956`), so the history begins there.
 
-Reachability (distance from each fire to the nearest road or river) was built but not switched on: the public Overpass servers failed on 12 November, including a retry over three mirrors. `pipeline/dw/reach.py` remains in the repository, unused. On 14 November it was rebuilt from the Geofabrik extract and switched on as information on the fire card, changed to road only (OpenStreetMap roads including tracks; grid error median 0.15 km, at most 0.40 km) after rivers and canals were judged to be water sources, not access routes (see How it works, step 8).
+The original Overpass download failed across three mirrors on 12 November. The fire card now uses a bundled road-only grid built from the Geofabrik extract. The optional extraction command also prepares a separate waterway lookup for offline use.
 
 **Built during the event (14 to 15 November):** to be completed at the end of the build.
 
 ## Future work
+
+See the [infrastructure checklist](docs/infrastructure-todo.md) for remaining operational checks.
 
 - A pilot morning with one provincial task force.
 
 ## Licence
 
 MIT. See `LICENSE`.
+
+## Optional site context overlay
+
+The app's **Sites** tab can overlay industrial areas and explicitly tagged
+plantations from OpenStreetMap. Enable the layer, select a fire, and reopen
+Sites to see the five nearest mapped areas, approximate distances to their
+boundaries, and the first hour that the selected fire's sampled smoke passes
+within 2 km. Click an area's name to zoom to it or open its source OSM feature.
+
+The 2 km margin is a display convention, not a fire spread or health threshold.
+This uses the existing capped animation particles; a missing match is not an
+all-clear. The overlay does not predict ground-fire spread, imply ignition
+cause/ownership, or alter the model, simulation, weights, or ranking. The mapped
+areas have incomplete coverage and are not a verified list of key facilities
+or plantation concessions. Current mapping also appears over historical replay.
+
+Refresh the committed GeoJSON separately from morning builds:
+
+```bash
+cd pipeline
+python -m dw.sites --pbf ../data/kalimantan-latest.osm.pbf --out ../web/public/context/sites.geojson
+```
+
+If the PBF is missing it is downloaded from Geofabrik. The exporter selects
+industrial polygons and explicitly tagged plantation crops in the Western
+Borneo bounding box (108–115° E, 3.5° S–3° N), including neighbouring areas.
+It preserves the source timestamp and links to OSM features. The included data
+is from the 13 November 2026 OSM snapshot: 423 industrial polygons and 1,261
+plantation polygons. These are mapped areas, not counts of distinct businesses.
+© OpenStreetMap contributors; Geofabrik extract; ODbL-1.0.

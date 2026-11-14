@@ -12,6 +12,7 @@ import { decodeFrame, rankedFires } from "@/lib/replay";
 import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_MAX_ZOOM, PLACE_LABELS,
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
+import { SITE_COLORS } from "@/lib/sites";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
@@ -62,7 +63,7 @@ const makeSmoke = (n: number, positions: Float32Array, weights: Float32Array): S
 const EMPTY: Smoke = makeSmoke(0, new Float32Array(0), new Float32Array(0));
 
 export default function MapStage() {
-  const { day, bin, frame, mode, focus, select, mapError, mapInteractive } = useReplay();
+  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, sitesEnabled, sitesDataset } = useReplay();
   const { attach, setMapReady, setMapError } = useStageBinding();
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
@@ -119,6 +120,29 @@ export default function MapStage() {
   useEffect(() => {
     mapObj.current?.getCanvas().setAttribute("tabindex", mapInteractive ? "0" : "-1");
   }, [mapInteractive, ready]);
+
+  useEffect(() => {
+    const map = mapObj.current;
+    if (!ready || !map) return;
+    const visible = sitesEnabled && mapInteractive && sitesDataset;
+    if (!visible) {
+      for (const id of ["context-sites-fill", "context-sites-outline"]) {
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+      }
+      return;
+    }
+    if (!map.getSource("context-sites")) {
+      map.addSource("context-sites", { type: "geojson", data: sitesDataset,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Geofabrik · ODbL' });
+      const before = map.getStyle().layers.find((layer) => layer.type === "symbol")?.id;
+      const color = ["match", ["get", "kind"], "industrial", SITE_COLORS.industrial, SITE_COLORS.plantation];
+      map.addLayer({ id: "context-sites-fill", type: "fill", source: "context-sites",
+        paint: { "fill-color": color as never, "fill-opacity": 0.18 } }, before);
+      map.addLayer({ id: "context-sites-outline", type: "line", source: "context-sites",
+        paint: { "line-color": color as never, "line-width": 1.3, "line-opacity": 0.85 } }, before);
+    }
+    for (const id of ["context-sites-fill", "context-sites-outline"]) map.setLayoutProperty(id, "visibility", "visible");
+  }, [ready, sitesEnabled, sitesDataset, mapInteractive]);
 
   const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
 

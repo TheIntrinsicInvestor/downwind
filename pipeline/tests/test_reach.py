@@ -61,3 +61,103 @@ def test_annotate_only_fills_reach_km(tmp_path):
     for f in before["fires"] + after["fires"]:
         f.pop("reach_km")
     assert before == after
+
+
+from dw.reach import distance_grid, reach_from
+
+
+def test_distance_to_a_line():
+    grid = distance_grid([[(110.0, 0.0), (111.0, 0.0)]])          # one east-west road along the equator
+    on = reach_from(grid, np.array([0.0]), np.array([110.5]))[0]
+    north = reach_from(grid, np.array([0.1]), np.array([110.5]))[0]
+    assert on < 1.2 and north == pytest.approx(11.1, rel=0.1)
+
+
+def test_no_lines_means_unknown():
+    grid = distance_grid([])
+    assert np.isnan(reach_from(grid, np.array([0.0]), np.array([110.0]))[0])
+
+
+@pytest.fixture
+def local_pbf(tmp_path):
+    import osmium
+    path = tmp_path / 'small.osm.pbf'
+    with osmium.SimpleWriter(str(path)) as writer:
+        for i, point in enumerate([(109.0, 0.0), (111.0, 0.0),
+                                   (110.0, -0.5), (110.0, 0.5),
+                                   (115.0, 0.0), (116.0, 0.0)], 1):
+            writer.add_node(osmium.osm.mutable.Node(id=i, location=point))
+        for i, tags, nodes in [
+            (1, {'highway': 'track'}, [1, 2]),
+            (2, {'waterway': 'canal'}, [3, 4]),
+            (3, {'highway': 'residential'}, [1, 2]),
+            (4, {'highway': 'primary'}, [5, 6]),
+        ]:
+            writer.add_way(osmium.osm.mutable.Way(id=i, tags=tags, nodes=nodes))
+    return path
+
+
+def test_extract_filters_and_keeps_crossings(local_pbf, tmp_path):
+    import json
+    from dw.reach import extract_lines
+    roads, water = tmp_path / 'roads.json', tmp_path / 'water.json'
+    assert extract_lines(local_pbf, roads_path=roads, water_path=water,
+                         bbox=(109.5, -1.0, 110.5, 1.0)) == (1, 1)
+    assert json.loads(roads.read_text()) == [[[109.0, 0.0], [111.0, 0.0]]]
+    assert json.loads(water.read_text()) == [[[110.0, -0.5], [110.0, 0.5]]]
+
+
+def test_failed_extract_preserves_existing_lines(local_pbf, tmp_path):
+    from dw.reach import extract_lines
+    roads, water = tmp_path / 'roads.json', tmp_path / 'water.json'
+    roads.write_text('previous roads')
+    water.write_text('previous water')
+    with pytest.raises(ValueError, match='no selected'):
+        extract_lines(local_pbf, roads_path=roads, water_path=water, bbox=(98, -1, 99, 1))
+    assert roads.read_text() == 'previous roads'
+    assert water.read_text() == 'previous water'
+
+
+def test_missing_lines_raise_actionable_error(tmp_path, monkeypatch):
+    from dw import reach
+    monkeypatch.setattr(reach, 'ROADS_PATH', tmp_path / 'roads.json')
+    with pytest.raises(FileNotFoundError, match='python -m dw.reach'):
+        reach.road_km([0], [110])
+
+
+def test_outside_lines_have_no_distance():
+    assert distance_grid([[(0, 0), (1, 0)]]) is None
+
+
+def test_road_and_water_distances_are_independent(tmp_path, monkeypatch):
+    import json
+    from dw import reach
+    roads, water = tmp_path / 'roads.json', tmp_path / 'water.json'
+    roads.write_text(json.dumps([[(109, 0), (111, 0)]]))
+    water.write_text(json.dumps([[(110, -1), (110, 1)]]))
+    monkeypatch.setattr(reach, 'ROADS_PATH', roads)
+    monkeypatch.setattr(reach, 'WATER_PATH', water)
+    reach._grid.cache_clear()
+    assert reach.road_km([0.1], [110])[0] == pytest.approx(11.1, rel=0.1)
+    wet = reach.water_km([0.1], [110])[0]
+    assert wet < 1.2
+    reach._grid.cache_clear()
+
+
+def test_failed_download_leaves_no_cache(tmp_path, monkeypatch):
+    from dw import reach
+    def unavailable(*args, **kwargs):
+        raise OSError('offline')
+    monkeypatch.setattr(reach.urllib.request, 'urlopen', unavailable)
+    target = tmp_path / 'cache' / 'extract.osm.pbf'
+    with pytest.raises(OSError, match='offline'):
+        reach.fetch_pbf(target)
+    assert list(target.parent.iterdir()) == []
+
+
+def test_cached_download_does_not_use_network(tmp_path, monkeypatch):
+    from dw import reach
+    target = tmp_path / 'extract.osm.pbf'
+    target.write_bytes(b'existing extract')
+    monkeypatch.setattr(reach.urllib.request, 'urlopen', lambda *a, **k: pytest.fail('network called'))
+    assert reach.fetch_pbf(target) == target

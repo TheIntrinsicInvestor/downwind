@@ -4,3 +4,4 @@ scipy
 scikit-learn==1.9.1   # the saved persistence model (pipeline/model/persist_model.pkl) was trained with this version
 pillow
 pytest
+osmium  # local Geofabrik OSM extraction for optional reachability preparation

@@ -139,9 +139,10 @@ export const FOCUS_SMOKE_RANGE: RGBA[] = [
   [255, 224, 170, 175], [255, 234, 200, 210], [255, 243, 220, 240],
 ];
 
-// ---- basemap recolour (Task 1 ruling; layer ids from OpenFreeMap `dark`, 13 Nov)
+// ---- basemap recolour (layer ids from OpenFreeMap `dark`)
 
-const LAND = "#10161f", WATER = "#03060b", COAST = "#26384d", BG = "#05070b", INK3 = "#8d97a6";
+// Separate land from sea at province zoom; keep the warm fire palette as the focal point.
+const LAND = "#263b46", WATER = "#071522", COAST = "#7293a3", BG = "#05070b", INK3 = "#8d97a6";
 
 export const BASEMAP_PAINT: [layer: string, property: string, value: unknown][] = [
   ["background", "background-color", LAND],
@@ -149,11 +150,16 @@ export const BASEMAP_PAINT: [layer: string, property: string, value: unknown][] 
   ["water", "fill-outline-color", COAST],
   ["water", "fill-antialias", true],              // the style ships false, which hides the coast outline
   ...["landcover_ice_shelf", "landcover_glacier", "landcover_wood", "landuse_park"]
-    .map((id): [string, string, unknown] => [id, "fill-opacity", 0.25]),
-  ["waterway", "line-color", "#0a1a2a"],
+    .map((id): [string, string, unknown] => [id, "fill-opacity", 0.12]),
+  ["waterway", "line-color", "#3c6075"],
   ["waterway", "line-opacity", 0.7],
-  ...["boundary_state", "boundary_country_z0-4", "boundary_country_z5-"].flatMap((id): [string, string, unknown][] =>
-    [[id, "line-color", "#2a3442"], [id, "line-opacity", 0.6]]),
+  // National borders remain distinct from the quieter province boundaries.
+  ["boundary_state", "line-color", "#627e8a"],
+  ["boundary_state", "line-opacity", 0.65],
+  ...["boundary_country_z0-4", "boundary_country_z5-"].flatMap((id): [string, string, unknown][] => [
+    [id, "line-color", "#b0c6ce"], [id, "line-opacity", 0.9],
+    [id, "line-width", ["interpolate", ["linear"], ["zoom"], 3, 0.8, 6, 1.4, 10, 2]],
+  ]),
   // Place labels stay dim (--ink-3) so they never compete with the fires.
   ...["place_city", "place_city_large", "place_town"].flatMap((id): [string, string, unknown][] => [
     [id, "text-color", INK3], [id, "text-halo-color", BG], [id, "text-halo-width", 1.2],
