@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { type Day, contributionsFor, longDate, pct, placeOptions } from "@/lib/replay";
+import { type Day, contributionsFor, forecastTime, longDate, pct, placeOptions } from "@/lib/replay";
 
 type Props = { day: Day; place: string | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
 
@@ -62,7 +62,8 @@ function CityView({ day, place, onPlace, onFire }: Props) {
                         {f.rank !== null && <span className="figure ml-2 text-[11px] text-ink-3">rank {f.rank}</span>}
                       </td>
                       <td className="figure py-2.5 text-right text-ink">{pct(c.share, 1)}</td>
-                      <td className="figure py-2.5 pl-3 text-right text-ink-2">{c.first_arrival_h} h</td>
+                      <td className="figure py-2.5 pl-3 text-right text-ink-2">{c.first_arrival_h === null ? "Unavailable" : forecastTime(day.window_start_utc, c.first_arrival_h)}
+                        {c.peak_h != null && <span className="mt-1 block text-xs text-ink-3">Peak {forecastTime(day.window_start_utc, c.peak_h)}</span>}</td>
                     </tr>
                   );
                 })}

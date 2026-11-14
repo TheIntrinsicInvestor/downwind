@@ -27,7 +27,7 @@ export type Fire = {
   persist_p: number | null;                                 // null until Task 11
   age_days: number | null;                                  // days running in the area, capped at 14 (display only)
 };
-export type Place = { name: string; contributions: { fire: number; share: number; first_arrival_h: number }[] };  // top 15 per place
+export type Place = { name: string; contributions: { fire: number; share: number; first_arrival_h: number | null; peak_h?: number | null }[] };  // top 15 per place
 export type Limits = {
   replay2023: { pooled: 0.45; pontianak: 0.81; worst_quartile_hit: 0.48; chance: 0.25; airports: 7; days: 421 };
   learn: { shipped: boolean; test_auc_2026: number; heuristic_auc_2026: number; cv_auc: [number, number, number];
@@ -126,11 +126,15 @@ export function longDate(iso: string): string {
 }
 
 // "Sun 20 Sep, 07:00 local (+0 h)": the hour `h` after the window start, in UTC+7.
-export function localLabel(windowStartUtc: string, h: number): string {
-  const t = new Date(Date.parse(windowStartUtc.replace("Z", ":00Z")) + (h + 7) * 3600_000);
+export function forecastTime(windowStartUtc: string, h: number): string {
+  const t = new Date(Date.parse(windowStartUtc) + (h + 7) * 3600_000);
   const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][t.getUTCDay()];
   const hh = String(t.getUTCHours()).padStart(2, "0");
-  return `${day} ${t.getUTCDate()} ${MONTHS[t.getUTCMonth()].slice(0, 3)}, ${hh}:00 local (+${h} h)`;
+  return `${day} ${t.getUTCDate()} ${MONTHS[t.getUTCMonth()].slice(0, 3)}, ${hh}:00 WIB`;
+}
+
+export function localLabel(windowStartUtc: string, h: number): string {
+  return forecastTime(windowStartUtc, h).replace(" WIB", ` local (+${h} h)`);
 }
 
 // One rounding convention for every percentage a person sees (card, list, city view, chat facts) and for the

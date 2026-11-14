@@ -1,19 +1,22 @@
 "use client";
 
 import { memo } from "react";
-import { type Fire, ageLabel, pct } from "@/lib/replay";
+import { type Fire, type Place, ageLabel, forecastTime, pct } from "@/lib/replay";
 
 const PEOPLE_LABEL = "residents within 40 km of this fire's modelled smoke path";
 const TIER_NAME = { 1: "Priority 1", 2: "Priority 2", 3: "Priority 3" } as const;
 
-type Props = { fire: Fire; nRanked: number; onClose: () => void };
+type Props = { fire: Fire; nRanked: number; onClose: () => void; windowStart: string;
+  district: string | null; contribution?: Place["contributions"][number] };
 
 const DT = "py-2 text-ink-3";
 const DD = "figure py-2 pl-4 text-right text-[13px] text-ink";
 const HINT = "cursor-help underline decoration-dotted decoration-ink-3/70 underline-offset-[3px]";
 
-function FireCard({ fire, nRanked, onClose }: Props) {
+function FireCard({ fire, nRanked, onClose, windowStart, district, contribution }: Props) {
   const top = fire.top_places?.[0];
+  const receivingPlace = contribution ? district : top?.name;
+  const arrival = contribution ? contribution.first_arrival_h : fire.first_arrival_h;
   return (
     <div className="text-[13px]">
       <div className="flex items-start justify-between gap-3">
@@ -48,10 +51,15 @@ function FireCard({ fire, nRanked, onClose }: Props) {
 
       <dl className="mt-4 grid grid-cols-[1fr_auto] border-t border-rule [&>dd]:border-b [&>dd]:border-rule [&>dt]:border-b [&>dt]:border-rule">
         {fire.share !== null && (<><dt className={DT}>Share of smoke over residents</dt><dd className={DD}>{pct(fire.share, 1)}</dd></>)}
-        {top && fire.first_arrival_h !== null && (
-          <><dt className={DT}>First smoke over {top.name}</dt>
-            <dd className={DD}>{fire.first_arrival_h === 0 ? "from the start" : `after ${fire.first_arrival_h} h`}</dd></>
+        {receivingPlace && arrival !== null && (
+          <><dt className={DT}>First smoke over {receivingPlace}</dt>
+            <dd className={DD}>{forecastTime(windowStart, arrival)}</dd></>
         )}
+        {contribution && (
+          <><dt className={DT}>Peak smoke over {district}</dt>
+            <dd className={DD}>{contribution.peak_h == null ? "Unavailable" : forecastTime(windowStart, contribution.peak_h)}</dd></>
+        )}
+        {top && <><dt className={DT}>Largest receiving area</dt><dd className={DD}>{top.name}</dd></>}
         {fire.heading && (<><dt className={DT}>Smoke drift over first 24 h</dt><dd className={DD}>{fire.heading}</dd></>)}
         {fire.persist_p !== null && (
           <>

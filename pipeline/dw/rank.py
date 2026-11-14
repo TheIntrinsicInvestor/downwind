@@ -58,6 +58,8 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     exposure = np.zeros(ns)
     place_exp = np.zeros(ns * na)
     place_first = np.full(ns * na, np.inf)
+    place_peak = np.zeros(ns * na)
+    place_peak_hour = np.zeros(ns * na, dtype=int)
     sum_lat = np.zeros(ns); sum_lon = np.zeros(ns); sum_w = np.zeros(ns)
     in_p1 = np.zeros(ns, bool)
     if ns:
@@ -74,7 +76,11 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
             pp = w * grids.pop.at(la, lo)
             m = (a >= 0) & (pp > 0)
             key = s[m] * na + a[m]
-            place_exp[:] += np.bincount(key, weights=pp[m], minlength=ns * na)
+            hourly = np.bincount(key, weights=pp[m], minlength=ns * na)
+            place_exp[:] += hourly
+            higher = hourly > place_peak
+            place_peak[higher] = hourly[higher]
+            place_peak_hour[higher] = h
             np.minimum.at(place_first, key, h)
             if h == 24:
                 sum_lat[:] += np.bincount(s, weights=w * la, minlength=ns)
@@ -109,6 +115,7 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
     # places
     pe = place_exp.reshape(ns, na) if ns else np.zeros((0, na))
     pf = place_first.reshape(ns, na) if ns else np.zeros((0, na))
+    peak_hours = place_peak_hour.reshape(ns, na)
     rows, top_places, first_arrival = [], [None] * n, [np.nan] * n
     for j in range(ns):
         tot = pe[j].sum()
@@ -120,10 +127,10 @@ def run_day(day, fires, met, grids: Grids, *, level="925", k=K, seed=SEED, cell=
         top_places[i] = [(grids.adm2_names[a], float(pe[j, a] / tot)) for a in order[:3]]
         first_arrival[i] = float(pf[j, order[0]])
         for a in order:
-            rows.append((grids.adm2_names[a], sq.id.iat[i], float(pe[j, a]), float(pf[j, a])))
+            rows.append((grids.adm2_names[a], sq.id.iat[i], float(pe[j, a]), float(pf[j, a]), int(peak_hours[j, a])))
     sq["top_places"] = pd.Series(top_places, index=sq.index, dtype=object)
     sq["first_arrival_h"] = first_arrival
-    place_fire = pd.DataFrame(rows, columns=["place", "fire_id", "exposure", "first_arrival_h"])
+    place_fire = pd.DataFrame(rows, columns=["place", "fire_id", "exposure", "first_arrival_h", "peak_h"])
 
     heading = [None] * n
     for j in range(ns):
