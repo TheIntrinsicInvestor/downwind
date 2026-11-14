@@ -4,10 +4,10 @@ import { memo } from "react";
 import SmokeTimeline from "./SmokeTimeline";
 import { type Day, contributionsFor, forecastTime, longDate, pct, placeOptions } from "@/lib/replay";
 
-type Props = { day: Day; place: string | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
+type Props = { day: Day; place: string | null; fire: number | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
 
-function CityView({ day, place, onPlace, onFire }: Props) {
-  const options = placeOptions(day);
+function CityView({ day, place, fire, onPlace, onFire }: Props) {
+  const options = placeOptions(day, fire, place);
   const rows = place ? contributionsFor(day, place) : [];
   const hourly = place ? day.places.find((p) => p.name === place)?.hourly : undefined;
   return (
@@ -31,6 +31,9 @@ function CityView({ day, place, onPlace, onFire }: Props) {
           <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
+      <p className="mt-1.5 text-xs text-ink-3">
+        {fire !== null ? "Places this fire sends smoke to, most smoke first." : "Places with the most modelled smoke, most first. Select a fire to see where its smoke goes."}
+      </p>
 
       {place && (
         <>

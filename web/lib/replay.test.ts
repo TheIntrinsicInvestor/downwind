@@ -152,8 +152,35 @@ const CITY_DAY = { places: [
   { name: "Bengkayang", contributions: [] },
 ] } as unknown as Day;
 
-test("placeOptions lists place names alphabetically", () => {
-  expect(placeOptions(CITY_DAY)).toEqual(["Bengkayang", "Kota Pontianak", "Kubu Raya"]);
+const H = (peak: number) => [0, peak, 0];
+const LEVEL_DAY = { fires: [{}, {}, { top_places: [{ name: "Edge", share: 0.2 }] }, {}], places: [
+  { name: "Quiet", hourly: H(0.4), contributions: [{ fire: 1, share: 1, first_arrival_h: 5 }] },
+  { name: "Medium", hourly: H(6), contributions: [{ fire: 1, share: 0.3, first_arrival_h: 5 }, { fire: 2, share: 0.7, first_arrival_h: 9 }] },
+  { name: "Heavy", hourly: H(80), contributions: [{ fire: 2, share: 1, first_arrival_h: 2 }] },
+  { name: "Edge", hourly: H(1), contributions: [{ fire: 3, share: 1, first_arrival_h: 7 }] },
+] } as unknown as Day;
+
+test("placeOptions with no fire lists places with peak level at least 1, highest first", () => {
+  expect(placeOptions(LEVEL_DAY, null, null)).toEqual(["Heavy", "Medium", "Edge"]);
+});
+
+test("placeOptions with a fire lists only the places that fire reaches, highest level first", () => {
+  expect(placeOptions(LEVEL_DAY, 1, null)).toEqual(["Medium", "Quiet"]);
+  expect(placeOptions(LEVEL_DAY, 3, null)).toEqual(["Edge"]);
+});
+
+test("placeOptions with a fire also lists the fire's own top places even if the place dropped the fire from its top 15", () => {
+  expect(placeOptions(LEVEL_DAY, 2, null)).toEqual(["Heavy", "Medium", "Edge"]);
+});
+
+test("placeOptions always keeps the chosen place", () => {
+  expect(placeOptions(LEVEL_DAY, 3, "Quiet")).toEqual(["Edge", "Quiet"]);
+});
+
+test("placeOptions without hourly data keeps the file's order (most affected first) and caps the list", () => {
+  const many = { places: Array.from({ length: 60 }, (_, i) => ({ name: `P${i}`, contributions: [] })) } as unknown as Day;
+  expect(placeOptions(many, null, null)).toHaveLength(40);
+  expect(placeOptions(many, null, null)[0]).toBe("P0");
 });
 
 test("contributionsFor sorts by share, shares sum to at most 1", () => {
