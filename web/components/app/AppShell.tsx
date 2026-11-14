@@ -7,7 +7,7 @@
 // The provider re-renders this shell 8 times a second while playing; the panels are memoised and get stable props.
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
-import { type Day, type Mode, localLabel, longDate } from "@/lib/replay";
+import { type Day, type Mode, contributionsFor, localLabel, longDate } from "@/lib/replay";
 import { wib, type Manifest } from "@/lib/live";
 import { OPENING_CAMERA } from "@/lib/mapstyle";
 import Wordmark from "../Wordmark";
@@ -156,7 +156,7 @@ function Status({ error, retry }: { error: string | null; retry: () => void }) {
 // ---- the shell
 
 export default function AppShell() {
-  const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode,
+  const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, selectedDistrict, selectSeq, mode, setMode,
     place, setPlace, panel, setPanel, limits, limitsError, chatEnabled, setStoryFocus, flyTo, mapReady,
     liveSelected, showLive, feedManifest, feedUnavailable, feedStale } = useReplay();
   const wide = useWide();
@@ -209,7 +209,7 @@ export default function AppShell() {
   }, [selected, selectSeq, setPanel]);
 
   const onDay = useCallback((d: string) => { setDate(d); setFrame(0); }, [setDate, setFrame]);
-  const onCityFire = useCallback((i: number) => { select(i); setPanel("fire"); }, [select, setPanel]);
+  const onCityFire = useCallback((i: number) => { select(i, place ?? undefined); setPanel("fire"); }, [place, select, setPanel]);
   const closeCard = useCallback(() => select(null), [select]);
   const nRanked = useMemo(() => (day ? day.fires.filter((f) => f.rank !== null).length : 0), [day]);
 
@@ -224,7 +224,9 @@ export default function AppShell() {
       case "limits": return <LimitsPanel day={d} limits={limits} error={limitsError} />;
       case "ask": return <ChatPanel date={d.date} />;
       default: return fire
-        ? <FireCard fire={fire} nRanked={nRanked} onClose={closeCard} />
+        ? <FireCard fire={fire} nRanked={nRanked} onClose={closeCard} windowStart={d.window_start_utc}
+          district={selectedDistrict} contribution={selectedDistrict && selected !== null
+            ? contributionsFor(d, selectedDistrict).find((entry) => entry.fire === selected) : undefined} />
         : <p className="text-[13px] text-ink-2">Select a fire on the map or in the list.</p>;
     }
   }

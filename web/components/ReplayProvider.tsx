@@ -15,7 +15,8 @@ export type Replay = {
   index: Index | null; date: string | null; setDate(d: string): void;
   day: Day | null; bin: ArrayBuffer | null; error: string | null; retry(): void;
   frame: number; setFrame(f: number): void; playing: boolean; setPlaying(p: boolean): void;
-  selected: number | null; select(i: number | null): void;
+  selected: number | null; select(i: number | null, district?: string): void;
+  selectedDistrict: string | null;
   selectSeq: number;               // counts select(i) calls with a fire, so choosing the selected fire again is visible
   mode: Mode; setMode(m: Mode): void;
   place: string | null; setPlace(p: string | null): void;
@@ -90,6 +91,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectSeq, setSelectSeq] = useState(0);
   const [mode, setMode] = useState<Mode>("downwind");
   const [panel, setPanel] = useState<Panel>("fire");
@@ -197,8 +199,9 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   }, [storyFocus, day, panel, place, selected]);
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
-  const select = useCallback((i: number | null) => {
+  const select = useCallback((i: number | null, district?: string) => {
     setSelected(i);
+    setSelectedDistrict(district ?? null);
     if (i !== null) setSelectSeq((n) => n + 1);
   }, []);
 
@@ -229,7 +232,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
 
   const value: Replay = {
     index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
-    frame, setFrame, playing, setPlaying, selected, select, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
+    frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
     limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,
     chatEnabled: liveData ? false : chatEnabled, flyTo, mapReady, mapError,
     mapInteractive, setMapInteractive, liveSelected, showLive,

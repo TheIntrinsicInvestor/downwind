@@ -90,8 +90,9 @@ def _places(res: DayResult, index_of: dict) -> list:
             continue
         g = g.sort_values(["exposure", "fire_id"], ascending=[False, True]).head(PLACE_TOP)
         out.append({"name": name, "contributions": [
-            {"fire": index_of[f], "share": round(float(e / tot), 4), "first_arrival_h": _num(h)}
-            for f, e, h in zip(g.fire_id, g.exposure, g.first_arrival_h)]})
+            {"fire": index_of[row.fire_id], "share": round(float(row.exposure / tot), 4),
+             "first_arrival_h": _num(row.first_arrival_h), "peak_h": _int(getattr(row, "peak_h", None))}
+            for row in g.itertuples(index=False)]})
     # biggest smoke burden first, so the default city is the most affected
     burden = pf.groupby("place").exposure.sum()
     out.sort(key=lambda p: (-burden[p["name"]], p["name"]))
