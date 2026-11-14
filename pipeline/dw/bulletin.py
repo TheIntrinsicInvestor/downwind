@@ -79,7 +79,7 @@ def build_facts(res, prev) -> dict:
             "share_pct": pct(round(float(r.share), 5), 1),           # rounded as stored in the day file
             "people_40km": None if pd.isna(r.people_40km) else int(r.people_40km),
             "heading": r.heading,
-            "top_places": [{"name": n, "share_pct": pct(round(float(s), 4))} for n, s in (r.top_places or [])],
+            "top_places": [{"name": n, "share_pct": pct(round(float(s), 4))} for n, s, *_ in (r.top_places or [])],
             "first_arrival_h": None if pd.isna(r.first_arrival_h) else int(r.first_arrival_h),
         })
     now = list(ranked.id[ranked["rank"] <= 10]) if len(ranked) else []

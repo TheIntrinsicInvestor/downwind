@@ -21,7 +21,7 @@ export type Fire = {
   frp: number; n_detect: number; place: string | null;
   rank: number | null; share: number | null;                // province Priority 1 only
   people_40km: number | null;                               // 20 best-ranked only
-  top_places: { name: string; share: number }[] | null;
+  top_places: { name: string; share: number; first_arrival_h?: number | null; peak_h?: number | null }[] | null;
   first_arrival_h: number | null; heading: string | null;
   reach_km: number | null;                                  // km to the nearest mapped road (OSM, tracks included); null outside the grid. Information only
   persist_p: number | null;                                 // null until Task 11

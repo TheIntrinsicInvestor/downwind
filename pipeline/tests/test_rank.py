@@ -38,6 +38,17 @@ def test_fire_next_to_city_outranks_fire_upwind_of_nothing():
     assert r.loc[A_ID, "people_40km"] >= 500_000
 
 
+def test_top_places_carry_first_arrival_and_peak_hour():
+    res = run_day(T, two_fires(A, B), flat_met(5.0, 0.0, 0.0), toy_grids(0.0, 109.34, 500_000))
+    r = res.squares.set_index("id")
+    tp = r.loc[A_ID, "top_places"]
+    assert all(len(t) == 4 for t in tp)
+    name, share, first, peak = tp[0]
+    assert first == r.loc[A_ID, "first_arrival_h"] and 0 <= peak < 48 and isinstance(peak, int)
+    row = res.place_fire[(res.place_fire.fire_id == A_ID) & (res.place_fire.place == name)].iloc[0]
+    assert row.first_arrival_h == first and row.peak_h == peak
+
+
 def test_identical_on_two_runs():
     a = run_day(T, FIRES, MET, GRIDS); b = run_day(T, FIRES, MET, GRIDS)
     pd.testing.assert_frame_equal(a.squares, b.squares)

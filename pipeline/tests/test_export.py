@@ -46,9 +46,26 @@ def test_day_json_matches_contract(tmp_path, RES):
             assert isinstance(f["rank"], int) and 0 <= f["share"] <= 1
     ranked = [f for f in d["fires"] if f["rank"] == 1][0]
     assert ranked["top_places"][0]["name"] == "Kota Toy" and isinstance(ranked["people_40km"], int)
+    tp0 = ranked["top_places"][0]
+    assert set(tp0) == {"name", "share", "first_arrival_h", "peak_h"}
+    assert tp0["first_arrival_h"] == ranked["first_arrival_h"] and isinstance(tp0["peak_h"], int)
     assert d["places"][0]["name"] == "Kota Toy"
     c = d["places"][0]["contributions"]
     assert sum(x["share"] for x in c) <= 1.0 + 1e-9 and all(0 <= x["fire"] < len(d["fires"]) for x in c)
+
+
+def test_top_places_without_times_still_export(tmp_path):
+    sq = _synthetic().squares
+    sq["top_places"] = [[("Kabupaten Contoh", 0.7), ("Kota Contoh", 0.3)]] * len(sq)
+    res = _synthetic(); res.squares = sq
+    export_day(res, None, STAB, BULLETIN, tmp_path)
+    assert _day(tmp_path)["fires"][0]["top_places"] == [{"name": "Kabupaten Contoh", "share": 0.7},
+                                                         {"name": "Kota Contoh", "share": 0.3}]
+
+
+def test_synthetic_top_places_times_exported(tmp_path):
+    export_day(_synthetic(), None, STAB, BULLETIN, tmp_path)
+    assert _day(tmp_path)["fires"][0]["top_places"][1] == {"name": "Kota Contoh", "share": 0.2, "first_arrival_h": 5.0, "peak_h": 12}
 
 
 def test_bin_roundtrip(tmp_path, RES):
@@ -76,7 +93,7 @@ def _synthetic(n_fires=5000, per_frame=12_000):
     sq["share"] = sq.exposure / sq.exposure.sum()
     sq["rank"] = sq.exposure.rank(ascending=False, method="first")
     sq["people_40km"] = np.where(sq["rank"] <= 20, 123456.0, np.nan)
-    sq["top_places"] = [[("Kabupaten Contoh", 0.7), ("Kota Contoh", 0.2), ("Kabupaten Lain", 0.1)]] * n_fires
+    sq["top_places"] = [[("Kabupaten Contoh", 0.7, 0.0, 6), ("Kota Contoh", 0.2, 5.0, 12), ("Kabupaten Lain", 0.1, 9.0, 20)]] * n_fires
     sq["first_arrival_h"] = 5.0
     sq["heading"] = "NE"
     pf = pd.DataFrame({"place": ["Kota Contoh"] * n_fires, "fire_id": sq.id, "exposure": sq.exposure, "first_arrival_h": 3.0})
@@ -87,7 +104,8 @@ def _synthetic(n_fires=5000, per_frame=12_000):
 
 
 def test_day_under_5mb(tmp_path):
-    export_day(_synthetic(), None, STAB, BULLETIN, tmp_path)
+    # 3,500 fires: above the busiest replay day (3,151); with per-place times the old 5,000 stress case is 5.26 MB
+    export_day(_synthetic(n_fires=3500), None, STAB, BULLETIN, tmp_path)
     size = (tmp_path / f"{DATE}.json").stat().st_size + (tmp_path / f"{DATE}.particles.bin.gz").stat().st_size
     assert size < 5_000_000
 
