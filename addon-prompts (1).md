@@ -1,0 +1,336 @@
+# Downwind add-ons: Claude Code prompts
+
+Five tasks that turn Downwind's ranking from "people reached" into **averted harm** (the smoke harm a crew can still prevent), split the output into dispatch, protection and monitoring lists, and strengthen the protection view for district offices.
+
+```
+averted harm = containability × future exposure
+containability = Reach × Effect
+future exposure = one day of smoke × people × expected days left
+```
+
+Run the prompts **one at a time, in order** (1 → 2 → 3 → 4 → 5), in separate Claude Code sessions. Each must pass `python -m pytest` before the next starts. Commit each one separately during the build window (14 to 15 November) so the statement of work can point to clean in-event commits.
+
+To run one, open Claude Code in the repo root and say: *"Read docs/addon-prompts.md and do Prompt 1."*
+
+---
+
+## Prompt 1: Containability (Reach × Effect)
+
+Add a containability term to the Downwind pipeline. Read `pipeline/dw/reach.py`, `rank.py`, `tiers.py`, `config.py` and `export.py` first. Do not change the existing exposure calculation or the shipped persistence model.
+
+### Data sources
+
+- **OpenStreetMap, Geofabrik Kalimantan extract (ODbL):** <https://download.geofabrik.de/asia/indonesia/kalimantan-latest.osm.pbf>. Download once to `config.DATA / "kalimantan-latest.osm.pbf"`. This replaces the Overpass fetch, which failed on 12 Nov.
+- **Existing:** Global Forest Watch peat (`dw.grids.peat_at`), FIRMS detections (fire age via `tiers.fire_age`).
+
+### Step 1: `reach.py`, read OSM locally
+
+- Remove the Overpass code. Add `fetch_pbf()` (urllib download, skip if the file exists) and `extract_lines()` using pyosmium (add `osmium` to `requirements.txt`). Keep ways inside the province bounding box (`_province_bbox`) and save two files:
+  - `config.DATA / "osm_roads.json"`: `highway` in {trunk, primary, secondary, tertiary, unclassified, track}
+  - `config.DATA / "osm_water.json"`: `waterway` in {river, canal}
+  
+  Same format as before: a list of `[(lon, lat), ...]` lines.
+- Reuse `distance_grid()` unchanged. Expose `road_km(lat, lon)` and `water_km(lat, lon)`, each with its own cached grid. If a lines file is missing, raise a clear error naming the command to run (`python -m dw.reach`). Do not return NaN silently.
+
+### Step 2: `config.py`, constants
+
+Comment each one as an assumption, not a measured value.
+
+```python
+REACH_FULL_KM = 2.0      # reach 1.0 within this road distance
+REACH_ZERO_KM = 10.0     # reach falls linearly to REACH_MIN at this distance
+REACH_MIN = 0.2          # helicopter-only territory
+WATER_KM = 1.0           # no river or canal within this distance -> water penalty
+WATER_PENALTY = 0.7      # multiplier on reach when water is far
+EFFECT_MINERAL = 0.8     # surface fire, not on peat
+EFFECT_PEAT = [(2, 0.6), (7, 0.3), (999, 0.1)]   # (max age_days, effect) for peat fires
+```
+
+### Step 3: new module `dw/containability.py`
+
+- `reach_score(road_km, water_km)`: 1.0 if `road_km <= REACH_FULL_KM`; linear down to `REACH_MIN` at `REACH_ZERO_KM`; `REACH_MIN` beyond. Multiply by `WATER_PENALTY` where `water_km > WATER_KM`. Vectorised numpy.
+- `effect(peat, age_days)`: `EFFECT_MINERAL` where not peat; for peat, the first bin with `age_days <= max age`. Vectorised.
+- `containability(reach, effect) = reach * effect`, clipped to [0, 1].
+
+### Step 4: `rank.py`
+
+In `run_day`, after `age_days` is set, add columns `road_km`, `water_km`, `reach`, `effect`, `containability` for every square. The ranking does not change in this task.
+
+### Step 5: `export.py` and `web/lib/replay.ts`
+
+Add to each fire: `road_km` (1 dp), `reach`, `effect`, `containability` (2 dp). Add matching nullable fields to the `Fire` type in `replay.ts`.
+
+### Step 6: tests, new file `pipeline/tests/test_containability.py`
+
+- `effect`: non-peat → 0.8; peat at age 1, 2, 3, 7, 8 → 0.6, 0.6, 0.3, 0.3, 0.1
+- `reach_score` at road 0, 2, 6, 10, 20 km with water near → 1.0, 1.0, 0.6, 0.2, 0.2
+- water far multiplies by 0.7
+- `distance_grid` on a tiny synthetic line, same as any existing reach test
+
+Run `python -m pytest` and make sure all existing tests still pass.
+
+### Step 7: README
+
+Add the Geofabrik OSM extract (ODbL) to the data sources table. Move reachability out of "Future work". Note that the Reach and Effect values are assumptions.
+
+---
+
+## Prompt 2: Remaining life from forecast rain
+
+Add expected remaining life (days a fire keeps burning) using the 7-day rain forecast, chained onto the existing persistence model. Read `pipeline/dw/fetch.py` (`fetch_forecast`, `forecast_run`), `learn.py` (including `_daily_weather`) and `rank.py` first.
+
+- Do **not** change `fetch_forecast` or its cached files: `forecast_check` and the published 2026 results depend on them.
+- Do **not** retrain or alter the shipped persistence model.
+
+### Data sources
+
+- **Open-Meteo Single Runs API (CC BY 4.0):** <https://single-runs-api.open-meteo.com/v1/forecast>, same run as now (`forecast_run(day)`, ECMWF IFS 0.25), precipitation only.
+- **Existing, for calibration:** `met_<year>.npz` for 2019, 2023, 2025 (Open-Meteo historical forecast API) and the FIRMS VIIRS archives used by `learn.load_detections`.
+- **Existing, for scoring once:** 2026 FIRMS NRT and `met_2026.npz`.
+
+### Step 1: `fetch.py`, new function `fetch_rain_forecast(day)`
+
+Same grid, chunking and pauses as `fetch_forecast`, but `hourly=precipitation` only and `forecast_hours = 180` (12 UTC on T-1 to 00 UTC on T+7). Save to `config.DATA / f"rain_{run:%Y%m%dT%H}.npz"`.
+
+Add `daily_rain_forecast(day)` returning an array `[lat, lon, 7]` of rain in mm for UTC days T to T+6 (T 00 UTC = 07:00 local). Fail loudly if any hour is missing.
+
+### Step 2: new module `dw/survival.py`, daily survival factor `s(rain, peat)`
+
+- Build a calibration table for `SEASONS` (2019, 2023, 2025), reusing `persistence_table`'s square-day keys and `look()` logic rather than duplicating them. Rows: squares seen (non-low) on day D with `days_running >= 2` (established fires).
+  - Features: `rain_next` = observed rain on D+1 at the square (from met), `peat` (0/1).
+  - Label: seen again on **any** of D+1, D+2, D+3. Cloud and smoke hide fires, so "not seen tomorrow" alone overstates extinction.
+- Fit sklearn `LogisticRegression` on `[log1p(rain_next), peat, log1p(rain_next) * peat]`. Save to `config.DATA / "survival_model.pkl"`.
+- Score once on 2026 (same rows and label) and report AUC and Brier score. Do not tune afterwards. Add a `"survival"` block to `limits.json` via `export.write_limits`: `{"auc_2026", "brier_2026", "label": "seen again within 3 days", "seasons": [2019, 2023, 2025]}`.
+- `survival_factor(rain_mm, peat)` → probability, vectorised.
+
+### Step 3: remaining life
+
+`remaining_life(persist_p, rain7, peat)` for each fire:
+
+```
+S1 = persist_p                         # existing model: likelihood seen again on T
+for d = 2..7:
+    S_d = S_{d-1} * survival_factor(rain7[d-1], peat)
+L = S1 + S2 + ... + S7, clipped to [0, 7]
+```
+
+`rain7` = `daily_rain_forecast(T)` at the fire's nearest grid point (same nearest-point method as `learn.py`). Fires with no `persist_p` use 1.0, matching `run_day`'s current `fillna(1.0)`.
+
+### Step 4: `rank.py` and `build.py`
+
+- Add a `life: pd.Series | None = None` parameter to `run_day` (and `stability`). When given, multiply `w_src` by `life` **instead of** `persist`. Exposure is linear in `w_src`, so exposure becomes one day of smoke harm × expected days left = future exposure. Keep `persist_p` as its own column for the fire card. Store `sq["life_days"]`.
+- In `build.cmd_day`: compute `life` for each day from the persistence output and `daily_rain_forecast(d)`, and pass it to `run_day` and `stability`. Print how many of the top ten change compared with the current persist-weighted ranking.
+- Add `--survival` to `build.py` to train and score the survival model (like `--learn`).
+
+### Step 5: export and types
+
+Add `life_days` (1 dp) to each fire in `export.py` and to the `Fire` type in `replay.ts`. On `FireCard`, show "Expected days left" next to the existing "likelihood seen tomorrow".
+
+### Step 6: tests
+
+- `remaining_life`: S1 = 0.5 with survival 1.0 on all days → L = 3.5; survival 0 from day 2 → L = 0.5
+- `survival_factor` decreases with rain for both peat and non-peat (on a small fitted toy model)
+- `daily_rain_forecast` sums the right 24-hour blocks (synthetic npz)
+
+Run the full test suite.
+
+---
+
+## Prompt 3: The new score (averted harm)
+
+Make averted harm the ranking inside Priority 1. Prompts 1 and 2 are done: squares now carry `containability` and an exposure that already includes expected remaining life. Read `rank.py`, `export.py`, `bulletin.py` (`build_facts`), `web/lib/replay.ts`, `FireCard.tsx`, `LimitsPanel.tsx` and the existing tests first.
+
+### Step 1: `rank.py`
+
+- After exposure is computed:
+  - `sq["exposure_rank"]`: current behaviour, province Priority 1 sorted by exposure (desc, id asc)
+  - `sq["averted"] = sq["containability"] * sq["exposure"]`
+  - `sq["rank"]`: province Priority 1 sorted by averted (desc, then id asc)
+- Keep `share` as each fire's share of province exposure (the protection view uses it). Add `averted_share` = averted / total province averted.
+- `top10_share` stays the exposure share of the new top ten. Also return `top10_averted_share`.
+- Add `top10_vs_exposure`: overlap between the new top ten and the exposure-only top ten. Print it in `build.cmd_day` and write it into the day's stability block.
+
+### Step 2: effect sensitivity check (for the limits panel)
+
+New function `effect_sensitivity(day, ...)`: rerun the ranking step only (**not** the particle simulation; reuse the computed exposure) with each Effect value and each Reach constant scaled by 0.5 and 1.5, one at a time. Record the top-ten overlap with the base ranking. Write the minimum and median overlap to `limits.json` as `"effect_sensitivity"`.
+
+### Step 3: `export.py` and `replay.ts`
+
+- Per fire: `averted` (3 significant figures), `averted_share`, `exposure_rank`.
+- Per day: `top10_averted_share`, `top10_vs_exposure`.
+
+Update the TypeScript types to match. They are the contract.
+
+### Step 4: web app
+
+- `FireList` and `FireCard`: Downwind order now means averted-harm order. On the card, add one line, "Crews can avert about X% of this fire's smoke harm" (containability), plus road distance and expected days left.
+- `ModeToggle` and `LimitsPanel` copy: Downwind orders Priority 1 by the smoke harm a crew can still prevent: containability × future exposure.
+- In `LimitsPanel`, list the Reach and Effect values under "Assumed, not measured" with the sensitivity result. Name the next validation step: Manggala Agni suppression records (SIPP Karhutla), to replace the assumed Effect values.
+
+### Step 5: bulletin
+
+In `build_facts`, give the language model each top fire's `containability`, `life_days` and averted rank, so it can say why a fire ranks high. The number check must still pass.
+
+### Step 6: tests
+
+Update `test_rank.py` deliberately:
+
+- Existing exposure-ordering assertions move to `exposure_rank`.
+- New test: two Priority 1 fires. A has higher exposure but containability 0.05; B has lower exposure and containability 0.6. B ranks above A.
+- Ties broken by id.
+
+Run the full `pytest` suite and `npx vitest run`.
+
+### Step 7: rebuild and README
+
+Run `python -m dw.build --day 2026-09-20 --days 3`. Then update the README:
+
+- "What it does"
+- "How it works" step 6
+- the headline sentence (it currently quotes the exposure top-ten share)
+
+Add the new work under "Built during the event (14 to 15 November)".
+
+---
+
+## Prompt 4: Three-list structure (dispatch, protection, monitoring)
+
+Split fires into three lists by two questions: will its smoke harm many people (exposure), and can a crew still make a difference (containability)? Prompts 1 to 3 are done. Read `rank.py`, `tiers.py`, `export.py`, `web/lib/replay.ts`, `FireList.tsx`, `ModeToggle.tsx`, `CityView.tsx`, `app/AppShell.tsx` and `lib/mapstyle.ts` first.
+
+### Data sources
+
+None new. Uses columns from Prompts 1 to 3 (`containability`, `exposure`, `averted`, `life_days`) and the existing tiers.
+
+### The rules
+
+Only province fires get a list. Priority 2 fires stay in the official view only, because the official rule doesn't put them first.
+
+| List | Who | Which fires | Order |
+|---|---|---|---|
+| Dispatch | Task force | Priority 1, `containability >= C_MIN` | averted harm (the existing `rank`) |
+| Protection | District health and education offices | Priority 1, `containability < C_MIN` and high harm | exposure |
+| Monitoring | Task force, peat agencies | Priority 1, `containability < C_MIN` and low harm; plus Priority 3 (low-confidence only) squares marked `ground_check` | none (sort by exposure for display) |
+
+High-harm and low-harm containable fires both stay in dispatch. High-harm ones rise to the top because the ranking uses averted harm.
+
+### Step 1: `config.py`
+
+```python
+C_MIN = 0.3              # containability below this: a crew can't change much (assumption)
+HARM_MIN_SHARE = 0.005   # high harm: at least 0.5% of province exposure (assumption; check counts, step 6)
+```
+
+### Step 2: `rank.py`, new function `assign_lists(sq)`
+
+Called at the end of `run_day`. Adds:
+
+- `list`: `"dispatch"`, `"protection"`, `"monitoring"` or `None`
+- `ground_check`: True for province Priority 3 squares, which go to monitoring
+
+High harm means `share >= HARM_MIN_SHARE`, using the existing province exposure share. Dispatch keeps the existing `rank` (averted-harm order). Add `protection_rank` (exposure order within protection). Add `list_counts` to `DayResult`: `{"dispatch", "protection", "monitoring", "ground_check"}`.
+
+### Step 3: export and types
+
+- Per fire: `list`, `ground_check`, `protection_rank`.
+- Per day: `list_counts`.
+
+Update the `Fire` and `Day` types in `replay.ts`. They are the contract.
+
+### Step 4: web app
+
+- **`FireList`, in "Downwind order" mode:** add a two-option switch at the top, **Dispatch** | **Monitor**, styled like `ModeSwitch`.
+  - Dispatch shows dispatch fires in `rank` order. This is the current behaviour, restricted to `list == "dispatch"`.
+  - Monitor shows monitoring fires, with a "Needs ground check" label on `ground_check` rows.
+  - Under the list, one line links to the Protect tab: "N fires are sending smoke that crews can't contain. See Protect." Use the existing panel switching in `AppShell`.
+- **`ModeNote`:** one sentence per list explaining it, plus the counts from `list_counts`.
+- **`FireCard`:** show which list the fire is on, and why in one short line. For example, "Can't contain: old peat fire, 14 km from a road", built from `effect` and `road_km`.
+- **Map (`mapstyle.ts`), in Downwind mode:** dispatch fires keep the ember colour; protection fires a distinct cool colour; monitoring fires grey. Add a three-swatch legend to `ModeNote`. The official view doesn't change.
+
+### Step 5: bulletin
+
+Add `list_counts` and the top three protection fires (place, share, first arrival) to `build_facts`, so the briefing can mention fires that need warnings rather than crews. The number check must still pass.
+
+### Step 6: tests and checks
+
+- `test_rank.py`: a containable high-harm fire goes to dispatch; a non-containable high-harm fire to protection; a non-containable low-harm fire to monitoring; a Priority 3 square to monitoring with `ground_check` True; Priority 2 gets no list.
+- Rebuild the three replay days and print `list_counts` for each. If protection is empty or holds more than about a third of Priority 1, adjust `HARM_MIN_SHARE` **once**, record why in a comment, and don't tune it again.
+- Run `pytest` and `npx vitest run`.
+
+---
+
+## Prompt 5: Protection view additions
+
+Upgrade the Protect tab (`CityView.tsx`) for district health and education offices. It should answer two separate questions: **how heavy and when** (the next 48 hours of smoke) and **how long** (how many days the smoke is expected to keep coming). Prompts 1 to 4 are done. Read `rank.py` (the `place_exp` and `place_first` code in `run_day`), `grids.py`, `export.py` (`_places`), `replay.ts` and `CityView.tsx` first.
+
+### Data sources
+
+None new.
+
+- **WorldPop 1 km Indonesia 2020** (`grids.pop`): residents per place.
+- **geoBoundaries ADM2** (`grids.adm2`): regency and city boundaries.
+- **Columns from Prompts 1 to 4:** `persist_p`, `life_days`, `containability`, `list`.
+
+### Step 1: separate "how heavy" from "how long"
+
+Since Prompt 2, particle weights include expected days left, so `place_exp` mixes how heavy the smoke is with how long it lasts. A fire expected to burn 7 days would make a place look 7× smokier than a fire dying out tomorrow, even if tomorrow's air is identical. So the level, arrival and peak use only the smoke arriving in the next 48 hours, and duration is reported separately (step 4). After the simulation, rescale each source's row: `place_exp_48h[j, :] = place_exp[j, :] * persist_p_j / life_j`. Exposure is linear in weight, so no second simulation is needed. Do the same for the new hourly array in step 2. Guard against `life_j == 0`.
+
+### Step 2: `rank.py`, extra per-place outputs in `run_day`
+
+- **Hourly profile:** in `on_step`, also accumulate `place_hour[a, h] += pp` for every adm2 index `a` and hour `h` (shape: places × 48). Do this per place, not per source, to keep it small. Apply the step 1 rescaling by accumulating per source into a temporary array, or by splitting the weight before accumulating; pick whichever keeps memory small.
+- **Place population:** sum `grids.pop` over each adm2 index once, and cache it in `grids.py`.
+- For each place, add to `DayResult`:
+  - `smoke_index` = total next-48 h exposure / place population. This is smoke per resident, a relative measure.
+  - `peak_h` = hour with the most exposure.
+  - `first_arrival_h` = the existing earliest arrival.
+  - `duration_days` = smoke-weighted average of `life_days` across the fires sending smoke to the place: sum over fires of (fire's next-48 h smoke share × fire's `life_days`). Fires sending more smoke count more.
+  - `cant_contain_share` = share of the place's next-48 h smoke coming from fires with `containability < C_MIN`.
+  - `dispatch_share` = share coming from fires on the dispatch list.
+
+### Step 3: smoke levels
+
+In `export.py`, label each place **Light**, **Moderate** or **Heavy**. Use terciles of `smoke_index` across all places with any smoke on all exported replay days (compute once in `build.cmd_day`, then pass to `export_day`). Label these "relative to other places in this replay." They are **not** health categories. Never present them as µg/m³ or as an air quality index.
+
+### Step 4: expected duration
+
+Show **"Expected to last about N days"**, with N = `duration_days` rounded to the nearest whole day (minimum 1, maximum "7+"). Add one line saying why:
+
+- `cant_contain_share >= 0.5`: "Most of this smoke comes from fires crews can't contain, so plan for it to continue."
+- `dispatch_share >= 0.5`: "Most of this smoke comes from fires on the task force's dispatch list, so it may ease sooner if crews reach them."
+- Otherwise: "Smoke comes from a mix of fires."
+
+Duration comes from the persistence model and the rain forecast, so label it an estimate, and list it under "Assumed" on the limits panel.
+
+### Step 5: export and types
+
+Extend each place in `_places` with: `level`, `smoke_index` (3 significant figures), `peak_h`, `first_arrival_h`, `duration_days` (1 dp), `cant_contain_share`, `dispatch_share`. Extend each contribution with the fire's `list` and `life_days`. Update the `Place` type in `replay.ts`.
+
+### Step 6: `CityView.tsx`
+
+When a place is chosen, show above the existing table:
+
+- **Smoke level** (Light, Moderate or Heavy) with the "relative to other places in this replay" note
+- **Arrives** (local time, using `localLabel`) and **peaks** (local time)
+- **Expected to last about N days**, with the reason line from step 4
+- **A small 48-hour bar strip** of `place_hour`, drawn in inline SVG like the landing page's `BarPair`, so offices see when the smoke is worst
+
+In the existing contributions table, add two columns: each fire's list ("Crews dispatched", "Can't contain" or "Monitoring") and its expected days left. Keep the intro sentence about school closures, masks and clinics.
+
+Sort the place dropdown by smoke burden, heaviest first, rather than alphabetically. The default place is already the most affected.
+
+### Step 7: tests and checks
+
+- Rescaling: a source with `persist_p = 0.5`, `life = 2.0` has its place exposure scaled by 0.25.
+- `peak_h` picks the hour with the most exposure; terciles split a known list correctly.
+- `duration_days`: two fires sending 75% and 25% of a place's smoke with `life_days` 4 and 2 give 3.5.
+- Rebuild the replay. Check Pontianak (Kota Pontianak) and Kubu Raya by eye: arrival and peak times should look sensible against the smoke animation.
+- Run `pytest` and `npx vitest run`.
+
+---
+
+## Checks after each prompt
+
+1. **After Prompt 1:** spot-check a few fires' `road_km` against a map. Missing rural roads in OpenStreetMap will show up as unrealistically low reach.
+2. **After Prompt 2:** check the survival model's 2026 AUC. If it's no better than about 0.6, rain isn't adding much. Keep it, but say so on the limits panel.
+3. **After Prompt 3:** look at `top10_vs_exposure`. At 10 of 10, containability isn't changing anything, so revisit the Effect values. At 0 to 3 of 10, check that missing OpenStreetMap roads aren't zeroing out reach across large areas.
+4. **After Prompt 4:** print the list counts for each replay day. Dispatch should hold most Priority 1 fires; protection a meaningful minority; monitoring the rest plus the ground-check squares.
+5. **After Prompt 5:** open the Protect tab for Kota Pontianak and Kubu Raya on 20 September and compare the arrival and peak times with the smoke animation, and check the expected durations look plausible against the fires' days left. If they disagree, check the hour indexing (UTC vs local).
