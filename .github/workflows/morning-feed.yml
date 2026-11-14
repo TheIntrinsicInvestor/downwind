@@ -19,10 +19,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
-    env:
-      DOWNWIND_DATA_DIR: ${{ runner.temp }}/downwind-grids
-      DOWNWIND_CHECK_DATA_DIR: ${{ runner.temp }}/downwind-grids
-      DOWNWIND_FORECAST_CACHE_DIR: ${{ runner.temp }}/downwind-forecast
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -38,6 +34,10 @@ jobs:
         working-directory: pipeline
       - run: python -m dw.live --out "$RUNNER_TEMP/snapshot"
         working-directory: pipeline
+        env:
+          DOWNWIND_DATA_DIR: ${{ runner.temp }}/downwind-grids
+          DOWNWIND_CHECK_DATA_DIR: ${{ runner.temp }}/downwind-grids
+          DOWNWIND_FORECAST_CACHE_DIR: ${{ runner.temp }}/downwind-forecast
       - name: Publish complete snapshot
         shell: bash
         run: |
