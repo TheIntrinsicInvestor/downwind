@@ -148,6 +148,8 @@ Reachability (distance from each fire to the nearest road or river) was built bu
 
 ## Future work
 
+See the [infrastructure checklist](docs/infrastructure-todo.md) for remaining operational checks.
+
 - A pilot morning with one provincial task force.
 
 ## Licence
