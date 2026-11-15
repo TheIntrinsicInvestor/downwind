@@ -1,6 +1,6 @@
 "use client";
 
-// The seven-beat story over the shared map. Scroll position alone decides the beat: a passive,
+// The six-beat story over the shared map. Scroll position alone decides the beat: a passive,
 // requestAnimationFrame-throttled listener turns it into progress, beatAt picks the beat, and on a change the beat's
 // mode, focus, frame and camera go to the provider. Nothing is carried over from the previous beat, so reload, reverse
 // or a fast fling cannot leave the map stale. Above the story the hero view applies (the official beat's camera in the
@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import type { Day } from "@/lib/replay";
 import { officialColor } from "@/lib/mapstyle";
-import { type Beat, type BeatId, type Camera, type StoryFacts, FIRE_OFFSET_PX, PRACTICE_MORE, PRACTICE_SOURCES, beatAt, offsetCamera, ordinal, shortTime } from "@/lib/story";
+import { type Beat, type BeatId, type Camera, type StoryFacts, FIRE_OFFSET_PX, PRACTICE_MORE, PRACTICE_SOURCES, beatAt, offsetCamera, ordinal } from "@/lib/story";
 import { useReplay } from "../ReplayProvider";
 import BeatCard from "./BeatCard";
 import RankTable from "./RankTable";
@@ -72,29 +72,6 @@ function PracticeMore({ variant }: { variant: "float" | "flat" }) {
         <strong className="font-medium text-ink">Nothing in that process counts who breathes the smoke.</strong>
       </p>
       <p className="mt-4 border-t border-rule pt-3 text-xs leading-relaxed text-ink-3">{PRACTICE_SOURCES}</p>
-    </>
-  );
-}
-
-function DistrictFigures({ day, facts }: { day: Day; facts: StoryFacts }) {
-  const d = facts.district;
-  if (!d) return null;
-  const items = [
-    { label: "First arrival", value: shortTime(day.window_start_utc, d.firstH) },
-    ...(d.peakH === null ? [] : [{ label: "Peak", value: shortTime(day.window_start_utc, d.peakH) }]),
-    { label: "Sources outside the province", value: `${d.outside} of ${d.sources.length}` },
-  ];
-  return (
-    <>
-      <dl className="mt-5 grid grid-cols-3 gap-px border border-rule bg-rule">
-        {items.map((it) => (
-          <div key={it.label} className="bg-bg px-3 py-2.5">
-            <dt className="text-[11px] leading-snug text-ink-3">{it.label}</dt>
-            <dd className="figure mt-1 text-[15px] text-ink">{it.value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="mt-3 text-xs leading-relaxed text-ink-3">Times are WIB. See any district in the live map&apos;s Protect tab.</p>
     </>
   );
 }
@@ -170,9 +147,8 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
   }, [beats, hours, wide, reduced, mapReady, setMode, setStoryFocus, setFrame, flyTo, beatRef]);
 
   const emphasis = useMemo<Record<BeatId, string[]>>(() => {
-    if (!facts || !day) return { region: [], official: [], practice: [], biggest: [], top: [], shortlist: [], district: [] };
+    if (!facts || !day) return { region: [], official: [], practice: [], biggest: [], top: [], shortlist: [] };
     const n = (x: number) => x.toLocaleString("en-US");
-    const d = facts.district;
     return {
       region: [n(facts.nLocations)],
       official: [n(facts.p1)],
@@ -180,7 +156,6 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       biggest: [`${Math.round(facts.biggest.frp)} MW`, facts.biggest.sharePct, ordinal(facts.biggest.rank)],
       top: [`${Math.round(facts.top.frp)} MW`, `${n(facts.top.people)} residents`, facts.top.sharePct, "1st"],
       shortlist: [facts.top10SharePct],
-      district: d ? [d.name, `All ${d.sources.length}`] : [],
     };
   }, [facts, day]);
 
@@ -188,12 +163,11 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
     if (!day || !facts) return null;
     if (b.id === "official") return <TierTable facts={facts} />;
     if (b.id === "practice") return <PracticeMore variant={variant} />;
-    if (b.id === "district") return <><DistrictFigures day={day} facts={facts} /><OpenMapLink onOpenApp={onOpenApp} className="mt-6" /></>;
     if (b.id === "shortlist") {
       return (
         <>
           {variant === "float" && <div className="mt-5"><RankTable day={day} fires={facts.top10.slice(0, TABLE_ROWS)} /></div>}
-          {!facts.district && <OpenMapLink onOpenApp={onOpenApp} className="mt-6" />}
+          <OpenMapLink onOpenApp={onOpenApp} className="mt-6" />
         </>
       );
     }
@@ -205,7 +179,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       {extras(b, variant)}
     </BeatCard>
   );
-  const ids = beats?.map((b) => b.id) ?? (["region", "official", "practice", "biggest", "top", "shortlist", "district"] as BeatId[]);
+  const ids = beats?.map((b) => b.id) ?? (["region", "official", "practice", "biggest", "top", "shortlist"] as BeatId[]);
 
   return (
     <div id="story" aria-label="How Downwind ranks the fires">
