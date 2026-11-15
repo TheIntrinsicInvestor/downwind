@@ -76,7 +76,7 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
           </h1>
           <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-ink-2 md:mt-7 md:text-lg md:leading-[1.6]">
             A big fire can burn over empty forest while a smaller one sends its smoke over towns. Indonesia&apos;s official
-            tiers put hundreds of fires in Priority 1 with no order among them. Downwind gives them one: how many people
+            tiers put hundreds of fires in Priority 1 with no order among them. Downwind orders them by how many people
             each fire&apos;s smoke will reach in the next 48 hours.
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5 md:mt-9">
