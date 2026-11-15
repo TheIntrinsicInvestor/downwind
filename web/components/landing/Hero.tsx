@@ -30,8 +30,8 @@ function Stakes() {
     <div className="border-t border-rule pt-5">
       <p className="label">Why the order matters</p>
       <p className="mt-2 max-w-[52rem] text-[15px] leading-relaxed text-ink-2">
-        The harm comes from smoke reaching people, and from peat that keeps burning. Downwind orders the fires by the
-        first of these: how many people their smoke will reach.
+        <span className="block">The harm comes from smoke reaching people, and from peat that keeps burning.</span>
+        <span className="block">Downwind orders the fires by the first of these: how many people their smoke will reach.</span>
       </p>
       <ul className="mt-4 max-md:divide-y max-md:divide-rule max-md:border-y max-md:border-rule md:flex">
         {STAKES.map((it) => (
