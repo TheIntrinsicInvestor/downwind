@@ -73,11 +73,11 @@ function BulletinPanel({ day, live }: { day: Day; live: boolean }) {
         <section aria-labelledby="bulletin-summary" className="mt-4 border-t border-rule pt-3">
           <h4 id="bulletin-summary" className="label">Summary</h4>
           {paragraphs.map((p, k) => <p key={k} className="mt-2 leading-[1.7] text-ink">{p}</p>)}
-          <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            {b.source === "llm"
-              ? `Written by ${b.model?.split("/").pop()?.replace(/-\d{4}$/, "")}.`
-              : "Standard template, used when the AI service is unavailable or its draft fails the checks (every number must match the computed data, and the limits sentence must be intact)."}
-          </p>
+          {b.source === "llm" && (
+            <p className="mt-4 text-xs leading-relaxed text-ink-3">
+              {`Written by ${b.model?.split("/").pop()?.replace(/-\d{4}$/, "")}.`}
+            </p>
+          )}
         </section>
       ) : (
         <p className="mt-4 border-t border-rule pt-3 text-ink-2">No written summary for this day yet.</p>

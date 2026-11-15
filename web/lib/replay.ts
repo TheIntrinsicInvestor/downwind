@@ -179,7 +179,10 @@ export function bulletinParts(day: Day) {
   const newPlaces = ch ? [...new Set(ch.new_in_top10.map((i) => day.fires[i].place ?? "an unnamed location"))] : [];
   return {
     leading, newPlaces, nNew: ch?.new_in_top10.length ?? 0, nLeft: ch?.left_top10 ?? 0,
-    paragraphs: day.bulletin.text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+    // The pipeline's fixed limits sentence ends with "People outside Indonesia are not counted."; the panel leaves that
+    // half out (the stored text keeps it, so the number check and the live feed are unchanged).
+    paragraphs: day.bulletin.text.split(/\n\s*\n/)
+      .map((p) => p.replace(/\s*People outside Indonesia are not counted\./g, "").trim()).filter(Boolean),
   };
 }
 
