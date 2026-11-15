@@ -28,7 +28,6 @@ function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
         <nav aria-label="Page" className="absolute left-1/2 flex -translate-x-1/2 gap-8 text-sm max-md:hidden">
           <Link href="/app" onClick={onOpenApp} className={link}>Live map</Link>
           <a href="#how-it-works" onClick={scrollTo} className={link}>How it works</a>
-          <a href="#results" onClick={scrollTo} className={link}>Results</a>
         </nav>
         {/* Below 1400 px the dateline would run into the centred links. */}
         <p className="dateline max-[1399px]:hidden">

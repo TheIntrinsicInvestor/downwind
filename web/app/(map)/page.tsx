@@ -1,7 +1,7 @@
 "use client";
 
-// The landing page at /: hero and six-beat story over the shared map, then how it works, how it differs, what it
-// adds and the measured results.
+// The landing page at /: hero and six-beat story over the shared map, then how it works, how it differs and what it
+// adds.
 // It owns the provider while it shows: 20 September, Downwind view, no selection, a passive map. Next keeps this page
 // in <Activity> when the reader goes to /app, so the setup runs again on every return (effects re-run, state stays).
 
@@ -14,12 +14,11 @@ import Story from "@/components/landing/Story";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Differs from "@/components/landing/Differs";
 import Adds from "@/components/landing/Adds";
-import Results from "@/components/landing/Results";
 import Footer from "@/components/landing/Footer";
 import { STORY_DATE, STORY_FRAME, beats as storyBeats, storyFacts } from "@/lib/story";
 
 export default function Home() {
-  const { limits, limitsError, day, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
+  const { day, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
   const beatRef = useRef(-1);    // the beat on screen (-1: hero), for the hand-off
 
   // A layout effect, so it runs before every passive effect of the same commit, including Story's (children's passive
@@ -73,7 +72,6 @@ export default function Home() {
         <HowItWorks />
         <Differs />
         <Adds />
-        <Results limits={limits} limitsError={limitsError} day={story} />
       </main>
       <Footer />
     </div>
