@@ -1,15 +1,13 @@
-// The landing page's first screen (spec section 6, copy exact): eyebrow, headline, sub, two actions, and the figure
-// strip read from the day file. Desktop: text column left over a legibility scrim, map right. Phone: the map shows
+// The landing page's first screen: eyebrow, headline, sub, two actions, and the stakes strip (why the order matters:
+// three published figures with their sources). Desktop: text column left over a legibility scrim, map right. Phone: the map shows
 // in the top 55% (as in the story below) and the copy sits under it on the page background.
 
 import { memo, type MouseEvent } from "react";
 import Link from "next/link";
-import type { StoryFacts } from "@/lib/story";
 import { Arrow } from "./TopBar";
 
 export type LoadStatus = "loading" | "ready" | "failed";
 
-const num = (n: number) => n.toLocaleString("en-US");
 
 export function OpenMapLink({ onOpenApp, className = "" }: { onOpenApp: () => void; className?: string }) {
   return (
@@ -21,34 +19,46 @@ export function OpenMapLink({ onOpenApp, className = "" }: { onOpenApp: () => vo
   );
 }
 
-function Figures({ facts }: { facts: StoryFacts }) {
-  const items = [
-    { n: num(facts.nLocations), label: <>fire locations detected across the region</> },
-    { n: num(facts.p1), label: <>Priority 1 fires in West Kalimantan</> },
-    { n: num(facts.top10.length), hot: true,
-      label: <>fires hold <span className="figure text-ember-hot">{facts.top10SharePct}</span> of the smoke over residents</> },
-  ];
+const STAKES = [
+  { n: "425,167", label: <>respiratory infections linked to the fires, 95,627 in children under five</> },
+  { n: "~3,560", label: <>deaths in September from short-term smoke exposure</> },
+  { n: "195 Mt", hot: true, label: <>of carbon from Indonesia&apos;s fires in 2026, about a third of the world&apos;s fire emissions</> },
+];
+
+// Why the order matters: one sentence tying the harm to the ranking, then the three figures and their sources.
+function Stakes() {
   return (
-    <ul className="max-md:divide-y max-md:divide-rule max-md:border-y max-md:border-rule md:flex md:border-t md:border-rule md:pt-5">
-      {items.map((it) => (
-        <li key={it.n}
-          className="flex items-baseline gap-4 py-3 md:mr-10 md:block md:border-r md:border-rule md:py-0 md:pr-10 md:last:mr-0 md:last:border-r-0 md:last:pr-0">
-          <span className={`figure w-[4.25rem] shrink-0 text-2xl tracking-[-0.02em] md:w-auto md:text-[30px] ${it.hot ? "text-ember-hot" : "text-ink"}`}>
-            {it.n}
-          </span>{" "}
-          <span className="text-[13px] leading-snug text-ink-3 md:mt-1.5 md:block md:max-w-[12.5rem]">{it.label}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="border-t border-rule pt-5">
+      <p className="label">Why the order matters</p>
+      <p className="mt-2 max-w-[40rem] text-[15px] leading-relaxed text-ink-2">
+        The harm comes from smoke reaching people, and from peat that keeps burning. Fighting first the fires whose smoke
+        reaches the most people goes straight at that harm.
+      </p>
+      <ul className="mt-4 max-md:divide-y max-md:divide-rule max-md:border-y max-md:border-rule md:flex">
+        {STAKES.map((it) => (
+          <li key={it.n}
+            className="flex items-baseline gap-4 py-3 md:mr-10 md:block md:border-r md:border-rule md:py-0 md:pr-10 md:last:mr-0 md:last:border-r-0 md:last:pr-0">
+            <span className={`figure w-[5.5rem] shrink-0 text-2xl tracking-[-0.02em] md:w-auto md:text-[30px] ${it.hot ? "text-ember-hot" : "text-ink"}`}>
+              {it.n}
+            </span>{" "}
+            <span className="text-[13px] leading-snug text-ink-3 md:mt-1.5 md:block md:max-w-[13.5rem]">{it.label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs leading-relaxed text-ink-3">
+        This fire season, national figures. Sources: Indonesian Ministry of Health to 5 November 2026 (via Bloomberg
+        Technoz); CREA, 29 October 2026; Copernicus CAMS, early November 2026.
+      </p>
+    </div>
   );
 }
 
 type Props = {
-  facts: StoryFacts | null; status: LoadStatus;
+  status: LoadStatus;
   onRetry: () => void; onOpenApp: () => void; onSeeHow: (e: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-function Hero({ facts, status, onRetry, onOpenApp, onSeeHow }: Props) {
+function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
   return (
     <section aria-labelledby="hero-title" className="relative md:flex md:min-h-[max(100svh,640px)] md:flex-col">
       {/* Legibility scrim behind the text column and the figure strip (desktop; on phones the copy sits on --bg). */}
@@ -67,8 +77,9 @@ function Hero({ facts, status, onRetry, onOpenApp, onSeeHow }: Props) {
           </h1>
           <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-ink-2 md:mt-7 md:text-lg md:leading-[1.6]">
             Downwind ranks West Kalimantan&apos;s Priority 1 peat fires by how many people their smoke will reach in the
-            next 48 hours. It adds an order to Indonesia&apos;s official hotspot tiers. It does not replace them, and the
-            task force decides.
+            next 48 hours, putting in order the fires that Indonesia&apos;s official tiers leave unranked. The fire task
+            force sees which fires to send crews to first; district offices see when smoke will reach their schools and
+            clinics.
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5 md:mt-9">
             <OpenMapLink onOpenApp={onOpenApp} />
@@ -81,22 +92,23 @@ function Hero({ facts, status, onRetry, onOpenApp, onSeeHow }: Props) {
       </div>
 
       <div data-hero-strip className="pointer-events-auto relative flex items-end justify-between gap-8 bg-bg px-4 pb-10 md:bg-transparent md:px-8 md:pb-12 lg:px-16">
-        <div className="min-h-[5.5rem] w-full md:w-auto md:min-w-[40rem]">
-          {status === "ready" && facts ? <Figures facts={facts} />
-            : status === "failed" ? (
-              <div role="alert" className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-rule pt-5">
-                <p className="text-[15px] text-ink">The replay data could not be loaded.</p>
-                <button type="button" onClick={onRetry}
-                  className="focus-ring min-h-11 bg-ink px-5 text-[13px] font-semibold text-bg transition-colors hover:bg-ink-2">
-                  Retry
-                </button>
-              </div>
-            ) : (
-              <p role="status" className="flex items-center gap-3 border-t border-rule pt-5 text-sm text-ink-3">
-                <span className="h-2 w-2 rounded-full bg-ember" aria-hidden="true" />
-                Loading replay data
-              </p>
-            )}
+        <div className="w-full md:w-auto md:min-w-[40rem] md:max-w-[52rem]">
+          <Stakes />
+          {status === "failed" && (
+            <div role="alert" className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-rule pt-5">
+              <p className="text-[15px] text-ink">The replay data could not be loaded.</p>
+              <button type="button" onClick={onRetry}
+                className="focus-ring min-h-11 bg-ink px-5 text-[13px] font-semibold text-bg transition-colors hover:bg-ink-2">
+                Retry
+              </button>
+            </div>
+          )}
+          {status === "loading" && (
+            <p role="status" className="mt-4 flex items-center gap-3 text-sm text-ink-3">
+              <span className="h-2 w-2 rounded-full bg-ember" aria-hidden="true" />
+              Loading replay data
+            </p>
+          )}
         </div>
         {status !== "failed" && (
           <p aria-hidden="true" className="label flex items-center gap-3.5 max-md:hidden">

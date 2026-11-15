@@ -1,6 +1,6 @@
 "use client";
 
-// The five-beat story (spec section 6) over the shared map. Scroll position alone decides the beat: a passive,
+// The seven-beat story over the shared map. Scroll position alone decides the beat: a passive,
 // requestAnimationFrame-throttled listener turns it into progress, beatAt picks the beat, and on a change the beat's
 // mode, focus, frame and camera go to the provider. Nothing is carried over from the previous beat, so reload, reverse
 // or a fast fling cannot leave the map stale. Above the story the hero view applies (the official beat's camera in the
@@ -11,7 +11,7 @@
 import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { type Day, localLabel } from "@/lib/replay";
 import { officialColor } from "@/lib/mapstyle";
-import { type Beat, type BeatId, type Camera, type StoryFacts, FIRE_OFFSET_PX, beatAt, offsetCamera, ordinal } from "@/lib/story";
+import { type Beat, type BeatId, type Camera, type StoryFacts, FIRE_OFFSET_PX, PRACTICE_MORE, PRACTICE_SOURCES, beatAt, offsetCamera, ordinal, shortTime } from "@/lib/story";
 import { useReplay } from "../ReplayProvider";
 import BeatCard from "./BeatCard";
 import RankTable from "./RankTable";
@@ -58,7 +58,7 @@ function TierTable({ facts }: { facts: StoryFacts }) {
           );
         })}
       </ul>
-      <p className="mt-3 text-xs leading-relaxed text-ink-3">Tiers follow P.8/2018, Pasal 9. The cluster size of 3 is our own.</p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-3">Tiers follow P.8/2018, Pasal 9 and 14. The cluster size of 3 is our own.</p>
     </>
   );
 }
@@ -71,6 +71,41 @@ const SmokeClock = memo(function SmokeClock({ day, frame }: { day: Day; frame: n
     </p>
   );
 });
+
+function PracticeMore({ variant }: { variant: "float" | "flat" }) {
+  return (
+    <>
+      <p className={`mt-3 leading-relaxed text-ink-2 ${variant === "float" ? "text-[17px]" : "text-[15px]"}`}>
+        {PRACTICE_MORE.replace(" Nothing in that process counts who breathes the smoke.", "")}{" "}
+        <strong className="font-medium text-ink">Nothing in that process counts who breathes the smoke.</strong>
+      </p>
+      <p className="mt-4 border-t border-rule pt-3 text-xs leading-relaxed text-ink-3">{PRACTICE_SOURCES}</p>
+    </>
+  );
+}
+
+function DistrictFigures({ day, facts }: { day: Day; facts: StoryFacts }) {
+  const d = facts.district;
+  if (!d) return null;
+  const items = [
+    { label: "First arrival", value: shortTime(day.window_start_utc, d.firstH) },
+    ...(d.peakH === null ? [] : [{ label: "Peak", value: shortTime(day.window_start_utc, d.peakH) }]),
+    { label: "Sources outside the province", value: `${d.outside} of ${d.sources.length}` },
+  ];
+  return (
+    <>
+      <dl className="mt-5 grid grid-cols-3 gap-px border border-rule bg-rule">
+        {items.map((it) => (
+          <div key={it.label} className="bg-bg px-3 py-2.5">
+            <dt className="text-[11px] leading-snug text-ink-3">{it.label}</dt>
+            <dd className="figure mt-1 text-[15px] text-ink">{it.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs leading-relaxed text-ink-3">Times are WIB. See any district in the live map&apos;s Protect tab.</p>
+    </>
+  );
+}
 
 type Props = {
   day: Day | null; beats: Beat[] | null; facts: StoryFacts | null;
@@ -105,7 +140,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       const p = wide ? (PROBE * vh - r.top) / r.height : -r.top / (r.height - vh);
       if (!Number.isFinite(p) || r.height <= vh) return;     // hidden or not laid out yet
       const before = wide ? p < 0 : r.top > 0;
-      const { index: i, local } = beatAt(p);
+      const { index: i, local } = beatAt(p, beats.length);
       const index = before ? -1 : i;
       if (railBoxRef.current) railBoxRef.current.style.opacity = p >= 0 && p <= 1 ? "1" : "0";   // only while the story is on screen
       if (railRef.current) railRef.current.style.transform = `scaleY(${Math.min(1, Math.max(0, p))})`;
@@ -143,26 +178,31 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
   }, [beats, hours, wide, reduced, mapReady, setMode, setStoryFocus, setFrame, flyTo, beatRef]);
 
   const emphasis = useMemo<Record<BeatId, string[]>>(() => {
-    if (!facts) return { region: [], official: [], biggest: [], top: [], shortlist: [] };
+    if (!facts || !day) return { region: [], official: [], practice: [], biggest: [], top: [], shortlist: [], district: [] };
     const n = (x: number) => x.toLocaleString("en-US");
+    const d = facts.district;
     return {
       region: [n(facts.nLocations)],
       official: [n(facts.p1)],
-      biggest: [`${facts.biggest.frp.toFixed(1)} MW`, `${ordinal(facts.biggest.rank)} of ${n(facts.p1)}`, facts.biggest.sharePct],
-      top: [`${facts.top.frp.toFixed(1)} MW`, `${n(facts.top.people)} residents`, facts.top.sharePct],
+      practice: ["265"],
+      biggest: [`${facts.biggest.frp.toFixed(1)} MW`, facts.biggest.sharePct, ordinal(facts.biggest.rank)],
+      top: [`${facts.top.frp.toFixed(1)} MW`, `${n(facts.top.people)} residents`, facts.top.sharePct, "1st"],
       shortlist: [facts.top10SharePct],
+      district: d ? [d.name, `All ${d.sources.length}`] : [],
     };
-  }, [facts]);
+  }, [facts, day]);
 
   const extras = (b: Beat, variant: "float" | "flat"): ReactNode => {
     if (!day || !facts) return null;
     if (b.id === "official") return <TierTable facts={facts} />;
+    if (b.id === "practice") return <PracticeMore variant={variant} />;
+    if (b.id === "district") return <><DistrictFigures day={day} facts={facts} /><OpenMapLink onOpenApp={onOpenApp} className="mt-6" /></>;
     if (b.id === "top") return <SmokeClock day={day} frame={frame} />;
     if (b.id === "shortlist") {
       return (
         <>
           {variant === "float" && <div className="mt-5"><RankTable day={day} fires={facts.top10} /></div>}
-          <OpenMapLink onOpenApp={onOpenApp} className="mt-6" />
+          {!facts.district && <OpenMapLink onOpenApp={onOpenApp} className="mt-6" />}
         </>
       );
     }
@@ -174,7 +214,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       {extras(b, variant)}
     </BeatCard>
   );
-  const ids = beats?.map((b) => b.id) ?? (["region", "official", "biggest", "top", "shortlist"] as BeatId[]);
+  const ids = beats?.map((b) => b.id) ?? (["region", "official", "practice", "biggest", "top", "shortlist", "district"] as BeatId[]);
 
   return (
     <div id="story" aria-label="How Downwind ranks the fires">
@@ -205,7 +245,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
 
       {/* Phone: the map in the top 55%, the cards in a pinned panel under it, then the rank table. */}
       <div className="md:hidden">
-        <div ref={phoneRef} className="relative h-[500svh]">
+        <div ref={phoneRef} className="relative" style={{ height: `${ids.length * 100}svh` }}>
           <div className="sticky top-0 flex h-svh flex-col">
             <div aria-hidden="true" className="h-[55svh] shrink-0" />
             <div className="pointer-events-auto relative min-h-0 flex-1 overflow-hidden border-t border-rule bg-bg">

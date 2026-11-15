@@ -1,6 +1,7 @@
 "use client";
 
-// The landing page at /: hero and five-beat story over the shared map, then the content sections (Tasks 7 and 8).
+// The landing page at /: hero and seven-beat story over the shared map, then how it works, how it differs, what it
+// adds and the measured results.
 // It owns the provider while it shows: 20 September, Downwind view, no selection, a passive map. Next keeps this page
 // in <Activity> when the reader goes to /app, so the setup runs again on every return (effects re-run, state stays).
 
@@ -9,17 +10,16 @@ import { useReplay } from "@/components/ReplayProvider";
 import TopBar from "@/components/landing/TopBar";
 import Hero, { type LoadStatus } from "@/components/landing/Hero";
 import HeroCallouts from "@/components/landing/HeroCallouts";
-import Stakes from "@/components/landing/Stakes";
 import Story from "@/components/landing/Story";
-import Practice from "@/components/landing/Practice";
-import Results from "@/components/landing/Results";
 import HowItWorks from "@/components/landing/HowItWorks";
-import WhereItFits from "@/components/landing/WhereItFits";
+import Differs from "@/components/landing/Differs";
+import Adds from "@/components/landing/Adds";
+import Results from "@/components/landing/Results";
 import Footer from "@/components/landing/Footer";
 import { STORY_DATE, STORY_FRAME, beats as storyBeats, storyFacts } from "@/lib/story";
 
 export default function Home() {
-  const { day, limits, limitsError, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setStoryFocus, setMapInteractive } = useReplay();
+  const { limits, limitsError, day, error, retry, setDate, setFrame, setPlaying, setMode, select, setPanel, setPlace, setStoryFocus, setMapInteractive } = useReplay();
   const beatRef = useRef(-1);    // the beat on screen (-1: hero), for the hand-off
 
   // A layout effect, so it runs before every passive effect of the same commit, including Story's (children's passive
@@ -44,14 +44,19 @@ export default function Home() {
   const beats = useMemo(() => (story ? storyBeats(story) : null), [story]);
   const status: LoadStatus = error ? "failed" : !story ? "loading" : facts && beats ? "ready" : "failed";
 
-  // Leaving from beat 4 or 5 opens the app on the top-ranked fire.
+  // Leaving from the fire that matters most or the short list opens the app on the top-ranked fire; leaving from the
+  // district beat opens the Protect tab on that district.
   const openApp = useCallback(() => {
     setMode("downwind");
-    if (beatRef.current >= 3 && facts) {
+    const id = beats?.[beatRef.current]?.id;
+    if (id === "district" && facts?.district) {
+      setPlace(facts.district.name);
+      setPanel("city");
+    } else if ((id === "top" || id === "shortlist") && facts) {
       select(facts.top.i);
       setPanel("fire");
     }
-  }, [facts, select, setPanel, setMode]);
+  }, [beats, facts, select, setPanel, setPlace, setMode]);
 
   const seeHow = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
     const el = document.getElementById("story");
@@ -65,15 +70,14 @@ export default function Home() {
     <div className="flex flex-col">
       <TopBar onOpenApp={openApp} />
       <HeroCallouts day={story} facts={facts} />
-      <Hero facts={facts} status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
-      <Stakes />
+      <Hero status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}
       {/* Content sections, opaque so the map is covered once the story ends. */}
       <main className="pointer-events-auto relative bg-bg">
-        <Practice />
-        <Results limits={limits} limitsError={limitsError} />
         <HowItWorks />
-        <WhereItFits day={day} />
+        <Differs />
+        <Adds />
+        <Results limits={limits} limitsError={limitsError} />
       </main>
       <Footer />
     </div>
