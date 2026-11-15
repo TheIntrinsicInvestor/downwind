@@ -36,7 +36,7 @@ function FireList({ day, selected, onSelect, mode }: Props) {
                 onClick={() => onSelect(i)}
                 aria-current={active ? "true" : undefined}
                 className={`focus-ring-inset relative mx-[calc(-1*var(--pad,0px))] grid min-h-11 w-[calc(100%+2*var(--pad,0px))] grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 px-[var(--pad,0px)] py-1.5 text-left transition-colors ${
-                  active ? "bg-ember/10" : "hover:bg-white/[0.04]"}`}
+                  active ? "bg-ember/10" : "hover:bg-ink/[0.05]"}`}
               >
                 {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-ember" aria-hidden="true" />}
                 {mode === "official" ? (

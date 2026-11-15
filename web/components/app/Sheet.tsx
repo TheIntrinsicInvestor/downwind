@@ -90,7 +90,7 @@ export default function Sheet({ state, onState, top, header, children, className
   return (
     <div
       ref={sheet}
-      className={`panel pointer-events-auto fixed inset-x-0 bottom-0 z-20 flex flex-col border-x-0 border-b-0 bg-[rgb(11_16_23/0.97)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${className}`}
+      className={`panel pointer-events-auto fixed inset-x-0 bottom-0 z-20 flex flex-col border-x-0 border-b-0 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${className}`}
       style={{ height: full || undefined, transform: offset(visible), visibility: vh ? undefined : "hidden" }}
     >
       <div ref={head} className="shrink-0">

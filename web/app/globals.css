@@ -16,7 +16,7 @@
   --ochre: #85612E;
   --rule: rgb(42 29 18 / 0.18);
   --rule-strong: rgb(42 29 18 / 0.3);   /* scrollbar thumb, unfilled slider track */
-  --panel: rgb(243 236 222 / 0.9);
+  --panel: rgb(243 236 222 / 0.96);
   --attrib: rgb(239 230 212 / 0.95);    /* map attribution background (bone) */
   --official: #1C3A70;           /* Priority 1 in the official view (lib/mapstyle.ts officialColor(1)) */
 }

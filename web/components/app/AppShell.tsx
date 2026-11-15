@@ -61,7 +61,7 @@ const DaySwitch = memo(function DaySwitch({ days, date, onDay, live, onLive }: {
   return (
     <div role="radiogroup" aria-label="Map data" className="panel pointer-events-auto flex gap-0.5 p-0.5">
       <button type="button" role="radio" aria-checked={live} onClick={onLive}
-        className={`focus-ring-inset min-h-9 px-2.5 text-xs font-medium max-md:min-h-11 ${live ? "bg-white/10 text-ink" : "text-ink-3 hover:text-ink"}`}>
+        className={`focus-ring-inset min-h-9 px-2.5 text-xs font-medium max-md:min-h-11 ${live ? "bg-ink/10 text-ink" : "text-ink-3 hover:text-ink"}`}>
         Live
       </button>
       {days.map((d) => (
@@ -73,7 +73,7 @@ const DaySwitch = memo(function DaySwitch({ days, date, onDay, live, onLive }: {
           aria-label={longDate(d)}
           onClick={() => { if (live || d !== date) onDay(d); }}
           className={`focus-ring-inset figure min-h-9 whitespace-nowrap px-3 text-[12px] transition-colors max-md:min-h-11 max-md:px-2.5 ${
-            !live && d === date ? "bg-white/10 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]" : "text-ink-3 hover:bg-white/5 hover:text-ink"}`}
+            !live && d === date ? "bg-ink/10 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]" : "text-ink-3 hover:bg-ink/[0.05] hover:text-ink"}`}
         >
           {shortDay(d)}
         </button>
@@ -139,13 +139,13 @@ function Status({ error, retry }: { error: string | null; retry: () => void }) {
         <div role="alert" className="panel pointer-events-auto w-full max-w-sm border-l-2 border-l-ember p-5">
           <p className="text-sm leading-relaxed text-ink">{error}</p>
           <button type="button" onClick={retry}
-            className="focus-ring mt-4 min-h-11 bg-ember px-5 text-[13px] font-semibold text-[#160800] transition-colors hover:bg-ember-hot">
+            className="focus-ring mt-4 min-h-11 bg-ink px-5 text-[13px] font-semibold text-bg transition-colors hover:bg-ink-2">
             Retry
           </button>
         </div>
       ) : (
         <p role="status" className="panel flex items-center gap-3 px-5 py-4 text-sm text-ink-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-ember shadow-[0_0_10px_var(--ember)] motion-reduce:animate-none" aria-hidden="true" />
+          <span className="h-2 w-2 rounded-full bg-ember" aria-hidden="true" />
           Loading replay data
         </p>
       )}
@@ -300,7 +300,7 @@ export default function AppShell() {
         <ModeSwitch mode={mode} onMode={setMode} className="pointer-events-auto" />
         {feedStatus}
         {day && !liveSelected && (
-          <p className="dateline ml-auto hidden xl:block">
+          <p className="dateline ml-auto hidden bg-[var(--attrib)] px-2 py-1 text-ink-2 xl:block">
             Situation bulletin <span className="px-1.5 text-ink-3/60">/</span> {longDate(day.date)} <span className="px-1.5 text-ink-3/60">/</span> West Kalimantan
           </p>
         )}

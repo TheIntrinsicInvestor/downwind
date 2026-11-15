@@ -51,10 +51,10 @@ export default function ChatPanel({ date }: { date: string }) {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="What if we can only reach five fires?"
-          className="focus-ring min-h-11 min-w-0 flex-1 border border-rule bg-[#0b1017] px-3 text-sm text-ink placeholder:text-ink-3"
+          className="focus-ring min-h-11 min-w-0 flex-1 border border-ink/55 bg-bg px-3 text-sm text-ink placeholder:text-ink-3"
         />
         <button type="submit" disabled={busy}
-          className="focus-ring min-h-11 bg-ember px-4 text-[13px] font-semibold text-[#160800] transition-colors hover:bg-ember-hot disabled:opacity-50">
+          className="focus-ring min-h-11 bg-ink px-4 text-[13px] font-semibold text-bg transition-colors hover:bg-ink-2 disabled:opacity-50">
           {busy ? "Thinking" : "Ask"}
         </button>
       </form>

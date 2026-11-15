@@ -23,8 +23,8 @@ export const ModeSwitch = memo(function ModeSwitch({ mode, onMode, className = "
           onClick={() => onMode(m)}
           className={`focus-ring-inset min-h-9 whitespace-nowrap px-3 text-[13px] font-medium transition-colors max-md:min-h-11 ${
             mode === m
-              ? m === "official" ? "bg-official/15 text-ink shadow-[inset_0_-2px_0_var(--official)]" : "bg-ember/15 text-ink shadow-[inset_0_-2px_0_var(--ember)]"
-              : "text-ink-3 hover:bg-white/5 hover:text-ink"}`}
+              ? m === "official" ? "bg-official/15 text-ink shadow-[inset_0_-2px_0_var(--official)]" : "bg-ember/15 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]"
+              : "text-ink-3 hover:bg-ink/[0.05] hover:text-ink"}`}
         >
           {m === "official" ? "Official tiers" : "Downwind order"}
         </button>
@@ -47,7 +47,7 @@ export const ModeNote = memo(function ModeNote({ mode, day }: { mode: Mode; day:
       <ul className="divide-y divide-rule border-b border-rule">
         {([[1, p1], [2, p2], [3, p3]] as const).map(([t, n]) => (
           <li key={t} className="flex items-center gap-2.5 py-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: rgb(t), boxShadow: `0 0 8px ${rgb(t)}` }} />
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: rgb(t) }} />
             <span className="flex-1 text-ink">Priority {t}</span>
             <span className="figure text-ink">{n.toLocaleString("en-US")}</span>
           </li>
