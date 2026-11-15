@@ -67,11 +67,11 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
 
       <div className="pointer-events-auto relative bg-bg px-4 pb-8 pt-7 max-md:border-t max-md:border-rule md:flex-1 md:bg-transparent md:px-8 md:pb-8 md:pt-[clamp(6rem,14svh,8.5rem)] lg:px-16">
         <div data-hero-copy className="max-w-[35rem]">
-          <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-ochre">
+          <p className="flex items-center gap-3 font-sans text-xs font-semibold uppercase tracking-[0.12em] text-ochre">
             <span className="h-px w-7 bg-ochre" aria-hidden="true" />West Kalimantan peat fires
           </p>
           <h1 id="hero-title"
-            className="mt-6 font-display text-[clamp(2.375rem,4.75vw,4.25rem)] font-light leading-[1.02] tracking-[-0.025em] text-ink [font-variation-settings:'opsz'_144] md:mt-7">
+            className="mt-6 font-display text-[clamp(2.375rem,4.75vw,4.25rem)] font-medium leading-[1.04] tracking-[-0.015em] text-ink [font-variation-settings:'opsz'_72] md:mt-7">
             Size is <em className="text-ember-hot">not</em> the order.
           </h1>
           <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-ink-2 md:mt-7 md:text-lg md:leading-[1.6]">
