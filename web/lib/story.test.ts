@@ -63,7 +63,7 @@ test("golden: beat copy sentences", () => {
   expect(b.map((x) => x.n)).toEqual(["01", "02", "03", "04", "05", "06", "07"]);
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
   expect(b[1].body).toBe("Indonesia's rule (P.8/2018) sorts hotspots into three tiers to decide which get a field check first. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
-  expect(b[2].body).toBe("Crews are stretched. West Kalimantan had 265 specialist forest firefighters in August, and 48 days into the operation the ministry was rotating tired crews and sending reinforcements.");
+  expect(b[2].body).toBe("Crews are stretched: West Kalimantan had 265 specialist forest firefighters in August, and by day 48 tired crews were being rotated.");
   expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248 MW of fire power in Kayong Utara. Its smoke mostly missed people: 1.06% of the day's smoke over residents. Downwind ranks it 20th of 349.");
   expect(b[4].body).toBe("A smaller fire nearby, at 194 MW of fire power, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
   expect(b[5].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");

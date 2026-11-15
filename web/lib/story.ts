@@ -121,7 +121,7 @@ export function shortTime(windowStartUtc: string, h: number): string {
 
 // Beat 3's sources, printed under its copy.
 export const PRACTICE_SOURCES = "Kemenhut and ANTARA, 21 and 24 August 2026; BPBD Kalbar, 1 August 2026; Satgas Kalbar, 1 September 2026";
-export const PRACTICE_MORE = "With hundreds of fires at once, crews cannot reach them all. Today, placement follows hotspot counts and patrol reports: in August, the provincial disaster agency focused air effort on the three regencies with the most hotspots and burned area. Nothing in that process counts who breathes the smoke.";
+export const PRACTICE_MORE = "With hundreds of fires at once, they cannot reach them all, so placement follows hotspot counts and patrol reports. Nothing in that process counts who breathes the smoke.";
 
 export function beats(day: Day): Beat[] | null {
   const f = storyFacts(day);
@@ -140,7 +140,7 @@ export function beats(day: Day): Beat[] | null {
       `Indonesia's rule (P.8/2018) sorts hotspots into three tiers to decide which get a field check first. In West Kalimantan that morning, ${num(f.p1)} fires shared Priority 1, with no order among them.`,
       "official", null, PROVINCE, phone(...PROVINCE.center, PROVINCE.zoom), STORY_FRAME),
     make("practice", 3, "In practice",
-      "Crews are stretched. West Kalimantan had 265 specialist forest firefighters in August, and 48 days into the operation the ministry was rotating tired crews and sending reinforcements.",
+      "Crews are stretched: West Kalimantan had 265 specialist forest firefighters in August, and by day 48 tired crews were being rotated.",
       "official", null, PROVINCE, phone(...PROVINCE.center, PROVINCE.zoom), STORY_FRAME),
     make("biggest", 4, "The biggest fire",
       `The biggest Priority 1 fire burned at ${Math.round(f.biggest.frp)} MW of fire power in ${f.biggest.place}. Its smoke mostly missed people: ${f.biggest.sharePct} of the day's smoke over residents. Downwind ranks it ${ordinal(f.biggest.rank)} of ${num(f.p1)}.`,
