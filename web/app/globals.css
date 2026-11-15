@@ -33,22 +33,23 @@
   --color-rule: var(--rule);
   --color-panel: var(--panel);
   --color-official: var(--official);
-  --font-display: var(--font-fraunces), Georgia, serif;
-  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-public-sans), system-ui, sans-serif;
+  --font-mono: var(--font-public-sans), system-ui, sans-serif;   /* no monospace: labels and figures use Public Sans */
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-family: var(--font-public-sans), system-ui, sans-serif;
 }
 
 @layer components {
   .dateline {
-    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-family: var(--font-public-sans), system-ui, sans-serif;
     font-size: 0.75rem;
-    letter-spacing: 0.12em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-3);
   }
@@ -62,19 +63,20 @@ body {
     border: 1px solid var(--rule);
   }
 
-  /* Small-caps mono label (column heads, section titles, card eyebrows). */
+  /* Small-caps label (column heads, section titles, card eyebrows). */
   .label {
-    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-family: var(--font-public-sans), system-ui, sans-serif;
     font-size: 0.6875rem;
+    font-weight: 600;
     line-height: 1rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-3);
   }
 
-  /* Figures: mono, tabular, lining. */
+  /* Figures: tabular, lining numbers in the text face, so columns line up without a monospace. */
   .figure {
-    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-family: var(--font-public-sans), system-ui, sans-serif;
     font-variant-numeric: tabular-nums lining-nums;
   }
 

@@ -8,7 +8,7 @@ import {
 
 // Drawn at 320 units wide and scaled to the panel, so it fits a 360 px phone with no overflow.
 const B: Box = { w: 320, h: 156, left: 30, right: 8, top: 14, bottom: 24 };
-const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
+const MONO = "var(--font-public-sans), system-ui, sans-serif";   // chart figures in the text face (tabular numbers)
 const SURFACE = "#F3ECDE";
 
 type Props = { windowStartUtc: string; values: number[] };

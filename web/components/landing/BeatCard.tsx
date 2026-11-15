@@ -1,4 +1,4 @@
-// One numbered story beat, bulletin style: Fraunces numeral and title over a hairline, the beat's sentence with its
+// One numbered story beat, bulletin style: Newsreader numeral and title over a hairline, the beat's sentence with its
 // figures set in ink, then any extras (tier table, rank table, button). "float" is the desktop card over the map;
 // "flat" is the phone panel under the map. Inactive cards fade back; the transition is opacity and transform only.
 
@@ -35,7 +35,7 @@ function BeatCard({ beat, active, emphasis, variant, children }: Props) {
     >
       <header className="flex items-end gap-4 border-b border-rule pb-4">
         <span aria-hidden="true"
-          className={`font-display font-light leading-[0.8] text-ember-hot [font-variant-numeric:lining-nums] ${variant === "float" ? "text-[52px]" : "text-[40px]"}`}>
+          className={`font-display font-normal leading-[0.8] text-ember-hot [font-variant-numeric:lining-nums] ${variant === "float" ? "text-[52px]" : "text-[40px]"}`}>
           {beat.n}
         </span>
         <div className="min-w-0">

@@ -9,8 +9,8 @@ type Bar = { label: string; value: number };
 
 const W = 400;          // viewBox width
 const AXIS = 352;       // bar scale width, leaving room at the right for the value at the end of a full bar
-const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
-const SANS = "var(--font-plex-sans), system-ui, sans-serif";
+const MONO = "var(--font-public-sans), system-ui, sans-serif";   // chart figures in the text face (tabular numbers)
+const SANS = "var(--font-public-sans), system-ui, sans-serif";
 
 export default function BarPair({ title, a, b, max, bracket, reading, small }: {
   title: string; a: Bar; b: Bar; max: number;

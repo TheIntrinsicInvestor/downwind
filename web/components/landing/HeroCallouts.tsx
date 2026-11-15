@@ -157,9 +157,9 @@ function Callout({ wrapRef, hot, tag, headline, sub }: {
       {/* The card's last-child position matters: the placement code measures and moves lastElementChild. */}
       <div className={`absolute w-max border-l-[3px] ${edge} bg-panel px-3 py-2 shadow-[0_6px_24px_rgb(80_55_30/0.12)]`}
         style={{ maxWidth: CARD_W }}>
-        <p className="font-mono text-[10px] uppercase leading-tight tracking-[0.12em] text-ink-3">{tag}</p>
-        <p className={`mt-1 font-display text-[19px] font-light leading-tight ${hot ? "text-ember-hot" : "text-ink"}`}>{headline}</p>
-        <p className="mt-1 font-mono text-[11px] leading-tight text-ink-2">{sub}</p>
+        <p className="font-sans text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] text-ink-3">{tag}</p>
+        <p className={`mt-1 font-display text-[19px] font-medium leading-tight ${hot ? "text-ember-hot" : "text-ink"}`}>{headline}</p>
+        <p className="figure mt-1 text-[11px] leading-tight text-ink-2">{sub}</p>
       </div>
     </div>
   );
