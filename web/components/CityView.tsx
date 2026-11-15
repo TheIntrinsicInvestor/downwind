@@ -10,14 +10,17 @@ import { type Day, contributionsFor, longDate, pct, placeOptions, timeParts } fr
 
 type Props = { day: Day; place: string | null; fire: number | null; onPlace: (p: string | null) => void; onFire: (i: number) => void };
 
+// Time, then day, then date, each on its own line, so both time columns stack the same way at any width.
 function When({ day, h }: { day: Day; h: number | null | undefined }) {
   if (h === null || h === undefined) return <span className="text-ink-3">Unavailable</span>;
-  const { time, date } = timeParts(day.window_start_utc, h);
+  const { time, date } = timeParts(day.window_start_utc, h);      // date: "Sat 19 Sep"
+  const [weekday, ...rest] = date.split(" ");
   return (
-    <>
+    <span className="block whitespace-nowrap leading-snug">
       <span className="block text-ink">{time}</span>
-      <span className="block text-xs text-ink-3">{date}</span>
-    </>
+      <span className="block text-xs text-ink-3">{weekday}</span>
+      <span className="block text-xs text-ink-3">{rest.join(" ")}</span>
+    </span>
   );
 }
 
@@ -65,11 +68,11 @@ function CityView({ day, place, fire, onPlace, onFire }: Props) {
             <>
               <table className="mt-3 w-full border-collapse">
                 <thead>
-                  <tr className="label border-b border-rule text-left">
-                    <th className="pb-2 font-normal">Fire location</th>
-                    <th className="pb-2 pl-2 text-right font-normal">Share</th>
-                    <th className="pb-2 pl-3 text-right font-normal">First arrival</th>
-                    <th className="pb-2 pl-3 text-right font-normal">Peak</th>
+                  <tr className="label border-b border-rule text-left align-bottom">
+                    <th className="pb-2 font-normal"><span className="block">Fire</span><span className="block">location</span></th>
+                    <th className="pb-2 pl-4 text-right font-normal">Share</th>
+                    <th className="pb-2 pl-4 text-right font-normal"><span className="block">First</span><span className="block">arrival</span></th>
+                    <th className="pb-2 pl-4 text-right font-normal">Peak</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rule" onMouseLeave={() => setHovered(null)}>
@@ -98,9 +101,9 @@ function CityView({ day, place, fire, onPlace, onFire }: Props) {
                             </span>
                           )}
                         </td>
-                        <td className="figure py-2.5 pl-2 text-right text-ink">{pct(c.share, 1)}</td>
-                        <td className="figure py-2.5 pl-3 text-right"><When day={day} h={c.first_arrival_h} /></td>
-                        <td className="figure py-2.5 pl-3 text-right"><When day={day} h={c.peak_h} /></td>
+                        <td className="figure py-2.5 pl-4 text-right text-ink">{pct(c.share, 1)}</td>
+                        <td className="figure py-2.5 pl-4 text-right"><When day={day} h={c.first_arrival_h} /></td>
+                        <td className="figure py-2.5 pl-4 text-right"><When day={day} h={c.peak_h} /></td>
                       </tr>
                     );
                   })}
