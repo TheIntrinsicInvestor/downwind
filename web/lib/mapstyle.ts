@@ -140,7 +140,7 @@ export const FOCUS_SMOKE_RANGE: RGBA[] = [
 // ---- basemap recolour (layer ids from OpenFreeMap `positron`)
 
 // Sepia paper land, darker sepia water; the fires and smoke are the only strong colour.
-const LAND = "#E9DEC6", WATER = "#D5C8AD", COAST = "#A8977A", BG = "#EFE6D4", INK3 = "#6F6453";
+const LAND = "#E9DEC6", WATER = "#D5C8AD", COAST = "#A8977A", BG = "#EFE6D4", LABEL = "#5A4532";   // --ink-2: positron's thin label face reads too faint in --ink-3
 
 export const BASEMAP_PAINT: [layer: string, property: string, value: unknown][] = [
   ["background", "background-color", LAND],
@@ -156,9 +156,9 @@ export const BASEMAP_PAINT: [layer: string, property: string, value: unknown][] 
   ["boundary_2", "line-color", "#7E6D52"],
   ["boundary_2", "line-opacity", 0.9],
   ["boundary_2", "line-width", ["interpolate", ["linear"], ["zoom"], 3, 0.8, 6, 1.4, 10, 2]],
-  // Place labels stay dim (--ink-3) so they never compete with the fires.
+  // Place labels stay quiet so they never compete with the fires.
   ...["label_city", "label_city_capital", "label_town"].flatMap((id): [string, string, unknown][] => [
-    [id, "text-color", INK3], [id, "text-halo-color", BG], [id, "text-halo-width", 1.2],
+    [id, "text-color", LABEL], [id, "text-halo-color", BG], [id, "text-halo-width", 1.2],
     [id, "text-opacity", id === "label_town" ? 0.75 : 0.9],
     [id, "icon-opacity", 0.5],                    // positron's black place dot, kept quieter than the text
   ]),
