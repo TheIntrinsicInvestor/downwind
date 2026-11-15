@@ -55,16 +55,19 @@ function BulletinPanel({ day, live }: { day: Day; live: boolean }) {
         </section>
       )}
 
-      <section aria-labelledby="bulletin-changed" className="mt-4 border-t border-rule pt-3">
-        <h4 id="bulletin-changed" className="label">Since the day before</h4>
-        <p className="mt-2 leading-snug text-ink-2">
-          {day.changes === null
-            ? noChangesLine(live)
-            : nNew === 0
-              ? "The top ten is unchanged."
-              : <>{nNew} new in the top ten, near {newPlaces.join(", ")}. {nLeft} left it.</>}
-        </p>
-      </section>
+      {/* The live feed builds one day at a time, so it has no previous morning to compare with: no section at all. */}
+      {!live && (
+        <section aria-labelledby="bulletin-changed" className="mt-4 border-t border-rule pt-3">
+          <h4 id="bulletin-changed" className="label">Since the day before</h4>
+          <p className="mt-2 leading-snug text-ink-2">
+            {day.changes === null
+              ? noChangesLine(false)
+              : nNew === 0
+                ? "The top ten is unchanged."
+                : <>{nNew} new in the top ten, near {newPlaces.join(", ")}. {nLeft} left it.</>}
+          </p>
+        </section>
+      )}
 
       {paragraphs.length > 0 ? (
         <section aria-labelledby="bulletin-summary" className="mt-4 border-t border-rule pt-3">
