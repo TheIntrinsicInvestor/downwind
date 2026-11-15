@@ -23,6 +23,7 @@ const PROBE = 0.35;            // desktop: a beat starts when its section's top 
 const PHONE_MAP_SHARE = 0.55;  // phone: the map's share of the viewport height
 const PHONE_BAR_PX = 56;       // phone: the top bar over the map
 const STILL_TOP_FRAME = 36;    // the top beat's hour when the smoke does not follow scroll
+const TABLE_ROWS = 5;          // beat 6's table shows the best five of the ten (the card is tall); the map still marks all ten
 
 function useMedia(query: string, server: boolean): boolean {
   return useSyncExternalStore(
@@ -176,8 +177,8 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
       region: [n(facts.nLocations)],
       official: [n(facts.p1)],
       practice: ["265"],
-      biggest: [`${facts.biggest.frp.toFixed(1)} MW`, facts.biggest.sharePct, ordinal(facts.biggest.rank)],
-      top: [`${facts.top.frp.toFixed(1)} MW`, `${n(facts.top.people)} residents`, facts.top.sharePct, "1st"],
+      biggest: [`${Math.round(facts.biggest.frp)} MW`, facts.biggest.sharePct, ordinal(facts.biggest.rank)],
+      top: [`${Math.round(facts.top.frp)} MW`, `${n(facts.top.people)} residents`, facts.top.sharePct, "1st"],
       shortlist: [facts.top10SharePct],
       district: d ? [d.name, `All ${d.sources.length}`] : [],
     };
@@ -191,7 +192,7 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
     if (b.id === "shortlist") {
       return (
         <>
-          {variant === "float" && <div className="mt-5"><RankTable day={day} fires={facts.top10} /></div>}
+          {variant === "float" && <div className="mt-5"><RankTable day={day} fires={facts.top10.slice(0, TABLE_ROWS)} /></div>}
           {!facts.district && <OpenMapLink onOpenApp={onOpenApp} className="mt-6" />}
         </>
       );
