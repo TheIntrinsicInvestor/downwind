@@ -64,8 +64,8 @@ test("golden: beat copy sentences", () => {
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
   expect(b[1].body).toBe("Indonesia's rule (P.8/2018) sorts hotspots into three tiers to decide which get a field check first. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
   expect(b[2].body).toBe("Crews are stretched. West Kalimantan had 265 specialist forest firefighters in August, and 48 days into the operation the ministry was rotating tired crews and sending reinforcements.");
-  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248.0 MW in Kayong Utara. Its smoke mostly missed people: 1.06% of the day's smoke over residents. Downwind ranks it 20th of 349.");
-  expect(b[4].body).toBe("A smaller fire nearby, at 194.0 MW, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
+  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248 MW of fire power in Kayong Utara. Its smoke mostly missed people: 1.06% of the day's smoke over residents. Downwind ranks it 20th of 349.");
+  expect(b[4].body).toBe("A smaller fire nearby, at 194 MW of fire power, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
   expect(b[5].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");
   expect(b[6].body).toBe("The same smoke forecast tells each district what's coming. In Ketapang, smoke arrives Sun 20 Sep, 09:00 WIB and peaks Mon 21 Sep, 08:00 WIB. All 15 of its largest sources burn outside West Kalimantan.");
 });

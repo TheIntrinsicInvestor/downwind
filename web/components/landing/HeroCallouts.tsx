@@ -132,10 +132,10 @@ export default function HeroCallouts({ day, facts }: { day: Day | null; facts: S
           Priority 1; then fire power and share of the day's smoke over residents. The biggest fire is size 1st by definition. */}
       <Callout wrapRef={topRef} hot tag={top.place}
         headline={`Size ${ordinal(top.sizeRank)}, Smoke ${ordinal(1)}`}
-        sub={`${top.frp.toFixed(1)} MW · ${top.sharePct} of the day's smoke over residents`} />
+        sub={`${Math.round(top.frp)} MW fire power · ${top.sharePct} of the day's smoke over residents`} />
       <Callout wrapRef={bigRef} hot={false} tag={biggest.place}
         headline={`Size ${ordinal(1)}, Smoke ${ordinal(biggest.rank)}`}
-        sub={`${biggest.frp.toFixed(1)} MW · ${biggest.sharePct} of the day's smoke over residents`} />
+        sub={`${Math.round(biggest.frp)} MW fire power · ${biggest.sharePct} of the day's smoke over residents`} />
     </div>
   );
 }
