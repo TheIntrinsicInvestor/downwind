@@ -9,13 +9,15 @@ import { officialColor } from "@/lib/mapstyle";
 
 type Props = { day: Day; selected: number | null; onSelect: (i: number) => void; mode: Mode };
 
+const TOP_N = 10;   // rows shown before "Show all"; the same ten Downwind hands the task force
+
 function FireList({ day, selected, onSelect, mode }: Props) {
   const [showAll, setShowAll] = useState(false);
   const ranked = useMemo(() => (mode === "official" ? orderForMode(day.fires, "official") : rankedFires(day)), [day, mode]);
   if (ranked.length === 0) {
     return <p className="py-6 text-sm text-ink-2">No Priority 1 fires in West Kalimantan on this day.</p>;
   }
-  const shown = showAll ? ranked : ranked.slice(0, 20);
+  const shown = showAll ? ranked : ranked.slice(0, TOP_N);
   const maxShare = mode === "downwind" ? (day.fires[ranked[0]].share ?? 0) : 0;
   return (
     <div>
@@ -69,13 +71,13 @@ function FireList({ day, selected, onSelect, mode }: Props) {
           );
         })}
       </ol>
-      {ranked.length > 20 && (
+      {ranked.length > TOP_N && (
         <button
           type="button"
           onClick={() => setShowAll((s) => !s)}
           className="focus-ring-inset mt-1 min-h-11 w-full border-t border-rule text-[13px] font-medium text-ink-2 transition-colors hover:text-ember-hot"
         >
-          {showAll ? "Show top 20" : `Show all ${ranked.length}`}
+          {showAll ? `Show top ${TOP_N}` : `Show all ${ranked.length}`}
         </button>
       )}
     </div>
