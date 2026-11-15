@@ -1,8 +1,6 @@
-// Measured results (spec section 6): two comparison charts read from limits.json at run time, then a pointer to the
-// live map's Limits panel. A missing block omits only its chart; nothing prints undefined or NaN.
+// Measured results: two comparison charts read from limits.json at run time. A missing block omits only its chart; nothing prints undefined or NaN.
 
 import { memo } from "react";
-import Link from "next/link";
 import { type Limits, WORDS } from "@/lib/replay";
 import BarPair from "./BarPair";
 
@@ -49,10 +47,6 @@ function Results({ limits, limitsError }: { limits: Limits | null; limitsError: 
             )}
           </div>
         )}
-        <p className="mt-14 border-t border-rule pt-6 text-[15px] text-ink-2">
-          What this does not show is in the{" "}
-          <Link href="/app?panel=limits" className="focus-ring text-ember-hot underline underline-offset-4 hover:text-ink">live map&apos;s Limits panel</Link>.
-        </p>
       </div>
     </section>
   );

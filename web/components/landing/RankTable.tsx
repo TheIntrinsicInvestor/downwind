@@ -1,4 +1,4 @@
-// Beat 5's table: the ten best-ranked fires as a bulletin table (rank numeral, place, power, share of smoke over
+// Beat 6's table: the ten best-ranked fires as a bulletin table (rank numeral, place, heat, share of smoke over
 // residents). Every figure comes from the day file; shares go through pct().
 
 import { memo } from "react";
@@ -12,8 +12,8 @@ function RankTable({ day, fires }: { day: Day; fires: number[] }) {
         <tr className="label border-b border-rule">
           <th scope="col" className="w-10 pb-2 pr-3 text-right font-normal">Rank</th>
           <th scope="col" className="pb-2 font-normal">Location</th>
-          <th scope="col" className="pb-2 pl-3 text-right font-normal">Power</th>
-          <th scope="col" className="pb-2 pl-3 text-right font-normal">Share</th>
+          <th scope="col" className="pb-2 pl-3 text-right font-normal">Heat</th>
+          <th scope="col" className="pb-2 pl-3 text-right font-normal">Share of smoke over residents</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-rule">
@@ -31,6 +31,9 @@ function RankTable({ day, fires }: { day: Day; fires: number[] }) {
           );
         })}
       </tbody>
+      <tfoot>
+        <tr><td colSpan={4} className="pt-2 text-xs text-ink-3">Fires are named by regency, so several share a name.</td></tr>
+      </tfoot>
     </table>
   );
 }
