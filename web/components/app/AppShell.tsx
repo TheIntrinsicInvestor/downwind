@@ -28,7 +28,7 @@ const TABS: { id: Panel; label: string }[] = [
 const URL_PANELS = ["city", "bulletin", "fire"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
-const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
+const PHONE_CAMERA = { center: [110.45, -1.1] as [number, number], zoom: 6.25 };
 
 // ---- viewport
 
