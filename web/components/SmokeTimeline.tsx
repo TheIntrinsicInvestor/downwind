@@ -47,7 +47,7 @@ export default function SmokeTimeline({ windowStartUtc, values }: Props) {
 
   return (
     <div className="mt-4">
-      <div className="label">Smoke level over residents, by hour (WIB)</div>
+      <div className="label">Smoke level over residents, by hour</div>
       <p className="figure mt-1 text-[13px] text-ink" aria-live="polite">{summary}</p>
       <svg
         viewBox={`0 0 ${B.w} ${B.h}`}
@@ -107,8 +107,8 @@ export default function SmokeTimeline({ windowStartUtc, values }: Props) {
         <circle cx={px} cy={py} r="4" fill="var(--ember-core)" stroke={SURFACE} strokeWidth="2" />
       </svg>
       <p className="mt-2 text-xs leading-relaxed text-ink-3">
-        Modelled from the morning weather forecast. Relative level: 100 = the worst hour any place had in the 18 to 20 Sep 2026 haze.
-        Timing is approximate. Not a measured concentration or a health threshold.
+        Relative level: 100 = the worst hour any place had in the 18 to 20 Sep 2026 haze. Times are WIB and approximate. Not a
+        measured concentration or a health threshold.
       </p>
     </div>
   );

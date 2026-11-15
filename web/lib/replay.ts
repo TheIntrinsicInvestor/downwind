@@ -134,6 +134,12 @@ export function forecastTime(windowStartUtc: string, h: number): string {
   return `${day} ${t.getUTCDate()} ${MONTHS[t.getUTCMonth()].slice(0, 3)}, ${hh}:00 WIB`;
 }
 
+// The Protect table's split: forecastTime's "Sun 20 Sep, 09:00 WIB" as "09:00" over "Sun 20 Sep".
+export function timeParts(windowStartUtc: string, h: number): { time: string; date: string } {
+  const [date, rest] = forecastTime(windowStartUtc, h).split(", ");
+  return { time: rest.replace(" WIB", ""), date };
+}
+
 export function localLabel(windowStartUtc: string, h: number): string {
   return forecastTime(windowStartUtc, h).replace(" WIB", ` local (+${h} h)`);
 }

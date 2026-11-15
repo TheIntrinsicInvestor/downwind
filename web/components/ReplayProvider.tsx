@@ -21,6 +21,7 @@ export type Replay = {
   mode: Mode; setMode(m: Mode): void;
   place: string | null; setPlace(p: string | null): void;
   panel: Panel; setPanel(p: Panel): void;
+  hovered: number | null; setHovered(i: number | null): void;   // a fire pointed at in a list, drawn red on the map
   limits: Limits | null; limitsError: string | null;
   storyFocus: number[] | null | undefined; setStoryFocus(f: number[] | null | undefined): void;  // undefined: the app's own focus rule applies
   focus: number[] | null;          // storyFocus if defined, else today's rule (city panel and place, else selected)
@@ -97,6 +98,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>("downwind");
   const [panel, setPanel] = useState<Panel>("fire");
   const [place, setPlace] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
   const [limits, setLimits] = useState<Limits | null>(null);
   const [limitsError, setLimitsError] = useState<string | null>(null);
   const [storyFocus, setStoryFocus] = useState<number[] | null | undefined>(undefined);
@@ -199,6 +201,9 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
     return selected !== null ? [selected] : null;
   }, [storyFocus, day, panel, place, selected]);
 
+  // A hover from another day, tab or place no longer points at the row the reader sees.
+  useEffect(() => { setHovered(null); }, [day, panel, place]);
+
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
   const select = useCallback((i: number | null, district?: string) => {
     setSelected(i);
@@ -235,7 +240,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
 
   const value: Replay = {
     index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
-    frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
+    frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel, hovered, setHovered,
     limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,
     chatEnabled: liveData ? false : chatEnabled, flyTo, mapReady, mapError, getMap,
     mapInteractive, setMapInteractive, liveSelected, showLive,

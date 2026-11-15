@@ -9,7 +9,7 @@ import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
-import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_BOUNDS, MAP_MAX_ZOOM, PLACE_LABELS,
+import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, EMBER, EMBER_HOT, FOCUS_SMOKE_RANGE, INK, MAP_BOUNDS, MAP_MAX_ZOOM, PLACE_LABELS,
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, PROVINCE_BOUNDARY, PROVINCE_BOUNDARY_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels } from "@/lib/mapstyle";
 import { REGENCY_URL, type RegencyCollection, highlightPadding, regencyBounds, regencyByName } from "@/lib/regency";
@@ -59,7 +59,7 @@ const makeSmoke = (n: number, positions: Float32Array, weights: Float32Array): S
 const EMPTY: Smoke = makeSmoke(0, new Float32Array(0), new Float32Array(0));
 
 export default function MapStage() {
-  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, place, panel } = useReplay();
+  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, place, panel, hovered } = useReplay();
   const { attach, setMapReady, setMapError } = useStageBinding();
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
@@ -273,9 +273,24 @@ export default function MapStage() {
           lineWidthUnits: "pixels",
           updateTriggers: { getRadius: [fireSets] },
         }),
+        // The fire pointed at in the Protect table: a red disc and ring over its dark ring, so it stands out from the rest.
+        new ScatterplotLayer<number>({
+          id: "hover",
+          data: hovered !== null && fires[hovered] ? [hovered] : [],
+          getPosition: (i) => [fires[i].lon, fires[i].lat],
+          radiusUnits: "pixels",
+          getRadius: (i) => (fireSets.top.includes(i) ? 15 : 10),
+          filled: true,
+          getFillColor: [...EMBER, 80],
+          stroked: true,
+          getLineColor: [...EMBER_HOT, 255],
+          getLineWidth: 3,
+          lineWidthUnits: "pixels",
+          updateTriggers: { getRadius: [fireSets] },
+        }),
       ],
     });
-  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, mode, glowUrl]);
+  }, [ready, day, smoke, zoom, focus, focusSet, fireSets, nRanked, mode, glowUrl, hovered]);
 
   return (
     // Passive: pointer input passes to the page (wheel and touch scroll it); the attribution stays clickable.
