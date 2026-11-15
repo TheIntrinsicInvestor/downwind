@@ -85,7 +85,7 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
             <OpenMapLink onOpenApp={onOpenApp} />
             <a href="#story" onClick={onSeeHow}
               className="focus-ring inline-flex min-h-12 items-center border border-ink/30 px-6 text-[15px] font-medium text-ink transition-colors hover:border-ink-3">
-              See how it ranks
+              See how it works
             </a>
           </div>
         </div>
