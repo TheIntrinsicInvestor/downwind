@@ -239,3 +239,10 @@ test("bulletinParts: leading fires, changes and paragraphs from the day file", a
   expect(p.paragraphs).toEqual(["One.", "Two.", "Three."]);
   expect(bulletinParts({ ...day, changes: null }).nNew).toBe(0);
 });
+
+import { timeParts } from "./replay";
+
+test("timeParts splits a forecast time into clock time and date", () => {
+  expect(timeParts("2026-09-20T00:00Z", 2)).toEqual({ time: "09:00", date: "Sun 20 Sep" });
+  expect(timeParts("2026-09-20T00:00Z", 18)).toEqual({ time: "01:00", date: "Mon 21 Sep" });
+});
