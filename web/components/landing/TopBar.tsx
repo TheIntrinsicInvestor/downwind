@@ -1,5 +1,5 @@
-// The landing page's top bar: wordmark and page links, the links flush right. "Live map" is the always-visible skip to
-// the app. Fixed over the hero and story; the page's sections scroll under it. The dateline lives in the hero.
+// The landing page's top bar: wordmark at the left, page links flush right. "Live map" is the always-visible skip to
+// the app. Fixed over the hero and story; the page's sections scroll under it.
 
 import { memo, type MouseEvent } from "react";
 import Link from "next/link";
