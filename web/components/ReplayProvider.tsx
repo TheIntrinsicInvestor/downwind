@@ -10,7 +10,7 @@ import { type Day, type Index, type Limits, type Mode, ReplayError, contribution
 import type { Camera } from "@/lib/story";
 import { isStale, refreshSnapshot, type LiveSnapshot, type Manifest } from "@/lib/live";
 
-export type Panel = "fire" | "city" | "bulletin" | "limits" | "ask";
+export type Panel = "fire" | "city" | "bulletin" | "ask";
 export type Replay = {
   index: Index | null; date: string | null; setDate(d: string): void;
   day: Day | null; bin: ArrayBuffer | null; error: string | null; retry(): void;

@@ -77,7 +77,7 @@ export default function Home() {
         <HowItWorks />
         <Differs />
         <Adds />
-        <Results limits={limits} limitsError={limitsError} />
+        <Results limits={limits} limitsError={limitsError} day={story} />
       </main>
       <Footer />
     </div>
