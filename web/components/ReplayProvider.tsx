@@ -10,8 +10,10 @@ import { type Day, type Index, type Limits, type Mode, ReplayError, contribution
 import type { Camera } from "@/lib/story";
 import { isStale, refreshSnapshot, type LiveSnapshot, type Manifest } from "@/lib/live";
 
-export type Panel = "fire" | "city" | "bulletin" | "ask";
+export type Panel = "fire" | "city" | "bulletin" | "ask" | "layers";
 export type Replay = {
+  populationEnabled: boolean; setPopulationEnabled(value: boolean): void;
+  populationError: boolean; setPopulationError(value: boolean): void;
   index: Index | null; date: string | null; setDate(d: string): void;
   day: Day | null; bin: ArrayBuffer | null; error: string | null; retry(): void;
   frame: number; setFrame(f: number): void; playing: boolean; setPlaying(p: boolean): void;
@@ -79,6 +81,8 @@ function moveCamera(map: MapLibreMap, c: Camera, instant: boolean) {
 
 export default function ReplayProvider({ children }: { children: ReactNode }) {
   const isApp = usePathname() === "/app";
+  const [populationEnabled, setPopulationEnabled] = useState(false);
+  const [populationError, setPopulationError] = useState(false);
   const [index, setIndex] = useState<Index | null>(null);
   const [date, setReplayDate] = useState<string | null>(null);
   const [replayData, setData] = useState<{ day: Day; bin: ArrayBuffer } | null>(null);
@@ -234,6 +238,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
   });
 
   const value: Replay = {
+    populationEnabled, setPopulationEnabled, populationError, setPopulationError,
     index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
     frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
     limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,

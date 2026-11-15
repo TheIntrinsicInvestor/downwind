@@ -17,18 +17,19 @@ import FireCard from "../FireCard";
 import { ModeNote, ModeSwitch } from "../ModeToggle";
 import BulletinPanel from "../BulletinPanel";
 import CityView from "../CityView";
+import PopulationPanel from "../PopulationPanel";
 import ChatPanel from "../ChatPanel";
 import { type Panel, useReplay } from "../ReplayProvider";
 import Sheet, { type SheetState } from "./Sheet";
 
 const TABS: { id: Panel; label: string }[] = [
   { id: "fire", label: "Fire" }, { id: "city", label: "Protect" }, { id: "bulletin", label: "Bulletin" },
-  { id: "ask", label: "Ask" },
+  { id: "layers", label: "Layers" }, { id: "ask", label: "Ask" },
 ];
-const URL_PANELS = ["city", "bulletin", "fire"] as const;
+const URL_PANELS = ["city", "bulletin", "fire", "layers"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
-const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
+const PHONE_CAMERA = { center: [110.45, -1.1] as [number, number], zoom: 6.25 };
 
 // ---- viewport
 
@@ -220,6 +221,7 @@ export default function AppShell() {
     switch (active) {
       case "city": return <CityView day={d} place={place} fire={selected} onPlace={setPlace} onFire={onCityFire} />;
       case "bulletin": return <BulletinPanel day={d} live={liveSelected} />;
+      case "layers": return <PopulationPanel />;
       case "ask": return <ChatPanel date={d.date} />;
       default: return fire
         ? <FireCard fire={fire} nRanked={nRanked} onClose={closeCard} windowStart={d.window_start_utc}

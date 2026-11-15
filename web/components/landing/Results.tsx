@@ -4,6 +4,7 @@
 // missing; nothing prints undefined or NaN.
 
 import { memo, type ReactNode } from "react";
+import { POPULATION_OVERLAY_MODE } from "@/lib/population";
 import { type Day, type Limits, WORDS, stabilityLine } from "@/lib/replay";
 import BarPair from "./BarPair";
 
@@ -37,8 +38,11 @@ function Results({ limits, limitsError, day }: { limits: Limits | null; limitsEr
   const hasStability = !!day?.stability;
   const hasWeighting = typeof day?.persistence_weighted === "boolean";
   const ignores = limits?.ignores?.length ? limits.ignores : null;
-  const notClaimed = limits?.not_claimed?.length ? limits.not_claimed : null;
-  const anyLimits = show2023 || hasStability || hasWeighting || !!ignores || !!notClaimed;
+  const populationLimit = POPULATION_OVERLAY_MODE === "heatmap"
+    ? "The population heatmap shows relative clustering only. Its blur extends beyond where people live, including over water and plantations, and its colours change with zoom. Resident counts come from the model's population grid, not the heatmap."
+    : "Population is modelled residential population (WorldPop 2026, constrained to detected settlements), not a census count, and may miss scattered or newly built housing.";
+  const notClaimed = [...(limits?.not_claimed ?? []), populationLimit];
+  const anyLimits = show2023 || hasStability || hasWeighting || !!ignores || notClaimed.length > 0;
   return (
     <section id="results" aria-labelledby="results-title" className="scroll-mt-16 border-t border-rule px-5 py-20 sm:px-10 lg:px-16 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -110,11 +114,9 @@ function Results({ limits, limitsError, day }: { limits: Limits | null; limitsEr
                 <Dashed items={ignores} />
               </Block>
             )}
-            {notClaimed && (
-              <Block title="What we do not claim">
-                <Dashed items={notClaimed} />
-              </Block>
-            )}
+            <Block title="What we do not claim">
+              <Dashed items={notClaimed} />
+            </Block>
           </div>
         )}
       </div>

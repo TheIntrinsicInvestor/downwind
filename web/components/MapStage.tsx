@@ -3,7 +3,7 @@
 // The one live map: fixed, full viewport, behind every page under app/(map). Reads everything from the provider.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Map, setWorkerUrl } from "maplibre-gl";
+import { addProtocol, Map, removeProtocol, setWorkerUrl, type ErrorEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
@@ -13,10 +13,16 @@ import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMO
   PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, PROVINCE_BOUNDARY, PROVINCE_BOUNDARY_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
   pickFire, smokeColorDomain, smokeRadiusPixels } from "@/lib/mapstyle";
 import { REGENCY_URL, type RegencyCollection, highlightPadding, regencyBounds, regencyByName } from "@/lib/regency";
+import { PMTiles, Protocol } from "pmtiles";
+import { POPULATION_ATTRIBUTION, POPULATION_HEATMAP_STOPS, POPULATION_OVERLAY_MODE,
+  POPULATION_POINTS_URL, POPULATION_URL, POPULATION_WEIGHT_CAP, populationBeforeLayer } from "@/lib/population";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
 // MapLibre 6 does not inline its worker: the bundler serves it and we say where.
 setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
+
+const POPULATION_LAYER = "population-density";
+const populationProtocol = new Protocol();
 
 const MAP_ERROR = "The map could not be loaded. The panels still work.";
 // The smoke weight map is rebuilt when its radius changes, so zoom is taken in quarter steps, not every frame of a flight.
@@ -59,7 +65,8 @@ const makeSmoke = (n: number, positions: Float32Array, weights: Float32Array): S
 const EMPTY: Smoke = makeSmoke(0, new Float32Array(0), new Float32Array(0));
 
 export default function MapStage() {
-  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, place, panel } = useReplay();
+  const { day, bin, frame, mode, focus, select, mapError, mapInteractive, place, panel,
+    populationEnabled, setPopulationError } = useReplay();
   const { attach, setMapReady, setMapError } = useStageBinding();
   const box = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapLibreOverlay | null>(null);
@@ -85,6 +92,7 @@ export default function MapStage() {
       setMapError(MAP_ERROR);       // no WebGL
       return;
     }
+    addProtocol("pmtiles", populationProtocol.tile);
     const ov = new MapLibreOverlay({ interleaved: true, layers: [] });
     overlay.current = ov;
     map.addControl(ov as never);
@@ -111,6 +119,7 @@ export default function MapStage() {
       overlay.current = null;
       mapObj.current = null;
       map.remove();
+      removeProtocol("pmtiles");
     };
   }, [attach, setMapReady, setMapError]);
 
@@ -154,6 +163,54 @@ export default function MapStage() {
     });
     return () => { live = false; };
   }, [ready, place, panel, mapInteractive]);
+
+  useEffect(() => {
+    const map = mapObj.current;
+    if (!ready || !map || !mapInteractive || !populationEnabled) return;
+    setPopulationError(false);
+    const heatmap = POPULATION_OVERLAY_MODE === "heatmap";
+    const url = new URL(heatmap ? POPULATION_POINTS_URL : POPULATION_URL, window.location.origin).href;
+    const archive = new PMTiles(url);
+    populationProtocol.add(archive);
+    let active = true;
+    const fail = () => { if (active) setPopulationError(true); };
+    const onError = (event: ErrorEvent) => {
+      if ("sourceId" in event && event.sourceId === POPULATION_LAYER) fail();
+    };
+    map.on("error", onError);
+    archive.getHeader().then(() => {
+      if (!active) return;
+      const before = populationBeforeLayer(map.getStyle().layers);
+      const source = { url: `pmtiles://${url}`, attribution: POPULATION_ATTRIBUTION };
+      map.addSource(POPULATION_LAYER, heatmap ? { ...source, type: "vector" }
+        : { ...source, type: "raster", tileSize: 256 });
+      if (heatmap) {
+        map.addLayer({
+          id: POPULATION_LAYER, type: "heatmap", source: POPULATION_LAYER, "source-layer": "population",
+          paint: {
+            "heatmap-weight": ["interpolate", ["linear"], ["to-number", ["get", "pop"]], 0, 0, POPULATION_WEIGHT_CAP, 1],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 5, 13, 7, 19, 9, 23, 11, 38],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 5, 0.40, 7, 0.52, 9, 0.70, 11, 1.15],
+            "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)",
+              ...POPULATION_HEATMAP_STOPS.flatMap(({ stop, color }) => [stop, color])],
+            "heatmap-opacity": 0.6,
+          },
+        }, before);
+      } else {
+        map.addLayer({
+          id: POPULATION_LAYER, type: "raster", source: POPULATION_LAYER,
+          paint: { "raster-opacity": 0.6, "raster-resampling": "nearest" },
+        }, before);
+      }
+    }).catch(fail);
+    return () => {
+      active = false;
+      if (mapObj.current !== map) return;
+      map.off("error", onError);
+      if (map.getLayer(POPULATION_LAYER)) map.removeLayer(POPULATION_LAYER);
+      if (map.getSource(POPULATION_LAYER)) map.removeSource(POPULATION_LAYER);
+    };
+  }, [ready, mapInteractive, populationEnabled, setPopulationError]);
 
   const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
 

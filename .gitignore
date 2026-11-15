@@ -6,3 +6,6 @@ node_modules/
 .env*
 .vercel/
 .superpowers/
+
+/web/public/population/*.pmtiles
+/.venv-population/
