@@ -127,7 +127,8 @@ export default function MapStage() {
     const show = (name: string) => {
       for (const id of ["regency-fill", "regency-outline"]) if (map.getLayer(id)) map.setFilter(id, ["==", ["get", "name"], name]);
     };
-    const name = panel === "city" ? place : null;
+    // App only: the landing page keeps the app's panel and place in memory (Back from the district hand-off).
+    const name = mapInteractive && panel === "city" ? place : null;
     if (!name) { show(""); return; }
     let live = true;
     regencyData.current ??= fetch(REGENCY_URL).then((r) => (r.ok ? (r.json() as Promise<RegencyCollection>) : null)).catch(() => null)
@@ -152,7 +153,7 @@ export default function MapStage() {
         duration: still ? 0 : 900, essential: true });
     });
     return () => { live = false; };
-  }, [ready, place, panel]);
+  }, [ready, place, panel, mapInteractive]);
 
   const focusSet = useMemo(() => (focus && focus.length ? new Set(focus) : null), [focus]);
 
