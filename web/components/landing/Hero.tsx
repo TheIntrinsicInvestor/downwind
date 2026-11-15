@@ -4,6 +4,8 @@
 
 import { memo, type MouseEvent } from "react";
 import Link from "next/link";
+import { longDate } from "@/lib/replay";
+import { STORY_DATE } from "@/lib/story";
 import { Arrow } from "./TopBar";
 
 export type LoadStatus = "loading" | "ready" | "failed";
@@ -64,6 +66,12 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 max-md:hidden"
         style={{ background: "linear-gradient(90deg, rgb(239 230 212 / 0.97) 0%, rgb(239 230 212 / 0.94) 30%, rgb(239 230 212 / 0.6) 50%, rgb(239 230 212 / 0) 70%), linear-gradient(0deg, rgb(239 230 212 / 0.92) 0%, rgb(239 230 212 / 0) 26%)" }} />
       <div aria-hidden="true" className="h-[55svh] md:hidden" />
+      {/* The dateline sits just under the top bar, right-aligned: the bar is too narrow for it at laptop widths. The
+          hero callouts keep clear of it (HeroCallouts BAR). */}
+      <p className="dateline pointer-events-none absolute right-8 top-[88px] z-[2] bg-[var(--attrib)] px-2 py-1 text-ink-2 max-md:hidden lg:right-16">
+        Situation bulletin <span className="px-1.5 text-ink-3/60" aria-hidden="true">/</span> {longDate(STORY_DATE)}{" "}
+        <span className="px-1.5 text-ink-3/60" aria-hidden="true">/</span> West Kalimantan
+      </p>
 
       <div className="pointer-events-auto relative bg-bg px-4 pb-8 pt-7 max-md:border-t max-md:border-rule md:flex-1 md:bg-transparent md:px-8 md:pb-8 md:pt-[clamp(6rem,14svh,8.5rem)] lg:px-16">
         <div data-hero-copy className="max-w-[35rem]">

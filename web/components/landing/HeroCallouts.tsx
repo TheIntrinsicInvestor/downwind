@@ -26,7 +26,7 @@ const PLACES: Place[] = [
 ];
 // Clear space: a card keeps GAP px from the hero's copy block, the figure strip's text (both measured), the rings and
 // the other card, and stays below the top bar and inside the viewport edge.
-const GAP = 12, RING = 11, BAR = 80, EDGE = 12;
+const GAP = 12, RING = 11, BAR = 124, EDGE = 12;   // BAR: the top bar plus the hero's dateline under it
 const hits = (a: Rect, b: Rect) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 const grow = (a: Rect, d: number): Rect => ({ l: a.l - d, t: a.t - d, r: a.r + d, b: a.b + d });
 const rectOf = (el: Element | null): Rect | null => {
