@@ -5,7 +5,7 @@ import type { Fire, Mode } from "./replay";
 import type { Camera } from "./story";
 
 // The opening view, shared by the map's first frame and the app's desktop hand-off.
-export const OPENING_CAMERA: Camera = { center: [111.5, 0], zoom: 6.2 };
+export const OPENING_CAMERA: Camera = { center: [110.65, -0.65], zoom: 6.7 };
 
 export type RGB = [number, number, number];
 export type RGBA = [number, number, number, number];

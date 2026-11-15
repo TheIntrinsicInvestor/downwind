@@ -183,3 +183,30 @@ See the [infrastructure checklist](docs/infrastructure-todo.md) for remaining op
 ## Licence
 
 MIT. See `LICENSE`.
+
+## Population density layer
+
+Open **Layers** and enable **Population density** to see modelled residential
+population clustering as a relative heatmap. The overlay uses [WorldPop Global2 R2025A v1](https://hub.worldpop.org/geodata/summary?id=73824),
+Indonesia, 2026, constrained total population at 3 arc-seconds (approximately
+100 m). The map opens on West Kalimantan. The layer covers the Indonesian portion of the forecast extent (95–120° E, 8° S–6° N). Population:
+WorldPop (2025), R2025A, CC BY 4.0.
+
+Run the pinned Python setup in [scripts/build_population_tiles.py](scripts/build_population_tiles.py),
+then follow [scripts/build_population_points.py](scripts/build_population_points.py).
+The point builder verifies the same source GeoTIFF, sums 12-by-12 source pixels
+(approximately 1 km), and verifies the encoded population totals at every zoom.
+At lower zooms it merges points into population-weighted centroids using summed counts.
+
+Host `web/public/population/points.pmtiles` on a server with HTTP byte-range support
+and set `NEXT_PUBLIC_POPULATION_POINTS_URL` at web build time. For cross-origin
+hosting, enable CORS for the app origin and the `Range` request header, and
+expose `ETag`, `Content-Range`, and `Accept-Ranges`. The app uses the local public
+archive when the URL is unset.
+
+To restore the raster overlay, set `NEXT_PUBLIC_POPULATION_OVERLAY_MODE=raster`
+at web build time. Generate `web/public/population/tiles.pmtiles` with the raster
+script or point `NEXT_PUBLIC_POPULATION_TILES_URL` at a hosted copy.
+
+The smoke pipeline uses the older [WorldPop Global1 Indonesia 2020 raster](https://hub.worldpop.org/geodata/summary?id=34795),
+an unconstrained 1 km product adjusted to UN population totals.
