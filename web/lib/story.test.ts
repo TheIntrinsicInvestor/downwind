@@ -30,7 +30,7 @@ test("golden: 20 September facts", () => {
   if (!f) return;
   expect(f.nLocations).toBe(3151);
   expect([f.p1, f.p2, f.p3]).toEqual([349, 297, 4]);
-  expect(f.biggest).toMatchObject({ frp: 248, place: "Kayong Utara", rank: 20, sharePct: "1.06%" });
+  expect(f.biggest).toMatchObject({ frp: 248, place: "Kayong Utara", rank: 20, sharePct: "1.1%" });
   expect(f.top).toMatchObject({
     frp: 194, place: "Kayong Utara", sizeRank: 3, sharePct: "6.1%", people: 2028881,
     arrivalPlace: "Kayong Utara", arrivalH: 0,
@@ -45,7 +45,7 @@ test("golden: beat copy", () => {
   if (!b) return;
   expect(b.map((x) => x.id)).toEqual(["region", "official", "practice", "biggest", "top", "shortlist", "district"]);
   expect(b[3].body).toContain("Downwind ranks it 20th of 349");
-  expect(b[3].body).toContain("1.06% of the day's smoke over residents");
+  expect(b[3].body).toContain("1.1% of the day's smoke over residents");
   expect(b[4].body).toContain("2,028,881 residents");
   for (const i of [1, 2]) expect(b[i].mode).toBe("official");
   for (const i of [0, 3, 4, 5, 6]) expect(b[i].mode).toBe("downwind");
@@ -64,7 +64,7 @@ test("golden: beat copy sentences", () => {
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
   expect(b[1].body).toBe("Indonesia's rule (P.8/2018) sorts hotspots into three tiers to decide which get a field check first. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
   expect(b[2].body).toBe("Crews are stretched: West Kalimantan had 265 specialist forest firefighters in August, and by day 48 tired crews were being rotated.");
-  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248 MW of fire power in Kayong Utara. Its smoke mostly missed people: 1.06% of the day's smoke over residents. Downwind ranks it 20th of 349.");
+  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248 MW of fire power in Kayong Utara. Its smoke mostly missed people: 1.1% of the day's smoke over residents. Downwind ranks it 20th of 349.");
   expect(b[4].body).toBe("A smaller fire nearby, at 194 MW of fire power, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
   expect(b[5].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");
   expect(b[6].body).toBe("The same smoke forecast tells each district what's coming. In Ketapang, smoke arrives Sun 20 Sep, 09:00 WIB and peaks Mon 21 Sep, 08:00 WIB. All 15 of its largest sources burn outside West Kalimantan.");

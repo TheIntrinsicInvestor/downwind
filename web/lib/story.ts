@@ -12,7 +12,7 @@ export type Camera = { center: [number, number]; zoom: number };
 export type StoryFacts = {
   nLocations: number;                       // day.fires.length
   p1: number; p2: number; p3: number;       // day.counts
-  biggest: { i: number; frp: number; place: string; rank: number; sharePct: string };   // sharePct = pct(share, 2)
+  biggest: { i: number; frp: number; place: string; rank: number; sharePct: string };   // sharePct = pct(share, 1)
   top: { i: number; frp: number; place: string; sizeRank: number; sharePct: string;     // sharePct = pct(share, 1)
          people: number; arrivalPlace: string; arrivalH: number };
   top10: number[];                          // fire indices, rank 1..10
@@ -87,7 +87,7 @@ export function storyFacts(day: Day): StoryFacts | null {
   return {
     nLocations: fires.length,
     p1: day.counts.p1, p2: day.counts.p2, p3: day.counts.p3,
-    biggest: { i: bi, frp: b.frp, place: b.place, rank: b.rank as number, sharePct: pct(b.share, 2) },
+    biggest: { i: bi, frp: b.frp, place: b.place, rank: b.rank as number, sharePct: pct(b.share, 1) },
     top: {
       i: ti, frp: t.frp, place: t.place, sizeRank, sharePct: pct(t.share, 1), people: t.people_40km,
       arrivalPlace: t.top_places[0].name, arrivalH: t.first_arrival_h,
