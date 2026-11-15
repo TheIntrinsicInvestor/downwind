@@ -121,7 +121,7 @@ export function shortTime(windowStartUtc: string, h: number): string {
 
 // Beat 3's sources, printed under its copy.
 export const PRACTICE_SOURCES = "Kemenhut and ANTARA, 21 and 24 August 2026; BPBD Kalbar, 1 August 2026; Satgas Kalbar, 1 September 2026";
-export const PRACTICE_MORE = "With hundreds of fires at once, where crews go decides how much harm they prevent. The forestry minister has called for precise placement of resources. Today, placement follows hotspot counts and patrol reports: in August, the provincial disaster agency focused air effort on the three regencies with the most hotspots and burned area. Nothing in that process counts who breathes the smoke.";
+export const PRACTICE_MORE = "With hundreds of fires at once, crews cannot reach them all. Today, placement follows hotspot counts and patrol reports: in August, the provincial disaster agency focused air effort on the three regencies with the most hotspots and burned area. Nothing in that process counts who breathes the smoke.";
 
 export function beats(day: Day): Beat[] | null {
   const f = storyFacts(day);

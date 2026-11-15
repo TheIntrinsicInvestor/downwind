@@ -21,18 +21,17 @@ export function OpenMapLink({ onOpenApp, className = "" }: { onOpenApp: () => vo
 
 const STAKES = [
   { n: "425,167", label: <>respiratory infections linked to the fires, 95,627 in children under five</> },
-  { n: "~3,560", label: <>deaths in September from short-term smoke exposure</> },
-  { n: "195 Mt", hot: true, label: <>of carbon from Indonesia&apos;s fires in 2026, about a third of the world&apos;s fire emissions</> },
+  { n: "~3,560", hot: true, label: <>deaths in September estimated to have been caused by short-term smoke exposure</> },
 ];
 
-// Why the order matters: one sentence tying the harm to the ranking, then the three figures and their sources.
+// Why the order matters: one sentence tying the harm to the ranking, then the two figures and their sources.
 function Stakes() {
   return (
     <div className="border-t border-rule pt-5">
       <p className="label">Why the order matters</p>
-      <p className="mt-2 max-w-[40rem] text-[15px] leading-relaxed text-ink-2">
-        The harm comes from smoke reaching people, and from peat that keeps burning. Fighting first the fires whose smoke
-        reaches the most people goes straight at that harm.
+      <p className="mt-2 max-w-[52rem] text-[15px] leading-relaxed text-ink-2">
+        The harm comes from smoke reaching people, and from peat that keeps burning. Downwind orders the fires by the
+        first of these: how many people their smoke will reach.
       </p>
       <ul className="mt-4 max-md:divide-y max-md:divide-rule max-md:border-y max-md:border-rule md:flex">
         {STAKES.map((it) => (
@@ -47,7 +46,7 @@ function Stakes() {
       </ul>
       <p className="mt-3 text-xs leading-relaxed text-ink-3">
         This fire season, national figures. Sources: Indonesian Ministry of Health to 5 November 2026 (via Bloomberg
-        Technoz); CREA, 29 October 2026; Copernicus CAMS, early November 2026.
+        Technoz); CREA, 29 October 2026.
       </p>
     </div>
   );
@@ -66,7 +65,7 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
         style={{ background: "linear-gradient(90deg, rgb(239 230 212 / 0.97) 0%, rgb(239 230 212 / 0.94) 30%, rgb(239 230 212 / 0.6) 50%, rgb(239 230 212 / 0) 70%), linear-gradient(0deg, rgb(239 230 212 / 0.92) 0%, rgb(239 230 212 / 0) 26%)" }} />
       <div aria-hidden="true" className="h-[55svh] md:hidden" />
 
-      <div className="pointer-events-auto relative bg-bg px-4 pb-8 pt-7 max-md:border-t max-md:border-rule md:flex-1 md:bg-transparent md:px-8 md:pb-10 md:pt-[clamp(7.5rem,19svh,10.5rem)] lg:px-16">
+      <div className="pointer-events-auto relative bg-bg px-4 pb-8 pt-7 max-md:border-t max-md:border-rule md:flex-1 md:bg-transparent md:px-8 md:pb-8 md:pt-[clamp(6rem,14svh,8.5rem)] lg:px-16">
         <div data-hero-copy className="max-w-[35rem]">
           <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-ochre">
             <span className="h-px w-7 bg-ochre" aria-hidden="true" />West Kalimantan peat fires
@@ -91,7 +90,7 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
         </div>
       </div>
 
-      <div data-hero-strip className="pointer-events-auto relative flex items-end justify-between gap-8 bg-bg px-4 pb-10 md:bg-transparent md:px-8 md:pb-12 lg:px-16">
+      <div data-hero-strip className="pointer-events-auto relative flex items-end justify-between gap-8 bg-bg px-4 pb-10 md:bg-transparent md:px-8 md:pb-8 lg:px-16">
         <div className="w-full md:w-auto md:min-w-[40rem] md:max-w-[52rem]">
           <Stakes />
           {status === "failed" && (

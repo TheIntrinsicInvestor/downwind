@@ -18,7 +18,7 @@ function Adds() {
       <div className="mx-auto max-w-6xl">
         <p className="dateline">What Downwind adds</p>
         <h2 id="adds-title" className="mt-4 max-w-3xl font-display text-3xl leading-tight text-ink sm:text-4xl">
-          Same ten crews, 1.1 to 1.6 times more of the smoke over people.
+          Downwind&apos;s top ten hold 1.1 to 1.6 times more of the smoke over people than the ten largest fires.
         </h2>
         <div className="mt-12 overflow-x-auto border-t border-rule pt-8">
           <table className="w-full min-w-[34rem] border-collapse text-sm">
