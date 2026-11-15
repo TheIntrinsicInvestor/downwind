@@ -60,7 +60,7 @@ const DaySwitch = memo(function DaySwitch({ days, date, onDay, live, onLive }: {
   return (
     <div role="radiogroup" aria-label="Map data" className="panel pointer-events-auto flex gap-0.5 p-0.5">
       <button type="button" role="radio" aria-checked={live} onClick={onLive}
-        className={`focus-ring-inset min-h-9 px-2.5 text-xs font-medium max-md:min-h-11 ${live ? "bg-ink/10 text-ink" : "text-ink-3 hover:text-ink"}`}>
+        className={`focus-ring-inset min-h-9 px-2.5 text-xs font-medium max-md:min-h-11 max-md:px-1.5 ${live ? "bg-ink/10 text-ink" : "text-ink-3 hover:text-ink"}`}>
         Live
       </button>
       {days.map((d) => (
@@ -71,7 +71,7 @@ const DaySwitch = memo(function DaySwitch({ days, date, onDay, live, onLive }: {
           aria-checked={!live && d === date}
           aria-label={longDate(d)}
           onClick={() => { if (live || d !== date) onDay(d); }}
-          className={`focus-ring-inset figure min-h-9 whitespace-nowrap px-3 text-[12px] transition-colors max-md:min-h-11 max-md:px-2.5 ${
+          className={`focus-ring-inset figure min-h-9 whitespace-nowrap px-3 text-[12px] transition-colors max-md:min-h-11 max-md:px-1.5 ${
             !live && d === date ? "bg-ink/10 text-ink shadow-[inset_0_-2px_0_var(--ember-hot)]" : "text-ink-3 hover:bg-ink/[0.05] hover:text-ink"}`}
         >
           {shortDay(d)}
@@ -249,7 +249,7 @@ export default function AppShell() {
       <div className="pointer-events-none fixed inset-0">
         <h1 className="sr-only">Downwind live map</h1>
         <header className="dw-enter absolute inset-x-3 top-3 space-y-2 [--dw-from:0_-8px]">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="pointer-events-auto"><Wordmark size="sm" /></div>
             <DaySwitch days={days} date={date} onDay={onDay} live={liveSelected} onLive={showLive} />
           </div>
