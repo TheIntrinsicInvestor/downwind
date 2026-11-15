@@ -4,8 +4,8 @@
 // leader and a small paper card. The map is the one fixed, full-viewport MapLibre map, so map.project() gives fixed
 // viewport coordinates. Positions are written straight to the DOM on the map's move and resize events (no React renders
 // per frame). Each card tries the PLACES in order and takes the first that stays on screen, off the text column and the
-// figure strip's text, below the top bar, and clear of both rings and the other card; with none free it hides. All
-// callouts hide once the page has scrolled a fifth of the hero. Text comes from StoryFacts only.
+// figure strip's text, below the top bar, and clear of both rings and the other card; with none free it hides. The
+// callouts fade out with scroll, gone by a fifth of the hero. Text comes from StoryFacts only.
 
 import { useEffect, useRef } from "react";
 import type { Day } from "@/lib/replay";
@@ -59,13 +59,17 @@ export default function HeroCallouts({ day, facts }: { day: Day | null; facts: S
       const W = window.innerWidth, H = window.innerHeight;
       const hero = document.getElementById("hero-title")?.closest("section");
       const heroH = hero?.getBoundingClientRect().height ?? H;
-      const active = W >= 768 && window.scrollY < heroH * 0.2;   // gone before the next section rises under the cards
+      // Cards fade with scroll and are gone by a fifth of the hero, before the next section rises under them.
+      const fade = Math.min(1, Math.max(0, 1 - window.scrollY / (heroH * 0.2)));
+      const active = W >= 768 && fade > 0;
       const box = map.getContainer().getBoundingClientRect();
       // Text the cards must never cover: the copy block and each block inside the figure strip (the strip itself spans
-      // the full width, but its text stops well short of the map; missing rects count as nothing to avoid).
+      // the full width, but its text stops well short of the map; missing rects count as nothing to avoid). Measured
+      // where it sits at the top of the page, so the text scrolling past cannot pop a card off mid-fade.
+      const sy = window.scrollY;
       const strip = document.querySelector("[data-hero-strip]");
       const keepOut = [rectOf(document.querySelector("[data-hero-copy]")), ...[...(strip?.children ?? [])].map(rectOf)]
-        .filter((q): q is Rect => q !== null);
+        .filter((q): q is Rect => q !== null).map((q) => ({ ...q, t: q.t + sy, b: q.b + sy }));
       const pts = specs.map(([s]) => {
         const p = map.project([s.lon, s.lat]);
         return { x: p.x + box.left, y: p.y + box.top };
@@ -98,6 +102,7 @@ export default function HeroCallouts({ day, facts }: { day: Day | null; facts: S
           line?.setAttribute("x2", String(ex));
           line?.setAttribute("y2", String(ey));
           el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+          el.style.opacity = fade.toFixed(3);
         }
         el.style.visibility = fit ? "visible" : "hidden";
       });
