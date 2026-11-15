@@ -14,7 +14,8 @@ const num = (n: number) => n.toLocaleString("en-US");
 export function OpenMapLink({ onOpenApp, className = "" }: { onOpenApp: () => void; className?: string }) {
   return (
     <Link href="/app" onClick={onOpenApp}
-      className={`focus-ring inline-flex min-h-12 items-center gap-2.5 bg-ember px-6 text-[15px] font-medium tracking-[0.01em] text-[#160800] shadow-[0_0_36px_rgb(255_122_46/0.3)] transition-colors hover:bg-ember-hot ${className}`}>
+      className={`focus-ring inline-flex min-h-12 items-center gap-2.5 bg-ink px-6 text-[15px] font-medium tracking-[0.01em] text-bg transition-colors hover:bg-ink-2 ${className}`}>
+      <span className="h-2 w-2 shrink-0 rounded-full bg-ember shadow-[0_0_0_3px_rgb(229_57_27/0.22)]" aria-hidden="true" />
       Open the live map <Arrow />
     </Link>
   );
@@ -52,13 +53,13 @@ function Hero({ facts, status, onRetry, onOpenApp, onSeeHow }: Props) {
     <section aria-labelledby="hero-title" className="relative md:flex md:min-h-[max(100svh,640px)] md:flex-col">
       {/* Legibility scrim behind the text column and the figure strip (desktop; on phones the copy sits on --bg). */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 max-md:hidden"
-        style={{ background: "linear-gradient(90deg, rgb(5 7 11 / 0.95) 0%, rgb(5 7 11 / 0.86) 30%, rgb(5 7 11 / 0.42) 48%, rgb(5 7 11 / 0) 64%), linear-gradient(0deg, rgb(5 7 11 / 0.9) 0%, rgb(5 7 11 / 0) 26%)" }} />
+        style={{ background: "linear-gradient(90deg, rgb(239 230 212 / 0.97) 0%, rgb(239 230 212 / 0.94) 30%, rgb(239 230 212 / 0.6) 50%, rgb(239 230 212 / 0) 70%), linear-gradient(0deg, rgb(239 230 212 / 0.92) 0%, rgb(239 230 212 / 0) 26%)" }} />
       <div aria-hidden="true" className="h-[55svh] md:hidden" />
 
       <div className="pointer-events-auto relative bg-bg px-4 pb-8 pt-7 max-md:border-t max-md:border-rule md:flex-1 md:bg-transparent md:px-8 md:pb-10 md:pt-[clamp(7.5rem,19svh,10.5rem)] lg:px-16">
-        <div className="max-w-[35rem]">
-          <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-ember">
-            <span className="h-px w-7 bg-ember" aria-hidden="true" />West Kalimantan peat fires
+        <div data-hero-copy className="max-w-[35rem]">
+          <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-ochre">
+            <span className="h-px w-7 bg-ochre" aria-hidden="true" />West Kalimantan peat fires
           </p>
           <h1 id="hero-title"
             className="mt-6 font-display text-[clamp(2.375rem,4.75vw,4.25rem)] font-light leading-[1.02] tracking-[-0.025em] text-ink [font-variation-settings:'opsz'_144] md:mt-7">
@@ -79,20 +80,20 @@ function Hero({ facts, status, onRetry, onOpenApp, onSeeHow }: Props) {
         </div>
       </div>
 
-      <div className="pointer-events-auto relative flex items-end justify-between gap-8 bg-bg px-4 pb-10 md:bg-transparent md:px-8 md:pb-12 lg:px-16">
+      <div data-hero-strip className="pointer-events-auto relative flex items-end justify-between gap-8 bg-bg px-4 pb-10 md:bg-transparent md:px-8 md:pb-12 lg:px-16">
         <div className="min-h-[5.5rem] w-full md:w-auto md:min-w-[40rem]">
           {status === "ready" && facts ? <Figures facts={facts} />
             : status === "failed" ? (
               <div role="alert" className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-rule pt-5">
                 <p className="text-[15px] text-ink">The replay data could not be loaded.</p>
                 <button type="button" onClick={onRetry}
-                  className="focus-ring min-h-11 bg-ember px-5 text-[13px] font-semibold text-[#160800] transition-colors hover:bg-ember-hot">
+                  className="focus-ring min-h-11 bg-ink px-5 text-[13px] font-semibold text-bg transition-colors hover:bg-ink-2">
                   Retry
                 </button>
               </div>
             ) : (
               <p role="status" className="flex items-center gap-3 border-t border-rule pt-5 text-sm text-ink-3">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-ember shadow-[0_0_10px_var(--ember)] motion-reduce:animate-none" aria-hidden="true" />
+                <span className="h-2 w-2 rounded-full bg-ember" aria-hidden="true" />
                 Loading replay data
               </p>
             )}

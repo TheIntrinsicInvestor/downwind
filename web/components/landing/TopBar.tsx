@@ -21,7 +21,7 @@ const Slash = () => <span className="px-2 text-ink-3/60" aria-hidden="true">/</s
 
 function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
   return (
-    <header className="pointer-events-auto fixed inset-x-0 top-0 z-30 border-b border-rule bg-[rgb(5_7_11/0.8)]">
+    <header className="pointer-events-auto fixed inset-x-0 top-0 z-30 border-b border-rule bg-[rgb(239_230_212/0.96)]">
       <div className="relative flex h-14 items-center justify-between px-4 md:h-[72px] md:px-8 lg:px-16">
         <span className="md:hidden"><Wordmark size="sm" /></span>
         <span className="max-md:hidden"><Wordmark /></span>

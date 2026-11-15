@@ -51,7 +51,7 @@ function TierTable({ facts }: { facts: StoryFacts }) {
           const c = `rgb(${officialColor(t).join(",")})`;
           return (
             <li key={t} className="flex items-center gap-3 py-2">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: c, boxShadow: `0 0 8px ${c}` }} aria-hidden="true" />
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: c }} aria-hidden="true" />
               <span className="flex-1 text-ink">Priority {t}</span>
               <span className="figure text-ink">{n.toLocaleString("en-US")}</span>
             </li>
