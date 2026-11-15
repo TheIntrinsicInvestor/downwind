@@ -15,7 +15,6 @@ import TimeSlider from "../TimeSlider";
 import FireList from "../FireList";
 import FireCard from "../FireCard";
 import { ModeNote, ModeSwitch } from "../ModeToggle";
-import LimitsPanel from "../LimitsPanel";
 import BulletinPanel from "../BulletinPanel";
 import CityView from "../CityView";
 import ChatPanel from "../ChatPanel";
@@ -24,9 +23,9 @@ import Sheet, { type SheetState } from "./Sheet";
 
 const TABS: { id: Panel; label: string }[] = [
   { id: "fire", label: "Fire" }, { id: "city", label: "Protect" }, { id: "bulletin", label: "Bulletin" },
-  { id: "limits", label: "Limits" }, { id: "ask", label: "Ask" },
+  { id: "ask", label: "Ask" },
 ];
-const URL_PANELS = ["limits", "city", "bulletin", "fire"] as const;
+const URL_PANELS = ["city", "bulletin", "fire"] as const;
 const PHONE_TOP = 128;     // px the full sheet leaves for the phone top bar
 // Phone opening view: the province's fire coast sits in the map area between the top bar and the collapsed sheet.
 const PHONE_CAMERA = { center: [110.55, -1.25] as [number, number], zoom: 6 };
@@ -157,7 +156,7 @@ function Status({ error, retry }: { error: string | null; retry: () => void }) {
 
 export default function AppShell() {
   const { index, date, setDate, day, error, retry, frame, setFrame, playing, setPlaying, selected, select, selectedDistrict, selectSeq, mode, setMode,
-    place, setPlace, panel, setPanel, limits, limitsError, chatEnabled, setStoryFocus, flyTo, mapReady,
+    place, setPlace, panel, setPanel, chatEnabled, setStoryFocus, flyTo, mapReady,
     liveSelected, showLive, feedManifest, feedUnavailable, feedStale } = useReplay();
   const wide = useWide();
   const [leftOpen, setLeftOpen] = useState(true);
@@ -221,7 +220,6 @@ export default function AppShell() {
     switch (active) {
       case "city": return <CityView day={d} place={place} fire={selected} onPlace={setPlace} onFire={onCityFire} />;
       case "bulletin": return <BulletinPanel day={d} live={liveSelected} />;
-      case "limits": return <LimitsPanel day={d} limits={limits} error={limitsError} />;
       case "ask": return <ChatPanel date={d.date} />;
       default: return fire
         ? <FireCard fire={fire} nRanked={nRanked} onClose={closeCard} windowStart={d.window_start_utc}
