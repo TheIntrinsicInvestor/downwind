@@ -72,13 +72,13 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
           </p>
           <h1 id="hero-title"
             className="mt-6 font-display text-[clamp(2.375rem,4.75vw,4.25rem)] font-light leading-[1.02] tracking-[-0.025em] text-ink [font-variation-settings:'opsz'_144] md:mt-7">
-            The biggest fire is <em className="text-ember-hot">not</em> the one to fight first.
+            Size is <em className="text-ember-hot">not</em> the order.
           </h1>
           <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-ink-2 md:mt-7 md:text-lg md:leading-[1.6]">
-            Downwind ranks West Kalimantan&apos;s Priority 1 peat fires by how many people their smoke will reach in the
-            next 48 hours, putting in order the fires that Indonesia&apos;s official tiers leave unranked. The fire task
-            force sees which fires to send crews to first; district offices see when smoke will reach their schools and
-            clinics.
+            A big fire can burn over empty forest while a smaller one sends its smoke over towns. Indonesia&apos;s official
+            tiers put hundreds of fires in Priority 1 with no order among them. Downwind ranks them by how many people
+            their smoke will reach in the next 48 hours, so the task force sees which to send crews to first and district
+            offices see when smoke will reach their schools and clinics.
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5 md:mt-9">
             <OpenMapLink onOpenApp={onOpenApp} />
