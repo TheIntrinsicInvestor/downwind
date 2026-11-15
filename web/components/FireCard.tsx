@@ -127,14 +127,13 @@ function FireCard({ fire, nRanked, onClose, windowStart, district, contribution 
         </Section>
       )}
 
-      <Section title={fire.reach_km !== null ? "Getting there" : "Location"}>
-        {fire.reach_km !== null && (
+      {fire.reach_km !== null && (
+        <Section title="Getting there">
           <Row value={`${fire.reach_km.toFixed(1)} km`}
             label={<>Nearest mapped road
-              <span className="mt-0.5 block text-xs">OpenStreetMap; plantation and logging tracks are often unmapped.</span></>} />
-        )}
-        <p className="figure mt-2 text-xs text-ink-3">{fire.lat.toFixed(3)}, {fire.lon.toFixed(3)}</p>
-      </Section>
+              <span className="mt-0.5 block text-xs">Sourced from OpenStreetMap</span></>} />
+        </Section>
+      )}
     </div>
   );
 }

@@ -124,16 +124,18 @@ export default function HeroCallouts({ day, facts }: { day: Day | null; facts: S
   }, [getMap, mapReady, day, facts]);
 
   if (!facts) return null;
-  const { top, biggest, p1 } = facts;
+  const { top, biggest } = facts;
   return (
     // z-[1]: above the hero's bone veil (which would wash the cards out); the clear-space test keeps them off the text.
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[1] max-md:hidden">
-      <Callout wrapRef={topRef} hot tag={`${top.place} · ranked 1st`}
-        headline={`Smoke towards ${top.people.toLocaleString("en-US")} residents`}
-        sub={`${top.frp.toFixed(1)} MW · ${top.sharePct} of the day's smoke over residents`} />
-      <Callout wrapRef={bigRef} hot={false} tag={`${biggest.place} · biggest in Priority 1`}
-        headline={`${biggest.frp.toFixed(1)} MW, ranked only ${ordinal(biggest.rank)} of ${p1.toLocaleString("en-US")}`}
-        sub={`${biggest.sharePct} of the day's smoke over residents`} />
+      {/* Same three lines on both cards, so the two fires compare directly: place; size rank and smoke rank among
+          Priority 1; then fire power and share of the day's smoke over residents. The biggest fire is size 1st by definition. */}
+      <Callout wrapRef={topRef} hot tag={top.place}
+        headline={`Size ${ordinal(top.sizeRank)}, Smoke ${ordinal(1)}`}
+        sub={`${Math.round(top.frp)} MW fire power · ${top.sharePct} of the day's smoke over residents`} />
+      <Callout wrapRef={bigRef} hot={false} tag={biggest.place}
+        headline={`Size ${ordinal(1)}, Smoke ${ordinal(biggest.rank)}`}
+        sub={`${Math.round(biggest.frp)} MW fire power · ${biggest.sharePct} of the day's smoke over residents`} />
     </div>
   );
 }

@@ -24,9 +24,10 @@ function Differs() {
               <dd className="text-[15px] leading-relaxed text-ink-2">{r.text}</dd>
             </div>
           ))}
-          <div className="mt-3 grid gap-1 bg-ember/10 px-4 py-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-10">
-            <dt className="text-[15px] font-medium text-ember-hot">Downwind</dt>
-            <dd className="text-[15px] leading-relaxed text-ember-hot">Ranks today&apos;s individual fires by the people their smoke will reach.</dd>
+          {/* Same grid and padding as the rows above so the columns line up; the red bar hangs in the section's left gutter. */}
+          <div className="relative grid gap-1 border-b border-rule py-4 before:absolute before:inset-y-3 before:-left-3 before:w-[3px] before:bg-ember-hot md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-10">
+            <dt className="text-[15px] font-semibold text-ink">Downwind</dt>
+            <dd className="text-[15px] leading-relaxed text-ink">Ranks today&apos;s individual fires by the people their smoke will reach.</dd>
           </div>
         </dl>
         <p className="mt-4 text-xs text-ink-3">Official tiers: Permen LHK P.8/2018, Pasal 9 and 14.</p>

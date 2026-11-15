@@ -1,10 +1,8 @@
-// The landing page's top bar: wordmark, page links, and the mono dateline built from the story's date. "Live map"
-// is the always-visible skip to the app. Fixed over the hero and story; the page's sections scroll under it.
+// The landing page's top bar: wordmark at the left, page links flush right. "Live map" is the always-visible skip to
+// the app. Fixed over the hero and story; the page's sections scroll under it.
 
 import { memo, type MouseEvent } from "react";
 import Link from "next/link";
-import { longDate } from "@/lib/replay";
-import { STORY_DATE } from "@/lib/story";
 import Wordmark from "../Wordmark";
 
 const link = "focus-ring inline-flex min-h-11 items-center text-ink-2 transition-colors hover:text-ink";
@@ -17,7 +15,6 @@ function scrollTo(e: MouseEvent<HTMLAnchorElement>) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
 }
-const Slash = () => <span className="px-2 text-ink-3/60" aria-hidden="true">/</span>;
 
 function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
   return (
@@ -25,15 +22,10 @@ function TopBar({ onOpenApp }: { onOpenApp: () => void }) {
       <div className="relative flex h-14 items-center justify-between px-4 md:h-[72px] md:px-8 lg:px-16">
         <span className="md:hidden"><Wordmark size="sm" /></span>
         <span className="max-md:hidden"><Wordmark /></span>
-        <nav aria-label="Page" className="absolute left-1/2 flex -translate-x-1/2 gap-8 text-sm max-md:hidden">
+        <nav aria-label="Page" className="flex gap-6 text-sm max-md:hidden">
           <Link href="/app" onClick={onOpenApp} className={link}>Live map</Link>
           <a href="#how-it-works" onClick={scrollTo} className={link}>How it works</a>
-          <a href="#results" onClick={scrollTo} className={link}>Results</a>
         </nav>
-        {/* Below 1400 px the dateline would run into the centred links. */}
-        <p className="dateline max-[1399px]:hidden">
-          Situation bulletin<Slash />{longDate(STORY_DATE)}<Slash />West Kalimantan
-        </p>
         <Link href="/app" onClick={onOpenApp}
           className="focus-ring inline-flex min-h-11 items-center gap-2 border border-ink/25 px-4 text-[13px] font-medium text-ink transition-colors hover:border-ink-3 md:hidden">
           Live map <Arrow />
