@@ -8,8 +8,8 @@
 // line. Under 768 px: the map stays in the top 55%, the cards cross-fade in a panel below it, the camera jumps, and the
 // smoke does not follow scroll (also with reduced motion).
 
-import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
-import { type Day, localLabel } from "@/lib/replay";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import type { Day } from "@/lib/replay";
 import { officialColor } from "@/lib/mapstyle";
 import { type Beat, type BeatId, type Camera, type StoryFacts, FIRE_OFFSET_PX, PRACTICE_MORE, PRACTICE_SOURCES, beatAt, offsetCamera, ordinal, shortTime } from "@/lib/story";
 import { useReplay } from "../ReplayProvider";
@@ -63,15 +63,6 @@ function TierTable({ facts }: { facts: StoryFacts }) {
   );
 }
 
-const SmokeClock = memo(function SmokeClock({ day, frame }: { day: Day; frame: number }) {
-  return (
-    <p className="mt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-rule pt-3">
-      <span className="label whitespace-nowrap">Smoke shown</span>
-      <span className="figure whitespace-nowrap text-xs text-ink-2 md:text-[13px]">{localLabel(day.window_start_utc, frame)}</span>
-    </p>
-  );
-});
-
 function PracticeMore({ variant }: { variant: "float" | "flat" }) {
   return (
     <>
@@ -113,7 +104,7 @@ type Props = {
 };
 
 export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) {
-  const { setMode, setStoryFocus, setFrame, flyTo, mapReady, frame } = useReplay();
+  const { setMode, setStoryFocus, setFrame, flyTo, mapReady } = useReplay();
   const wide = useMedia(WIDE, true);
   const reduced = useMedia(REDUCED, false);
   const [active, setActive] = useState(-1);
@@ -197,7 +188,6 @@ export default function Story({ day, beats, facts, beatRef, onOpenApp }: Props) 
     if (b.id === "official") return <TierTable facts={facts} />;
     if (b.id === "practice") return <PracticeMore variant={variant} />;
     if (b.id === "district") return <><DistrictFigures day={day} facts={facts} /><OpenMapLink onOpenApp={onOpenApp} className="mt-6" /></>;
-    if (b.id === "top") return <SmokeClock day={day} frame={frame} />;
     if (b.id === "shortlist") {
       return (
         <>
