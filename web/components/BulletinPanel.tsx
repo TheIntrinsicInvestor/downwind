@@ -75,7 +75,7 @@ function BulletinPanel({ day, live }: { day: Day; live: boolean }) {
           {paragraphs.map((p, k) => <p key={k} className="mt-2 leading-[1.7] text-ink">{p}</p>)}
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
             {b.source === "llm"
-              ? `Written by ${b.model}. Every number was checked against the computed data; the check cannot catch a fact worded wrongly, so the fire cards are the reference.`
+              ? `Written by ${b.model?.split("/").pop()?.replace(/-\d{4}$/, "")}.`
               : "Standard template, used when the AI service is unavailable or its draft fails the checks (every number must match the computed data, and the limits sentence must be intact)."}
           </p>
         </section>
