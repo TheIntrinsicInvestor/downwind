@@ -8,7 +8,7 @@ function fire(rank: number | null, tier: 1 | 2 | 3 = 1, in_province = true): Fir
     people_40km: null, top_places: null, first_arrival_h: null, heading: null, reach_km: null, persist_p: null, age_days: null };
 }
 const N = 564;
-const UNRANKED = [125, 135, 150, 70];
+const UNRANKED = [150, 90, 60, 90];
 
 test("ranks 1 and 10 get the core colour and radius 6000", () => {
   for (const r of [1, 10]) {
@@ -67,7 +67,7 @@ test("from zoom 7.25 up the smoke domain follows the radius, and is fixed past t
   expect(smokeColorDomain(12)).toEqual(smokeColorDomain(10));
 });
 
-test("below zoom 7.25 the veil is brightened, at most 1.6-fold", () => {
+test("below zoom 7.25 the veil is strengthened, at most 1.6-fold", () => {
   const boost = (z: number) => perRadius(7.25) / perRadius(z);
   expect(boost(6.3)).toBeGreaterThan(1.5);
   for (const z of [3, 4.6, 5.5, 6.3, 7]) expect(boost(z)).toBeLessThanOrEqual(1.6 + 1e-9);

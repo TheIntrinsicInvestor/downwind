@@ -10,18 +10,18 @@ export const OPENING_CAMERA: Camera = { center: [111.5, 0], zoom: 6.2 };
 export type RGB = [number, number, number];
 export type RGBA = [number, number, number, number];
 
-export const EMBER: RGB = [255, 122, 46];        // --ember #ff7a2e
-export const EMBER_HOT: RGB = [255, 208, 138];   // --ember-hot #ffd08a
-export const EMBER_CORE: RGB = [255, 243, 220];  // --ember-core #fff3dc
-export const SMOKE: RGB = [214, 222, 232];       // --smoke #d6dee8
-export const INK: RGB = [238, 240, 234];         // --ink #eef0ea
-const DIM_RED: RGB = [138, 42, 20];              // #8a2a14, the last ranked fire
-const UNRANKED: RGBA = [125, 135, 150, 70];
+export const EMBER: RGB = [229, 57, 27];         // --ember #e5391b
+export const EMBER_HOT: RGB = [179, 42, 16];     // --ember-hot #b32a10
+export const EMBER_CORE: RGB = [179, 42, 16];    // --ember-core #b32a10
+export const SMOKE: RGB = [122, 84, 48];         // --smoke #7a5430
+export const INK: RGB = [42, 29, 18];            // --ink #2a1d12
+const DIM_RED: RGB = [150, 90, 60];              // #965a3c, the last ranked fire
+const UNRANKED: RGBA = [150, 90, 60, 90];
 
-export const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
+export const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
-// Official tiers, cool palette (spec section 4, tuned for contrast on the dark map).
-const OFFICIAL: Record<1 | 2 | 3, RGB> = { 1: [127, 208, 255], 2: [74, 134, 214], 3: [184, 164, 255] };
+// Official tiers, dark cool inks (spec section 4, tuned for contrast on the light paper map).
+const OFFICIAL: Record<1 | 2 | 3, RGB> = { 1: [28, 58, 112], 2: [58, 110, 165], 3: [108, 84, 150] };
 
 export function officialColor(tier: 1 | 2 | 3): RGB {
   return OFFICIAL[tier];
@@ -50,25 +50,19 @@ export function fireRadius(fire: Fire, mode: Mode, nRanked: number): number {
   return r <= 10 ? 6000 : 1500 + 2500 * (1 - (r - 1) / Math.max(nRanked, 1));
 }
 
-// ---- fire glow (approved night mockup: small bright points with a soft additive glow; top 10 hotter and larger)
-// Diameters in screen pixels at zoom 7.25, drawn with a radial-gradient sprite and additive blending under the cores.
+// ---- fire glow (haze theme: solid red points with a faint red halo; top 10 larger and stronger)
+// Diameters in screen pixels at zoom 7.25, drawn with a radial-gradient sprite and normal alpha blending under the cores.
 
-const TOP_GLOW: RGB = [255, 177, 90];
+const HALO: RGB = EMBER;   // same hue as the dots: a lighter, more saturated ring read as glow
 
 // The glow under each fire, or null for none (unranked fires are bare dots).
 export function fireGlow(fire: Fire, mode: Mode, nRanked: number): { size: number; color: RGBA } | null {
-  if (mode === "official") return fire.in_province ? { size: 9, color: [...officialColor(fire.tier), 140] } : null;
+  if (mode === "official") return fire.in_province ? { size: 9, color: [...officialColor(fire.tier), 90] } : null;
   const r = fire.rank;
   if (r === null) return null;
-  if (r <= 10) return { size: 22 + 12 * (1 - (r - 1) / 9), color: [...TOP_GLOW, 170] };
+  if (r <= 10) return { size: 22 + 12 * (1 - (r - 1) / 9), color: [...HALO, 105] };
   const t = Math.max(0, 1 - Math.log(r) / Math.log(Math.max(nRanked, 2)));   // 1 at rank 1, 0 at the last rank
-  const [cr, cg, cb, ca] = fireFill(fire, mode, nRanked);
-  return { size: 8 + 14 * t, color: [cr, cg, cb, ca] };
-}
-
-// The wide faint haze around each top-10 fire.
-export function topHaze(rank: number): { size: number; color: RGBA } {
-  return { size: 70 + 40 * (1 - (rank - 1) / 9), color: [...EMBER, 34] };
+  return { size: 8 + 14 * t, color: [...HALO, 55] };
 }
 
 // Glows grow gently with zoom, so fires stay points: 0.55x at the region view, 1.5x at most.
@@ -103,7 +97,7 @@ export function pickFire(hits: number[], fires: Fire[], mode: Mode): number | nu
 // km-constant kernel the summed weight per km does not change with zoom, so a domain proportional to the radius in
 // pixels keeps a plume's brightness. The same rule is kept at the floor and the ceiling (past the ceiling the domain
 // stays fixed: a stricter area correction there made lone particles saturate into flat discs at zoom 10). Below zoom
-// 7.25 the veil is brightened (domain divided by 2^(7.25 - zoom), at most SMOKE_MAX_BOOST, 1.6x): at province zoom the plume covers few
+// 7.25 the veil is strengthened (domain divided by 2^(7.25 - zoom), at most SMOKE_MAX_BOOST, 1.6x): at province zoom the plume covers few
 // pixels and read as a faint smudge, and smoke reaching people is the point of the map. Checked by screenshots at zoom
 // 4.6 to 10.
 // Texture size: 256, not Task 1's 512: a quarter of the texels and, once the domain is corrected, the same look on
@@ -132,57 +126,64 @@ export function smokeColorDomain(zoom: number): [number, number] {
 }
 
 // First colour fully transparent: with a fixed domain, threshold no longer trims faint weights.
+// Brown ramp that darkens the paper as smoke thickens.
 export const SMOKE_RANGE: RGBA[] = [
-  [214, 222, 232, 0], [214, 222, 232, 50], [218, 225, 235, 85],
-  [224, 230, 239, 120], [234, 238, 245, 160], [246, 248, 251, 200],
+  [122, 84, 48, 0], [122, 84, 48, 60], [116, 79, 45, 100],
+  [110, 74, 42, 135], [103, 69, 39, 165], [96, 64, 36, 190],
 ];
-// The focused fire's plume: brighter and warmer.
+// The focused fire's plume: a darker, redder umber.
 export const FOCUS_SMOKE_RANGE: RGBA[] = [
-  [255, 208, 138, 0], [255, 208, 138, 90], [255, 214, 150, 135],
-  [255, 224, 170, 175], [255, 234, 200, 210], [255, 243, 220, 240],
+  [110, 62, 30, 0], [104, 58, 28, 90], [98, 54, 26, 135],
+  [91, 49, 23, 175], [85, 44, 21, 205], [78, 40, 18, 230],
 ];
 
-// ---- basemap recolour (layer ids from OpenFreeMap `dark`)
+// ---- basemap recolour (layer ids from OpenFreeMap `positron`)
 
-// Separate land from sea at province zoom; keep the warm fire palette as the focal point.
-const LAND = "#263b46", WATER = "#071522", COAST = "#7293a3", BG = "#05070b", INK3 = "#8d97a6";
+// Sepia paper land, darker sepia water; the fires and smoke are the only strong colour.
+const LAND = "#E9DEC6", WATER = "#D5C8AD", COAST = "#A8977A", BG = "#EFE6D4", INK3 = "#6F6453";
 
 export const BASEMAP_PAINT: [layer: string, property: string, value: unknown][] = [
   ["background", "background-color", LAND],
   ["water", "fill-color", WATER],
   ["water", "fill-outline-color", COAST],
-  ["water", "fill-antialias", true],              // the style ships false, which hides the coast outline
-  ...["landcover_ice_shelf", "landcover_glacier", "landcover_wood", "landuse_park"]
+  ["water", "fill-antialias", true],              // keep the coast outline on
+  ...["landcover_ice_shelf", "landcover_glacier", "landcover_wood", "park"]
     .map((id): [string, string, unknown] => [id, "fill-opacity", 0.12]),
-  ["waterway", "line-color", "#3c6075"],
-  ["waterway", "line-opacity", 0.7],
-  // National borders remain distinct from the quieter province boundaries.
-  ["boundary_state", "line-color", "#627e8a"],
-  ["boundary_state", "line-opacity", 0.65],
-  ...["boundary_country_z0-4", "boundary_country_z5-"].flatMap((id): [string, string, unknown][] => [
-    [id, "line-color", "#b0c6ce"], [id, "line-opacity", 0.9],
-    [id, "line-width", ["interpolate", ["linear"], ["zoom"], 3, 0.8, 6, 1.4, 10, 2]],
-  ]),
+  ["waterway", "line-color", "#BFB196"],
+  // Province boundaries (admin levels 3 to 6) stay quiet; national borders (level 2) are darker and more distinct.
+  ["boundary_3", "line-color", COAST],
+  ["boundary_3", "line-opacity", 0.5],
+  ["boundary_2", "line-color", "#7E6D52"],
+  ["boundary_2", "line-opacity", 0.9],
+  ["boundary_2", "line-width", ["interpolate", ["linear"], ["zoom"], 3, 0.8, 6, 1.4, 10, 2]],
   // Place labels stay dim (--ink-3) so they never compete with the fires.
-  ...["place_city", "place_city_large", "place_town"].flatMap((id): [string, string, unknown][] => [
+  ...["label_city", "label_city_capital", "label_town"].flatMap((id): [string, string, unknown][] => [
     [id, "text-color", INK3], [id, "text-halo-color", BG], [id, "text-halo-width", 1.2],
-    [id, "text-opacity", id === "place_town" ? 0.45 : 0.6],
+    [id, "text-opacity", id === "label_town" ? 0.75 : 0.9],
+    [id, "icon-opacity", 0.5],                    // positron's black place dot, kept quieter than the text
   ]),
 ];
 
 export const BASEMAP_HIDDEN = [
-  "landuse_residential", "building", "aeroway-area", "road_area_pier",
-  "water_name", "aeroway-taxiway", "aeroway-runway-casing", "aeroway-runway", "road_pier",
+  "landuse_residential", "building", "aeroway-area", "road_area_pier", "road_pier",
+  "aeroway-taxiway", "aeroway-runway-casing", "aeroway-runway",
+  "tunnel_motorway_casing", "tunnel_motorway_inner",
   "highway_path", "highway_minor", "highway_major_casing", "highway_major_inner", "highway_major_subtle",
-  "highway_motorway_casing", "highway_motorway_inner", "highway_motorway_subtle", "road_oneway", "road_oneway_opposite",
-  "railway_transit", "railway_transit_dashline", "railway_minor", "railway_minor_dashline", "railway", "railway_dashline",
-  "highway_name_other", "highway_name_motorway",
-  "place_other", "place_suburb", "place_village", "place_state",
-  "place_country_other", "place_country_minor", "place_country_major",
+  "highway_motorway_casing", "highway_motorway_inner", "highway_motorway_subtle",
+  "highway_motorway_bridge_casing", "highway_motorway_bridge_inner",
+  "railway_transit", "railway_transit_dashline", "railway_service", "railway_service_dashline", "railway", "railway_dashline",
+  "boundary_disputed", "waterway_line_label", "water_name_point_label", "water_name_line_label",
+  "highway-name-path", "highway-name-minor", "highway-name-major",
+  "highway-shield-non-us", "highway-shield-us-interstate", "road_shield_us", "airport",
+  "label_other", "label_village", "label_state",
+  "label_country_3", "label_country_2", "label_country_1",
 ];
 
 // Place labels only in close views (zoom 7 and in): the region and province views (zoom 4.6 to 6.3) carry none, so
 // no foreign capital sits at the edge of the smoke (controller ruling, neutral framing). Country labels are hidden
 // entirely above.
-export const PLACE_LABELS = ["place_city", "place_city_large", "place_town"];
+export const PLACE_LABELS = ["label_city", "label_city_capital", "label_town"];
 export const PLACE_LABEL_MIN_ZOOM = 7;
+// positron starts its sub-national boundaries at zoom 8; the province outline must show from the region view.
+export const PROVINCE_BOUNDARY = "boundary_3";
+export const PROVINCE_BOUNDARY_MIN_ZOOM = 5;
