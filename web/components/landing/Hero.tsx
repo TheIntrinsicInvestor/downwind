@@ -30,8 +30,8 @@ function Stakes() {
     <div className="border-t border-rule pt-5">
       <p className="label">Why the order matters</p>
       <p className="mt-2 max-w-[52rem] text-[15px] leading-relaxed text-ink-2">
-        The harm comes from smoke reaching people, and from peat that keeps burning. Downwind orders the fires by the
-        first of these: how many people their smoke will reach.
+        <span className="block">The harm comes from smoke reaching people, and from peat that keeps burning.</span>
+        <span className="block">Downwind orders the fires by the first of these: how many people their smoke will reach.</span>
       </p>
       <ul className="mt-4 max-md:divide-y max-md:divide-rule max-md:border-y max-md:border-rule md:flex">
         {STAKES.map((it) => (
@@ -72,19 +72,20 @@ function Hero({ status, onRetry, onOpenApp, onSeeHow }: Props) {
           </p>
           <h1 id="hero-title"
             className="mt-6 font-display text-[clamp(2.375rem,4.75vw,4.25rem)] font-light leading-[1.02] tracking-[-0.025em] text-ink [font-variation-settings:'opsz'_144] md:mt-7">
-            The biggest fire is <em className="text-ember-hot">not</em> the one to fight first.
+            Size is <em className="text-ember-hot">not</em> the order.
           </h1>
           <p className="mt-6 max-w-[31rem] text-base leading-relaxed text-ink-2 md:mt-7 md:text-lg md:leading-[1.6]">
-            Downwind ranks West Kalimantan&apos;s Priority 1 peat fires by how many people their smoke will reach in the
-            next 48 hours, putting in order the fires that Indonesia&apos;s official tiers leave unranked. The fire task
-            force sees which fires to send crews to first; district offices see when smoke will reach their schools and
-            clinics.
+            A big fire can burn over empty forest while a smaller one sends its smoke over towns. On peak days, Indonesia&apos;s official
+            tiers put hundreds of fires in Priority 1 with no order among them.
+          </p>
+          <p className="mt-4 max-w-[31rem] text-base leading-relaxed text-ink-2 md:text-lg md:leading-[1.6]">
+            Downwind orders them by how many people each fire&apos;s smoke will reach in the next 48 hours.
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5 md:mt-9">
             <OpenMapLink onOpenApp={onOpenApp} />
             <a href="#story" onClick={onSeeHow}
               className="focus-ring inline-flex min-h-12 items-center border border-ink/30 px-6 text-[15px] font-medium text-ink transition-colors hover:border-ink-3">
-              See how it ranks
+              See how it works
             </a>
           </div>
         </div>

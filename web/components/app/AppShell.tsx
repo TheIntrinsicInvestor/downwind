@@ -299,7 +299,7 @@ export default function AppShell() {
         {feedStatus}
         {day && !liveSelected && (
           <p className="dateline ml-auto hidden bg-[var(--attrib)] px-2 py-1 text-ink-2 xl:block">
-            Situation bulletin <span className="px-1.5 text-ink-3/60">/</span> {longDate(day.date)} <span className="px-1.5 text-ink-3/60">/</span> West Kalimantan
+            {longDate(day.date)} <span className="px-1.5 text-ink-3/60">/</span> West Kalimantan
           </p>
         )}
       </header>

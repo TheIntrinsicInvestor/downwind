@@ -55,26 +55,29 @@ function BulletinPanel({ day, live }: { day: Day; live: boolean }) {
         </section>
       )}
 
-      <section aria-labelledby="bulletin-changed" className="mt-4 border-t border-rule pt-3">
-        <h4 id="bulletin-changed" className="label">Since the day before</h4>
-        <p className="mt-2 leading-snug text-ink-2">
-          {day.changes === null
-            ? noChangesLine(live)
-            : nNew === 0
-              ? "The top ten is unchanged."
-              : <>{nNew} new in the top ten, near {newPlaces.join(", ")}. {nLeft} left it.</>}
-        </p>
-      </section>
+      {/* The live feed builds one day at a time, so it has no previous morning to compare with: no section at all. */}
+      {!live && (
+        <section aria-labelledby="bulletin-changed" className="mt-4 border-t border-rule pt-3">
+          <h4 id="bulletin-changed" className="label">Since the day before</h4>
+          <p className="mt-2 leading-snug text-ink-2">
+            {day.changes === null
+              ? noChangesLine(false)
+              : nNew === 0
+                ? "The top ten is unchanged."
+                : <>{nNew} new in the top ten, near {newPlaces.join(", ")}. {nLeft} left it.</>}
+          </p>
+        </section>
+      )}
 
       {paragraphs.length > 0 ? (
         <section aria-labelledby="bulletin-summary" className="mt-4 border-t border-rule pt-3">
           <h4 id="bulletin-summary" className="label">Summary</h4>
           {paragraphs.map((p, k) => <p key={k} className="mt-2 leading-[1.7] text-ink">{p}</p>)}
-          <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            {b.source === "llm"
-              ? `Written by ${b.model}. Every number was checked against the computed data; the check cannot catch a fact worded wrongly, so the fire cards are the reference.`
-              : "Standard template, used when the AI service is unavailable or its draft fails the checks (every number must match the computed data, and the limits sentence must be intact)."}
-          </p>
+          {b.source === "llm" && (
+            <p className="mt-4 text-xs leading-relaxed text-ink-3">
+              {`Written by ${b.model?.split("/").pop()?.replace(/-\d{4}$/, "")}.`}
+            </p>
+          )}
         </section>
       ) : (
         <p className="mt-4 border-t border-rule pt-3 text-ink-2">No written summary for this day yet.</p>

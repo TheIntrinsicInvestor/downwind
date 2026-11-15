@@ -238,6 +238,9 @@ test("bulletinParts: leading fires, changes and paragraphs from the day file", a
   expect([p.nNew, p.nLeft]).toEqual([3, 3]);
   expect(p.paragraphs).toEqual(["One.", "Two.", "Three."]);
   expect(bulletinParts({ ...day, changes: null }).nNew).toBe(0);
+  // The fixed limits sentence loses its "People outside Indonesia" half; the first half stays.
+  const limited = { ...day, bulletin: { text: "One.\n\nThis is a ranking index, not a forecast of smoke concentration. People outside Indonesia are not counted.", source: "llm" as const, model: "m" } };
+  expect(bulletinParts(limited).paragraphs).toEqual(["One.", "This is a ranking index, not a forecast of smoke concentration."]);
 });
 
 import { timeParts } from "./replay";

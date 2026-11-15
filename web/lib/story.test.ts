@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import type { Day, Fire } from "./replay";
-import { FIRE_OFFSET_PX, STORY_DATE, beatAt, beats, districtFacts, offsetCamera, ordinal, shortTime, storyFacts } from "./story";
+import { FIRE_OFFSET_PX, STORY_DATE, beatAt, beats, offsetCamera, ordinal, storyFacts } from "./story";
 
 const dayPath = fileURLToPath(new URL(`../public/replay/${STORY_DATE}.json`, import.meta.url));
 const loadGolden = (): Day => JSON.parse(readFileSync(dayPath, "utf-8")) as Day;
@@ -30,7 +30,7 @@ test("golden: 20 September facts", () => {
   if (!f) return;
   expect(f.nLocations).toBe(3151);
   expect([f.p1, f.p2, f.p3]).toEqual([349, 297, 4]);
-  expect(f.biggest).toMatchObject({ frp: 248, place: "Kayong Utara", rank: 20, sharePct: "1.06%" });
+  expect(f.biggest).toMatchObject({ frp: 248, place: "Kayong Utara", rank: 20, sharePct: "1.1%" });
   expect(f.top).toMatchObject({
     frp: 194, place: "Kayong Utara", sizeRank: 3, sharePct: "6.1%", people: 2028881,
     arrivalPlace: "Kayong Utara", arrivalH: 0,
@@ -43,12 +43,12 @@ test("golden: beat copy", () => {
   const b = beats(loadGolden());
   expect(b).not.toBeNull();
   if (!b) return;
-  expect(b.map((x) => x.id)).toEqual(["region", "official", "practice", "biggest", "top", "shortlist", "district"]);
+  expect(b.map((x) => x.id)).toEqual(["region", "official", "practice", "biggest", "top", "shortlist"]);
   expect(b[3].body).toContain("Downwind ranks it 20th of 349");
-  expect(b[3].body).toContain("1.06% of the day's smoke over residents");
+  expect(b[3].body).toContain("1.1% of the day's smoke over residents");
   expect(b[4].body).toContain("2,028,881 residents");
   for (const i of [1, 2]) expect(b[i].mode).toBe("official");
-  for (const i of [0, 3, 4, 5, 6]) expect(b[i].mode).toBe("downwind");
+  for (const i of [0, 3, 4, 5]) expect(b[i].mode).toBe("downwind");
   expect(b[4].frame).toBe("scrub");
   for (const x of b) {
     for (const bad of ["—", "exposure", "undefined", "NaN", "n/a", "null"]) expect(x.body).not.toContain(bad);
@@ -59,30 +59,21 @@ test("golden: beat copy sentences", () => {
   const b = beats(loadGolden());
   if (!b) throw new Error("no beats");
   expect(b.map((x) => x.title)).toEqual(["The region", "The official view", "In practice", "The biggest fire",
-    "The fire that matters most", "The short list", "For district offices"]);
-  expect(b.map((x) => x.n)).toEqual(["01", "02", "03", "04", "05", "06", "07"]);
+    "The fire that matters most", "The short list"]);
+  expect(b.map((x) => x.n)).toEqual(["01", "02", "03", "04", "05", "06"]);
   expect(b[0].body).toBe("On the morning of 20 September 2026, satellites had picked up 3,151 fire locations across the region.");
   expect(b[1].body).toBe("Indonesia's rule (P.8/2018) sorts hotspots into three tiers to decide which get a field check first. In West Kalimantan that morning, 349 fires shared Priority 1, with no order among them.");
-  expect(b[2].body).toBe("Crews are stretched. West Kalimantan had 265 specialist forest firefighters in August, and 48 days into the operation the ministry was rotating tired crews and sending reinforcements.");
-  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248.0 MW in Kayong Utara. Its smoke mostly missed people: 1.06% of the day's smoke over residents. Downwind ranks it 20th of 349.");
-  expect(b[4].body).toBe("A smaller fire nearby, at 194.0 MW, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
+  expect(b[2].body).toBe("Crews are stretched: West Kalimantan had 265 specialist forest firefighters in August, and by day 48 tired crews were being rotated.");
+  expect(b[3].body).toBe("The biggest Priority 1 fire burned at 248 MW of fire power in Kayong Utara. Its smoke mostly missed people: 1.1% of the day's smoke over residents. Downwind ranks it 20th of 349.");
+  expect(b[4].body).toBe("A smaller fire nearby, at 194 MW of fire power, sent its smoke towards 2,028,881 residents: 6.1% of the day's smoke over people. Downwind ranks it 1st.");
   expect(b[5].body).toBe("Ten fires hold 28% of the smoke over residents. That is the list Downwind hands the task force each morning.");
-  expect(b[6].body).toBe("The same smoke forecast tells each district what's coming. In Ketapang, smoke arrives Sun 20 Sep, 09:00 WIB and peaks Mon 21 Sep, 08:00 WIB. All 15 of its largest sources burn outside West Kalimantan.");
-});
-
-test("golden: Ketapang district facts", () => {
-  const d = districtFacts(loadGolden(), "Ketapang");
-  expect(d).toMatchObject({ name: "Ketapang", firstH: 2, peakH: 25, outside: 15 });
-  expect(d?.sources.length).toBe(15);
-  expect(shortTime("2026-09-20T00:00Z", 2)).toBe("Sun 09:00");
-  expect(shortTime("2026-09-20T00:00Z", 25)).toBe("Mon 08:00");
 });
 
 test("golden: cameras, focus and frames", () => {
   const day = loadGolden();
   const f = storyFacts(day);
   const b = beats(day);
-  if (!f || !b || !f.district) throw new Error("no story");
+  if (!f || !b) throw new Error("no story");
   expect(b[0].camera).toEqual({ center: [107.5, -1.0], zoom: 4.6 });
   for (const k of [1, 2, 5]) expect(b[k].camera).toEqual({ center: [111.0, -0.6], zoom: 6.3 });
   expect(b[0].cameraPhone).toEqual({ center: [107.5, -1.0], zoom: 3.6 });
@@ -95,25 +86,8 @@ test("golden: cameras, focus and frames", () => {
     expect((fr.lon - b[k].camera.center[0]) / (360 / (512 * 2 ** 8.2))).toBeCloseTo(FIRE_OFFSET_PX, 6);
     expect(b[k].cameraPhone).toEqual({ center: [fr.lon, fr.lat], zoom: 7.2 });
   }
-  expect(b.map((x) => x.focus)).toEqual([null, null, null, [f.biggest.i], [f.top.i], f.top10, f.district.sources]);
-  expect(b.map((x) => x.frame)).toEqual([12, 12, 12, 12, "scrub", 12, 25]);
-});
-
-test("the district beat is left out when its place is missing", () => {
-  const day = loadGolden();
-  const b = beats({ ...day, places: day.places.filter((p) => p.name !== "Ketapang") });
-  expect(b?.map((x) => x.id)).toEqual(["region", "official", "practice", "biggest", "top", "shortlist"]);
-});
-
-test("district wording when only some sources are outside the province", () => {
-  const day = minimalDay([
-    fire({ rank: 1, frp: 50, share: 0.1, people_40km: 1234, top_places: [{ name: "Sambas", share: 0.5 }], first_arrival_h: 6 }),
-    fire({ id: "g", in_province: false, frp: 80 }),
-  ]);
-  day.places = [{ name: "Ketapang", contributions: [{ fire: 0, share: 0.2, first_arrival_h: 4 }, { fire: 1, share: 0.3, first_arrival_h: 6 }] }];
-  const d = districtFacts(day, "Ketapang");
-  expect(d).toMatchObject({ firstH: 4, peakH: null, sources: [1, 0], outside: 1 });
-  expect(beats(day)?.at(-1)?.body).toBe("The same smoke forecast tells each district what's coming. In Ketapang, smoke arrives Sun 20 Sep, 11:00 WIB. 1 of its 2 largest sources burns outside West Kalimantan.");
+  expect(b.map((x) => x.focus)).toEqual([null, null, null, [f.biggest.i], [f.top.i], f.top10]);
+  expect(b.map((x) => x.frame)).toEqual([12, 12, 12, 12, "scrub", 12]);
 });
 
 test("no ranked fires", () => {
