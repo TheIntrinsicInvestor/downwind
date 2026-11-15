@@ -15,7 +15,7 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 - **Fire card:** residents within 40 km of the fire's modelled smoke path, its share of smoke over residents, when its smoke first reaches the main receiving place, where the smoke is heading, how likely the fire is to be seen again tomorrow, and how many days running it has been seen in the area.
 - **Protection view:** for district health and education offices. Pick an Indonesian regency or city and see which fires send it smoke, with each fire's share and arrival time.
 - **Bulletin:** a morning briefing written by a language model from the computed facts. Every number in it is checked against those facts; if the check fails twice, a plain template is used instead, and the page says which.
-- **Limits:** what the model ignores, what we do not claim, and the measured accuracy.
+- **Limits:** what the model ignores, what we do not claim, and the measured accuracy, in the Measured results section of the landing page.
 - **Ask (local only):** a chat that answers questions from the day's data, for example "what if we can only reach five fires?". It needs an API key, so it is switched off on the public site.
 
 ## How it works
@@ -23,7 +23,7 @@ Built for the AI for Climate Youth Climate Hackathon at COP31 (ATOX), 2026.
 1. **Fires:** NASA FIRMS VIIRS detections, grouped into 0.015 degree squares (about 1.7 km).
 2. **Official tiers:** Pasal 9(3), read strictly. Priority 1 is a fire on peat (confidence not low) that is also in a cluster of 3 or more detections or seen 3 days running. The regulation gives no cluster size, so 3 is our own number. Its "smoke visible on imagery" input and its listed land uses (Pasal 7a) are not computed, so the true Priority 1 count can only be higher.
 3. **Smoke:** each fire releases particles every hour, weighted by its fire radiative power, carried by 925 hPa winds with random spread and washed out by rain, for 48 hours. Peat fires count about 6 times more smoke per unit of heat (GFAS conversion factors, 5.87 against 0.96 kg per MJ, Kaiser et al. 2012). The other settings were tested on the 2023 season and not tuned afterwards.
-4. **Weather:** each replay morning uses the ECMWF forecast a task force would have had at 07:00 local (the 12:00 UTC run of the day before, from the Open-Meteo Single Runs API), not the weather that actually followed. The Limits panel reports how many of the top ten would change with hindsight weather.
+4. **Weather:** each replay morning uses the ECMWF forecast a task force would have had at 07:00 local (the 12:00 UTC run of the day before, from the Open-Meteo Single Runs API), not the weather that actually followed. The landing page's Measured results section reports how many of the top ten would change with hindsight weather.
 5. **Learned persistence model (the AI component):** most fires are not seen again the next day. A gradient-boosted classifier, trained on the 2019, 2023 and 2025 seasons, predicts each fire's likelihood of being seen again tomorrow from what is known that morning. Smoke is weighted by that likelihood.
 6. **Ranking:** exposure is smoke times people, summed over the populated cells it reaches. Priority 1 fires are ordered by exposure.
 7. **Bulletin:** the language model only phrases computed facts; a check rejects any number it did not receive.

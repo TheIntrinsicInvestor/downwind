@@ -1,6 +1,6 @@
 "use client";
 
-// The landing page at /: hero and five-beat story over the shared map, then the content sections (Tasks 7 and 8).
+// The landing page at /: hero and five-beat story over the shared map, then the content sections.
 // It owns the provider while it shows: 20 September, Downwind view, no selection, a passive map. Next keeps this page
 // in <Activity> when the reader goes to /app, so the setup runs again on every return (effects re-run, state stays).
 
@@ -14,7 +14,6 @@ import Story from "@/components/landing/Story";
 import Practice from "@/components/landing/Practice";
 import Results from "@/components/landing/Results";
 import HowItWorks from "@/components/landing/HowItWorks";
-import WhereItFits from "@/components/landing/WhereItFits";
 import Footer from "@/components/landing/Footer";
 import { STORY_DATE, STORY_FRAME, beats as storyBeats, storyFacts } from "@/lib/story";
 
@@ -66,14 +65,13 @@ export default function Home() {
       <TopBar onOpenApp={openApp} />
       <HeroCallouts day={story} facts={facts} />
       <Hero facts={facts} status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
+      <Practice />
       <Stakes />
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}
       {/* Content sections, opaque so the map is covered once the story ends. */}
       <main className="pointer-events-auto relative bg-bg">
-        <Practice />
-        <Results limits={limits} limitsError={limitsError} />
         <HowItWorks />
-        <WhereItFits day={day} />
+        <Results limits={limits} limitsError={limitsError} day={story} />
       </main>
       <Footer />
     </div>
