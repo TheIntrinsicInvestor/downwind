@@ -6,14 +6,16 @@ import { type Day, pct } from "@/lib/replay";
 
 function RankTable({ day, fires }: { day: Day; fires: number[] }) {
   return (
-    <table className="w-full border-collapse text-left">
+    <table className="w-full table-fixed border-collapse text-left">
       <caption className="sr-only">The {fires.length} best-ranked Priority 1 fires on the morning of the replay day</caption>
+      {/* Fixed numeric columns so every row lines up and the shares sit next to the names, not at the far edge. */}
+      <colgroup><col className="w-10" /><col /><col className="w-[4.75rem] md:w-28" /><col className="w-[4.75rem] md:w-28" /></colgroup>
       <thead>
-        <tr className="label border-b border-rule">
-          <th scope="col" className="w-10 pb-2 pr-3 text-right font-normal">Rank</th>
+        <tr className="label border-b border-rule align-bottom">
+          <th scope="col" className="pb-2 pr-3 text-right font-normal">Rank</th>
           <th scope="col" className="pb-2 font-normal">Location</th>
-          <th scope="col" className="pb-2 pl-3 text-right font-normal">Heat</th>
-          <th scope="col" className="pb-2 pl-3 text-right font-normal">Share of smoke over residents</th>
+          <th scope="col" className="pb-2 pl-3 text-right font-normal">Fire power</th>
+          <th scope="col" className="pb-2 pl-3 text-right font-normal">Smoke share</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-rule">
