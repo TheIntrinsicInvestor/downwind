@@ -9,7 +9,7 @@ import {
 // Drawn at 320 units wide and scaled to the panel, so it fits a 360 px phone with no overflow.
 const B: Box = { w: 320, h: 156, left: 30, right: 8, top: 14, bottom: 24 };
 const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
-const SURFACE = "#0b1017";
+const SURFACE = "#F3ECDE";
 
 type Props = { windowStartUtc: string; values: number[] };
 

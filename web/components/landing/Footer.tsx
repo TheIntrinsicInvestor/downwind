@@ -42,7 +42,7 @@ function Footer() {
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">Brian Liew, Rhea Samel, Andrew Lui</p>
             <p className="mt-4 text-[13px] leading-relaxed text-ink-2">Built for the Youth Climate Hackathon at COP31</p>
             <a href="https://github.com/TheIntrinsicInvestor/downwind" target="_blank" rel="noreferrer"
-              className="focus-ring mt-4 inline-block text-[13px] text-ember-hot underline underline-offset-4 hover:text-ember">Source code on GitHub</a>
+              className="focus-ring mt-4 inline-block text-[13px] text-ember-hot underline underline-offset-4 hover:text-ink">Source code on GitHub</a>
           </div>
         </div>
         <p className="mt-12 border-t border-rule pt-6 text-xs leading-relaxed text-ink-3">

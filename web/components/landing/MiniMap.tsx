@@ -5,13 +5,36 @@
 // latitude). Colours come from fireFill; sizes are small fixed pixel radii. With `numbered`, the top ten are larger
 // and carry their rank numerals. Without a day the empty frame keeps its size, so nothing jumps when data arrives.
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type Day, type Fire, type Mode, rankedFires } from "@/lib/replay";
 import { fireFill } from "@/lib/mapstyle";
+import { REGENCY_URL, type RegencyCollection } from "@/lib/regency";
 
 const PAD = 36;
 
 type Pt = { fire: Fire; x: number; y: number };
+type Ring = [number, number][];
+
+// West Kalimantan's regencies in the shared outline file (which covers all of Indonesia, plus a lake feature).
+const PROVINCE = new Set(["Bengkayang", "Kapuas Hulu", "Kayong Utara", "Ketapang", "Kota Pontianak", "Kota Singkawang", "Kubu Raya",
+  "Landak", "Melawi", "Mempawah", "Sambas", "Sanggau", "Sekadau", "Sintang"]);
+
+// Fetched once and shared by both maps; any failure resolves to null and the maps keep the dots-only look.
+let landPromise: Promise<Ring[] | null> | null = null;
+function loadLand(): Promise<Ring[] | null> {
+  landPromise ??= fetch(REGENCY_URL).then((r) => (r.ok ? (r.json() as Promise<RegencyCollection>) : null))
+    .then((d) => {
+      if (!d) return null;
+      const rings: Ring[] = [];
+      for (const f of d.features) {
+        if (!PROVINCE.has(f.properties.name)) continue;
+        const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+        for (const poly of polys) rings.push(poly[0] as Ring);
+      }
+      return rings.length ? rings : null;
+    }).catch(() => null);
+  return landPromise;
+}
 
 export default function MiniMap({ day, mode, numbered, label }: { day: Day | null; mode: Mode; numbered: boolean; label: string }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -25,6 +48,12 @@ export default function MiniMap({ day, mode, numbered, label }: { day: Day | nul
     return list.sort((a, b) => key(b) - key(a));
   }, [day]);
   const nRanked = useMemo(() => (day ? rankedFires(day).length : 0), [day]);
+  const [land, setLand] = useState<Ring[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadLand().then((r) => { if (alive && r) setLand(r); });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     const box = wrap.current, cv = canvas.current;
@@ -46,10 +75,30 @@ export default function MiniMap({ day, mode, numbered, label }: { day: Day | nul
         minLon = Math.min(minLon, f.lon); maxLon = Math.max(maxLon, f.lon);
         minLat = Math.min(minLat, f.lat); maxLat = Math.max(maxLat, f.lat);
       }
+      if (land) for (const ring of land) for (const [lon, lat] of ring) {
+        minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+        minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+      }
       const kx = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
       const spanX = Math.max((maxLon - minLon) * kx, 1e-6), spanY = Math.max(maxLat - minLat, 1e-6);
       const s = Math.min((w - 2 * PAD) / spanX, (h - 2 * PAD) / spanY);
       const ox = (w - spanX * s) / 2, oy = (h - spanY * s) / 2;
+      if (land) {
+        ctx.beginPath();
+        for (const ring of land) {
+          ring.forEach(([lon, lat], i) => {
+            const x = ox + (lon - minLon) * kx * s, y = oy + (maxLat - lat) * s;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.closePath();
+        }
+        ctx.fillStyle = "#E9DEC6";
+        ctx.fill();
+        ctx.strokeStyle = "#A8977A";
+        ctx.lineWidth = 1;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+      }
       const pts: Pt[] = fires.map((fire) => ({
         fire, x: ox + (fire.lon - minLon) * kx * s, y: oy + (maxLat - fire.lat) * s,
       }));
@@ -89,7 +138,7 @@ export default function MiniMap({ day, mode, numbered, label }: { day: Day | nul
             if (!hit({ x: p.x + sp[0], y: p.y + sp[1], w: tw, h: th })) { spot = sp; break; }
           }
           placed.push({ x: p.x + spot[0], y: p.y + spot[1], w: tw, h: th });
-          ctx.fillStyle = "#eef0ea";
+          ctx.fillStyle = "#2A1D12";
           ctx.fillText(text, p.x + spot[0], p.y + spot[1] + th / 2);
         }
       }
@@ -101,7 +150,7 @@ export default function MiniMap({ day, mode, numbered, label }: { day: Day | nul
     const ro = new ResizeObserver(draw);
     ro.observe(box);
     return () => { alive = false; ro.disconnect(); };
-  }, [fires, mode, numbered, nRanked]);
+  }, [fires, mode, numbered, nRanked, land]);
 
   return (
     <div ref={wrap} className="relative aspect-square w-full lg:aspect-[6/5] border border-rule bg-panel">

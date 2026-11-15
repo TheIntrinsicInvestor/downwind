@@ -90,7 +90,7 @@ function HowItWorks() {
             <li key={s.title}>
               <div className="flex items-start justify-between">
                 <span className="text-ink-2">{s.glyph}</span>
-                {s.ai && <span className="label border border-ember px-1.5 text-ember" title="Uses an AI model">AI</span>}
+                {s.ai && <span className="label border border-ember-hot px-1.5 text-ember-hot" title="Uses an AI model">AI</span>}
               </div>
               <p className="mt-5 flex items-baseline gap-2.5">
                 <span className="font-display text-2xl text-ember-hot">{k + 1}</span>

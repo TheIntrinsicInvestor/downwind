@@ -22,7 +22,7 @@ function CityView({ day, place, fire, onPlace, onFire }: Props) {
           id="place"
           value={place ?? ""}
           onChange={(e) => onPlace(e.target.value || null)}
-          className="focus-ring min-h-11 w-full appearance-none border border-rule bg-[#0b1017] py-2 pl-3 pr-9 text-sm text-ink transition-colors hover:border-ink-3"
+          className="focus-ring min-h-11 w-full appearance-none border border-ink/55 bg-bg [color-scheme:light] py-2 pl-3 pr-9 text-sm text-ink transition-colors hover:border-ink-3"
         >
           <option value="">Choose a place</option>
           {options.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -61,7 +61,7 @@ function CityView({ day, place, fire, onPlace, onFire }: Props) {
                       tabIndex={0}
                       onClick={() => onFire(c.fire)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFire(c.fire); } }}
-                      className="focus-ring-inset group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                      className="focus-ring-inset group cursor-pointer transition-colors hover:bg-ink/[0.04]"
                     >
                       <td className="py-2.5 pr-2">
                         <span className="text-ink group-hover:text-ember-hot">{f.place ?? `${f.lat.toFixed(2)}, ${f.lon.toFixed(2)}`}</span>

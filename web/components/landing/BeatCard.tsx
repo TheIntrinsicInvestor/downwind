@@ -23,7 +23,7 @@ type Props = {
 function BeatCard({ beat, active, emphasis, variant, children }: Props) {
   const titleId = `beat-${beat.id}-${variant}`;
   const shell = variant === "float"
-    ? "panel w-full p-7 shadow-[0_24px_60px_rgb(0_0_0/0.45)]"
+    ? "panel w-full p-7 shadow-[0_6px_24px_rgb(80_55_30/0.12)]"
     : "w-full px-4 pb-6 pt-5";
   return (
     <article

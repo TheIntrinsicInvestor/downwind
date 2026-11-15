@@ -1,21 +1,24 @@
 @import "tailwindcss";
 
-/* Design tokens (spec section 4). */
+/* Design tokens: paper theme (15 Nov 2026). Warm light paper, print-like; no glows. */
 :root {
-  --bg: #05070b;
-  --land: #263b46;
-  --water: #071522;
-  --coast: #7293a3;
-  --ink: #eef0ea;
-  --ink-2: #b9c1cc;
-  --ink-3: #8d97a6;
-  --ember: #ff7a2e;
-  --ember-hot: #ffd08a;
-  --ember-core: #fff3dc;
-  --smoke: #d6dee8;
-  --rule: rgb(238 240 234 / 0.14);
-  --panel: rgb(11 16 23 / 0.88);
-  --official: #7fd0ff;           /* Priority 1 in the official view (lib/mapstyle.ts officialColor(1)) */
+  --bg: #EFE6D4;
+  --land: #E9DEC6;
+  --water: #D5C8AD;
+  --coast: #A8977A;
+  --ink: #2A1D12;
+  --ink-2: #5A4532;
+  --ink-3: #6F6453;
+  --ember: #E5391B;              /* fire red: fills, bars, chart area; not for small text */
+  --ember-hot: #B32A10;          /* red for text, numerals, chart line, focus ring */
+  --ember-core: #B32A10;         /* top-10 fire fill, slider thumb, chart marker */
+  --smoke: #7A5430;
+  --ochre: #85612E;
+  --rule: rgb(42 29 18 / 0.18);
+  --rule-strong: rgb(42 29 18 / 0.3);   /* scrollbar thumb, unfilled slider track */
+  --panel: rgb(243 236 222 / 0.96);
+  --attrib: rgb(239 230 212 / 0.95);    /* map attribution background (bone) */
+  --official: #1C3A70;           /* Priority 1 in the official view (lib/mapstyle.ts officialColor(1)) */
 }
 
 @theme inline {
@@ -26,6 +29,7 @@
   --color-ember: var(--ember);
   --color-ember-hot: var(--ember-hot);
   --color-ember-core: var(--ember-core);
+  --color-ochre: var(--ochre);
   --color-rule: var(--rule);
   --color-panel: var(--panel);
   --color-official: var(--official);
@@ -85,11 +89,11 @@ body {
 
   .scroll-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgb(238 240 234 / 0.22) transparent;
+    scrollbar-color: var(--rule-strong) transparent;
     overscroll-behavior: contain;
   }
 
-  /* Time slider: hairline track, ember fill up to the thumb (--fill), bright thumb. */
+  /* Time slider: hairline track, ember fill up to the thumb (--fill), solid thumb. */
   .range {
     -webkit-appearance: none;
     appearance: none;
@@ -99,9 +103,9 @@ body {
   }
   .range::-webkit-slider-runnable-track {
     height: 2px;
-    background: linear-gradient(to right, var(--ember) var(--fill, 0%), rgb(238 240 234 / 0.24) var(--fill, 0%));
+    background: linear-gradient(to right, var(--ember) var(--fill, 0%), var(--rule-strong) var(--fill, 0%));
   }
-  .range::-moz-range-track { height: 2px; background: rgb(238 240 234 / 0.24); }
+  .range::-moz-range-track { height: 2px; background: var(--rule-strong); }
   .range::-moz-range-progress { height: 2px; background: var(--ember); }
   .range::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -110,7 +114,7 @@ body {
     margin-top: -6px;
     border-radius: 50%;
     background: var(--ember-core);
-    box-shadow: 0 0 0 3px rgb(255 122 46 / 0.45);
+    box-shadow: 0 0 0 2px var(--bg);
   }
   .range::-moz-range-thumb {
     width: 14px;
@@ -118,7 +122,7 @@ body {
     border: 0;
     border-radius: 50%;
     background: var(--ember-core);
-    box-shadow: 0 0 0 3px rgb(255 122 46 / 0.45);
+    box-shadow: 0 0 0 2px var(--bg);
   }
   .range:focus-visible { outline: none; }
   .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ember-hot); }
@@ -136,15 +140,15 @@ body {
   .dw-enter { animation: none; }
 }
 
-/* Map attribution on the dark map; on phones it rides above the bottom sheet (AppShell sets --dw-sheet-h). */
+/* Map attribution on the light map; on phones it rides above the bottom sheet (AppShell sets --dw-sheet-h). */
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
 .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {
-  background: rgb(5 7 11 / 0.75);
+  background: var(--attrib);
   color: var(--ink-3);
   font-size: 10px;
 }
 .maplibregl-map .maplibregl-ctrl-attrib a { color: var(--ink-3); }
-.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1) opacity(0.6); }
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button { background-color: transparent; filter: opacity(0.6); }
 @media (max-width: 767px) {
   .maplibregl-map .maplibregl-ctrl-bottom-right { bottom: var(--dw-sheet-h, 0px); }
 }

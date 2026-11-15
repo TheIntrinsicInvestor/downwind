@@ -8,6 +8,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, type MouseEvent } from "
 import { useReplay } from "@/components/ReplayProvider";
 import TopBar from "@/components/landing/TopBar";
 import Hero, { type LoadStatus } from "@/components/landing/Hero";
+import HeroCallouts from "@/components/landing/HeroCallouts";
 import Stakes from "@/components/landing/Stakes";
 import Story from "@/components/landing/Story";
 import Practice from "@/components/landing/Practice";
@@ -63,6 +64,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       <TopBar onOpenApp={openApp} />
+      <HeroCallouts day={story} facts={facts} />
       <Hero facts={facts} status={status} onRetry={retry} onOpenApp={openApp} onSeeHow={seeHow} />
       <Stakes />
       {status !== "failed" && <Story day={story} beats={beats} facts={facts} beatRef={beatRef} onOpenApp={openApp} />}

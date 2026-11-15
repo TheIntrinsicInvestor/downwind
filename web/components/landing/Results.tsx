@@ -51,7 +51,7 @@ function Results({ limits, limitsError }: { limits: Limits | null; limitsError: 
         )}
         <p className="mt-14 border-t border-rule pt-6 text-[15px] text-ink-2">
           What this does not show is in the{" "}
-          <Link href="/app?panel=limits" className="focus-ring text-ember-hot underline underline-offset-4 hover:text-ember">live map&apos;s Limits panel</Link>.
+          <Link href="/app?panel=limits" className="focus-ring text-ember-hot underline underline-offset-4 hover:text-ink">live map&apos;s Limits panel</Link>.
         </p>
       </div>
     </section>

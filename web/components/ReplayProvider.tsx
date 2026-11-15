@@ -27,6 +27,7 @@ export type Replay = {
   chatEnabled: boolean | null;     // GET /api/chat once; false on any failure
   flyTo(c: Camera, opts?: { instant?: boolean }): void;
   mapReady: boolean; mapError: string | null;
+  getMap(): MapLibreMap | null;    // the shared map once mapReady, read-only use (project, on/off): never move the camera
   // false while the landing page shows: the map ignores pointer and keyboard input so the page scrolls over it.
   mapInteractive: boolean; setMapInteractive(i: boolean): void;
   liveSelected: boolean; showLive(): void;
@@ -211,6 +212,8 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
     else pendingCamera.current = c;
   }, []);
 
+  const getMap = useCallback(() => mapRef.current, []);
+
   const binding = useMemo<StageBinding>(() => ({
     attach(map) {
       mapRef.current = map;
@@ -234,7 +237,7 @@ export default function ReplayProvider({ children }: { children: ReactNode }) {
     index, date: liveData?.day.date ?? date, setDate, day, bin: data?.bin ?? null, error, retry,
     frame, setFrame, playing, setPlaying, selected, select, selectedDistrict: selected === null ? null : selectedDistrict, selectSeq, mode, setMode, place, setPlace, panel, setPanel,
     limits: liveData?.limits ?? limits, limitsError, storyFocus, setStoryFocus, focus,
-    chatEnabled: liveData ? false : chatEnabled, flyTo, mapReady, mapError,
+    chatEnabled: liveData ? false : chatEnabled, flyTo, mapReady, mapError, getMap,
     mapInteractive, setMapInteractive, liveSelected, showLive,
     feedManifest: liveData?.manifest ?? null, feedUnavailable, feedStale,
   };

@@ -10,8 +10,8 @@ import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "deck.gl";
 import { decodeFrame, rankedFires } from "@/lib/replay";
 import { OPENING_CAMERA, BASEMAP_HIDDEN, BASEMAP_PAINT, BASEMAP_STYLE, FOCUS_SMOKE_RANGE, INK, MAP_BOUNDS, MAP_MAX_ZOOM, PLACE_LABELS,
-  PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
-  pickFire, smokeColorDomain, smokeRadiusPixels, topHaze } from "@/lib/mapstyle";
+  PICK_RADIUS, PLACE_LABEL_MIN_ZOOM, PROVINCE_BOUNDARY, PROVINCE_BOUNDARY_MIN_ZOOM, type RGBA, SMOKE_RANGE, SMOKE_TEXTURE_SIZE, fireFill, fireGlow, fireRadius, glowScale,
+  pickFire, smokeColorDomain, smokeRadiusPixels } from "@/lib/mapstyle";
 import { REGENCY_URL, type RegencyCollection, highlightPadding, regencyBounds, regencyByName } from "@/lib/regency";
 import { useReplay, useStageBinding } from "./ReplayProvider";
 
@@ -33,27 +33,23 @@ function restyle(map: Map) {
     const layer = map.getLayer(id);
     if (layer) map.setLayerZoomRange(id, PLACE_LABEL_MIN_ZOOM, layer.maxzoom ?? 24);
   }
+  if (map.getLayer(PROVINCE_BOUNDARY)) map.setLayerZoomRange(PROVINCE_BOUNDARY, PROVINCE_BOUNDARY_MIN_ZOOM, 24);
 }
 
-// A soft white radial-gradient sprite (the mockup's glowDot falloff), tinted per fire and blended additively.
+// A soft white radial-gradient sprite used as a mask, tinted per fire and alpha-blended as a halo.
 function glowSprite(): string {
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const ctx = c.getContext("2d")!;
   const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.15, "rgba(255,255,255,0.9)");
-  g.addColorStop(0.55, "rgba(255,255,255,0.25)");
+  g.addColorStop(0, "rgba(255,255,255,0.9)");
+  g.addColorStop(0.35, "rgba(255,255,255,0.5)");
   g.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
   return c.toDataURL();
 }
 const GLOW_MAPPING = { glow: { x: 0, y: 0, width: 64, height: 64, mask: true } };
-const ADDITIVE = {
-  blend: true, blendColorOperation: "add", blendColorSrcFactor: "src-alpha", blendColorDstFactor: "one",
-  blendAlphaOperation: "add", blendAlphaSrcFactor: "one", blendAlphaDstFactor: "one", depthCompare: "always",
-} as const;
 
 // `data` is the heatmap layer's attribute object, built once per frame so its identity only changes with the frame.
 type Smoke = { n: number; data: { length: number; attributes: { getPosition: { value: Float32Array; size: 2 }; getWeight: { value: Float32Array; size: 1 } } } };
@@ -143,9 +139,9 @@ export default function MapStage() {
         const before = map.getStyle().layers.find((layer) => layer.type === "symbol")?.id;
         const filter = ["==", ["get", "name"], ""] as never;
         map.addLayer({ id: "regency-fill", type: "fill", source: "regency", filter,
-          paint: { "fill-color": "#eef0ea", "fill-opacity": 0.1 } }, before);
+          paint: { "fill-color": "#2A1D12", "fill-opacity": 0.06 } }, before);
         map.addLayer({ id: "regency-outline", type: "line", source: "regency", filter,
-          paint: { "line-color": "#eef0ea", "line-width": 2, "line-opacity": 0.95 } }, before);
+          paint: { "line-color": "#2A1D12", "line-width": 2, "line-opacity": 0.85 } }, before);
       }
       show(name);
       const r = regencyByName(data, name);
@@ -252,19 +248,17 @@ export default function MapStage() {
         sizeScale: glowScale(zoom),
         getColor: (i) => look(i).color,
         alphaCutoff: 0,
-        parameters: ADDITIVE,
         updateTriggers: { getSize: [day.date, mode], getColor: [day.date, mode] },
       });
     overlay.current.setProps({
       layers: [
-        heat("smoke", smoke.rest, SMOKE_RANGE, focusSet ? 0.45 : 1),
+        heat("smoke", smoke.rest, SMOKE_RANGE, focusSet ? 0.6 : 1),
         heat("smoke-focus", smoke.focused, FOCUS_SMOKE_RANGE, 1),
         glow("glow", fireSets.glow, (i) => fireGlow(fires[i], mode, nRanked)!),
-        glow("haze", fireSets.top, (i) => topHaze(fires[i].rank as number)),
         glow("glow-top", fireSets.top, (i) => fireGlow(fires[i], mode, nRanked)!),
         dots("fires", fireSets.rest, 1, 2.5),
         dots("top", fireSets.top, 2.5, 5),
-        // The selected or focused fires get a ring, in screen pixels and clear of the dot so it shows on a white core.
+        // The selected or focused fires get a ring, in screen pixels and clear of the dot, in dark ink so it shows on the paper.
         new ScatterplotLayer<number>({
           id: "ring",
           data: focus ?? [],
