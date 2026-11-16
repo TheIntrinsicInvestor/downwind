@@ -156,9 +156,11 @@ Each run also keeps a detection archive at `detections/archive.csv` on the `live
 
 ## AI tools and models
 
-- **Claude Code** (Anthropic) wrote the code under the direction of the team, which set requirements, reviewed and ran it.
+- **Claude Code** (Anthropic) and **OpenAI Codex** wrote the code under the direction of the team, which set requirements, reviewed and ran it.
 - **Nebius Token Factory:** `deepseek-ai/DeepSeek-V4-Pro-0813` and `MiniMaxAI/MiniMax-M3` write the bulletins (generated in advance and stored in the replay files) and answer the local chat.
 - **scikit-learn** `HistGradientBoostingClassifier` is the persistence model.
+- **ElevenLabs** voiced the demo video narration (free tier). The video was recorded and edited with Claude Code agents using Playwright and Remotion; its music was synthesised in code.
+- **Google Gemini** generated the image the logo was traced from.
 
 ## Statement of work
 
@@ -172,13 +174,27 @@ On 12 November an accidental `rm -rf .git` deleted this repository's history. Th
 
 The original Overpass download failed across three mirrors on 12 November. The fire card now uses a bundled road-only grid built from the Geofabrik extract. The optional extraction command also prepares a separate waterway lookup for offline use.
 
-**Built during the event (14 to 15 November):** to be completed at the end of the build.
+**Built during the event (14 to 15 November)**, in pull requests #3 to #38:
+
+- the live daily feed: a morning snapshot from NASA FIRMS published by GitHub Actions, with a 21-day detection archive, snapshot validation and reliability fixes;
+- persistence weighting on the live feed (August to November), tested on NOAA-21 without retraining;
+- the 2026 forecast test (0.59 against 0.45 for counting nearby fires) and a check of 13 model-improvement ideas, none adopted (kept outside this repository);
+- on the fire card, the distance to the nearest mapped road and per-place smoke arrival and peak times;
+- the Protect tab: arrival and peak times, a 48-hour smoke chart per place, a dropdown of affected places, the chosen place outlined on the map, and an origin-of-smoke table;
+- the landing page: the scroll story, stakes figures with updated sources, how Downwind differs, what it adds, and its limits;
+- the paper theme with Newsreader and Public Sans, and phone layout fixes.
+
+On 16 November, the morning set aside for recording and documentation, the team made the narrated demo video and the final deck.
+
+**Submission materials:** the [release `demo-video`](https://github.com/TheIntrinsicInvestor/downwind/releases/tag/demo-video) holds the pitch deck (.pptx, with the demo embedded), its PDF and the 2:59 demo video.
 
 ## Future work
 
 See the [infrastructure checklist](docs/infrastructure-todo.md) for remaining operational checks.
 
-- A pilot morning with one provincial task force.
+- Extend to Indonesia's other peat provinces (Central Kalimantan, South Sumatra, Riau, Jambi), which use the same P.8/2018 rule.
+- Then other smoke seasons: Sarawak's peat fires, the February to April burning season in northern Thailand, Laos and Myanmar, and the Amazon fire season in Brazil and Bolivia.
+- Each region is tested against local haze (airport visibility or air-quality records) before use, as West Kalimantan was. The inputs (NASA fire detections, ECMWF winds, WorldPop) are already global.
 
 ## Licence
 
